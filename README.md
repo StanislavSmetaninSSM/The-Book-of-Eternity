@@ -41,3 +41,12 @@ The engine operates on a turn-based loop that transforms player input into a com
 -   To build a world that genuinely remembers and reacts to player choice on a granular level.
 -   To bridge the gap between the infinite freedom of tabletop RPGs and the accessibility of video games.
 -   To create a robust and extensible engine that other developers can use to build their own LLM-powered narrative games.
+
+
+ДЛЯ РУССКОЯЗЫЧНЫХ:
+
+Небольшое пояснение. Эта игра - своего рода эксперимент, и на данный момент, текущие нейросети (Gemini 2.5 Flash) с ней не справляются. Каждый ход занимает очень много времени.
+Но, тем не менее, эта игра сделана по принципу "компьютерной игры". Она имеет полынй набор различных правил, которые регулируют почти все возможное взаимодействие с миром.
+В будущем, при появлении более быстрых нейросетей, она станет более играбельной.
+Поэтому - не переживайте, что у вас слишком долго грузится игра. Пока что, так и должно быть.
+Вы можете сделать свой проект на основе представленного кода. Давайте развивать игры с LLM вместе!
