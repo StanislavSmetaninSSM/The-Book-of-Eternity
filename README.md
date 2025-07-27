@@ -1,3 +1,31 @@
+HOW TO PLAY:
+
+1) Open a Google AI Studio project by this link:
+https://aistudio.google.com/app/prompts?state=%7B%22ids%22:%5B%221CEbA4KccS6Zg2JX5HCdNd4HDxEtd3lvc%22%5D,%22action%22:%22open%22,%22userId%22:%22106134667802753756847%22,%22resourceKeys%22:%7B%7D%7D&usp=sharing
+2) Or build it yourself.
+
+PLAY AND HAVE FUN!
+
+⠄⠄⠄⠄⠄⠄⠄⠄⠄⣀⡀⠄⢶⣄⡘⣶⣄⠄⠄⠄⠄⠄⠄⠄
+⠄⠄⠄⢠⣤⣀⡸⣿⣶⣿⣿⣷⣾⣿⣿⣿⣿⣦⣼⣆⠄⠄⠄⠄
+⠄⢀⣒⣶⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣤⣾⠃⠄
+⠠⣼⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣯⣤⠄
+⠲⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⡿⠟⠛⠻⢿⣿⣿⣥⠄
+⠘⢿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⡿⠛⠁⠄⠄⠄⠘⠃⠄⠉⢳⡷
+⠄⠈⣿⣿⣿⣿⣿⣿⣿⠿⠋⠉⠄⠄⠄⠄⢀⡤⠦⠦⠴⠒⠋⠄
+⠄⠄⠘⢦⡉⠙⠉⠉⠄⠄⠄⠄⣀⣀⠄⢠⡏⠄⠄⠄⠄⠄⠄⠄
+⠄⠄⠄⠄⢻⡀⠐⣏⠉⠉⠉⠉⠉⠘⢦⡀⢳⡄⠄⠄⠄⠄⠄⠄
+⠄⠄⠄⠄⠄⠉⠳⠚⠋⠄⠄⠄⠄⠤⠄⠉⠭⠄⠄⠄⠄⠄⠄⠄
+
+ДЛЯ РУССКОЯЗЫЧНЫХ:
+
+Небольшое пояснение. Эта игра - своего рода эксперимент, и на данный момент, текущие нейросети (Gemini 2.5 Flash) с ней не справляются. Каждый ход занимает очень много времени.
+Но, тем не менее, эта игра сделана по принципу "компьютерной игры". Она имеет полный набор различных правил, которые регулируют почти все возможное взаимодействие с миром.
+В будущем, при появлении более быстрых нейросетей, она станет полностью играбельной.
+Ответ от игры (на данный момент) может идти по 5-7 минут, из-за слишком долгих расчетов на стороне нейросети.
+Вы можете сделать свой проект на основе представленного кода. Прошу лишь упомянуть данный проект в описании своего, если вы позаимствовали из него что-либо. Давайте развивать игры с LLM вместе!
+
+
 ## What is The Book of Eternity?
 
 The Book of Eternity is not just a game; it's a dynamic storytelling engine. At its core, it's a solo RPG experience where a sophisticated Large Language Model (LLM) takes on the role of the Game Master (GM). Unlike traditional video games with pre-scripted quests and limited dialogue trees, The Book of Eternity generates the world, its inhabitants, and the unfolding narrative in real-time, based entirely on your actions and the established rules of the universe.
@@ -41,12 +69,3 @@ The engine operates on a turn-based loop that transforms player input into a com
 -   To build a world that genuinely remembers and reacts to player choice on a granular level.
 -   To bridge the gap between the infinite freedom of tabletop RPGs and the accessibility of video games.
 -   To create a robust and extensible engine that other developers can use to build their own LLM-powered narrative games.
-
-
-ДЛЯ РУССКОЯЗЫЧНЫХ:
-
-Небольшое пояснение. Эта игра - своего рода эксперимент, и на данный момент, текущие нейросети (Gemini 2.5 Flash) с ней не справляются. Каждый ход занимает очень много времени.
-Но, тем не менее, эта игра сделана по принципу "компьютерной игры". Она имеет полный набор различных правил, которые регулируют почти все возможное взаимодействие с миром.
-В будущем, при появлении более быстрых нейросетей, она станет полностью играбельной.
-Поэтому - не переживайте, что у вас слишком долго грузится игра. Пока что, так и должно быть. Ответ от игры может идти по 5-7 минут, из-за слишком долгих расчетов на стороне нейросети.
-Вы можете сделать свой проект на основе представленного кода. Прошу лишь упомянуть данный проект в описании своего, если вы позаимствовали из него что-либо. Давайте развивать игры с LLM вместе!
