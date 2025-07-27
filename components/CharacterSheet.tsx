@@ -1,0 +1,490 @@
+import React, { useState, useMemo } from 'react';
+import { PlayerCharacter, Item, ActiveSkill, PassiveSkill, Effect, Wound, GameSettings } from '../types';
+import {
+    HeartIcon, ShieldCheckIcon, StarIcon, ArchiveBoxIcon, // Main Stats
+    BoltIcon, // Energy
+    ScaleIcon, // Weight
+    UserCircleIcon, // Character
+    RectangleStackIcon, // Inventory
+    SparklesIcon, // Skills
+    ExclamationTriangleIcon, // Conditions
+    ShieldExclamationIcon, // Wounds
+    SunIcon, // Buffs
+    CloudIcon, // Debuffs
+    AcademicCapIcon, // Stats
+    CurrencyDollarIcon,
+    InformationCircleIcon,
+    Squares2X2Icon,
+    PlusCircleIcon,
+    ClockIcon,
+} from '@heroicons/react/24/outline';
+import { 
+    FireIcon as FireSolidIcon, 
+    ShieldCheckIcon as ShieldCheckSolidIcon, 
+    SparklesIcon as SparklesSolidIcon,
+    LightBulbIcon as LightBulbSolidIcon,
+    SunIcon as SunSolidIcon,
+    HandRaisedIcon as HandRaisedSolidIcon,
+} from '@heroicons/react/24/solid';
+import { useLocalization } from '../context/LocalizationContext';
+
+interface CharacterSheetProps {
+  character: PlayerCharacter;
+  gameSettings: GameSettings | null;
+  onOpenModal: (title: string, data: any) => void;
+  onOpenInventory: () => void;
+  onSpendAttributePoint: (characteristic: string) => void;
+}
+
+const StatBar: React.FC<{ 
+    value: number; 
+    max: number; 
+    color: string; 
+    label: string; 
+    unit?: string;
+    icon: React.FC<React.SVGProps<SVGSVGElement>>;
+    onClick: () => void;
+}> = ({ value, max, color, label, unit = '', icon: Icon, onClick }) => (
+  <button onClick={onClick} className="w-full text-left group transition-transform transform hover:scale-[1.02]">
+    <div className="flex justify-between items-center mb-1">
+        <div className="flex items-center gap-2">
+            <Icon className={`w-4 h-4 ${color.replace('bg-', 'text-')}`} />
+            <span className="text-sm font-medium text-gray-300 group-hover:text-cyan-300">{label}</span>
+        </div>
+      <span className="text-sm font-mono text-gray-400">{value}{unit} / {max}{unit}</span>
+    </div>
+    <div className="w-full bg-gray-700/50 rounded-full h-2">
+      <div className={`${color} h-2 rounded-full transition-all duration-500`} style={{ width: max > 0 ? `${(value / max) * 100}%` : '0%' }}></div>
+    </div>
+  </button>
+);
+
+const qualityColorMap: Record<string, string> = {
+    'Trash': 'text-gray-500 border-gray-700',
+    'Common': 'text-gray-300 border-gray-500',
+    'Uncommon': 'text-green-400 border-green-700/80',
+    'Good': 'text-blue-400 border-blue-700/80',
+    'Rare': 'text-indigo-400 border-indigo-700/80',
+    'Epic': 'text-purple-400 border-purple-700/80',
+    'Legendary': 'text-orange-400 border-orange-700/80',
+    'Unique': 'text-yellow-400 border-yellow-600/80',
+};
+
+const TABS = [
+    { name: 'Stats', icon: AcademicCapIcon },
+    { name: 'Combat', icon: ShieldCheckSolidIcon },
+    { name: 'Inventory', icon: RectangleStackIcon },
+    { name: 'Skills', icon: SparklesIcon },
+    { name: 'Conditions', icon: ExclamationTriangleIcon },
+];
+
+export default function CharacterSheet({ character, gameSettings, onOpenModal, onOpenInventory, onSpendAttributePoint }: CharacterSheetProps): React.ReactNode {
+  const [activeTab, setActiveTab] = useState(TABS[0].name);
+  const { t } = useLocalization();
+
+  const currencyName = gameSettings?.gameWorldInformation?.currencyName || 'Gold';
+
+  const derivedStats = useMemo(() => {
+    if (!character) return null;
+
+    const { level, characteristics } = character;
+    const { 
+        modifiedStrength, modifiedDexterity, modifiedConstitution, 
+        modifiedIntelligence, modifiedWisdom, modifiedFaith,
+        modifiedLuck, modifiedSpeed 
+    } = characteristics;
+
+    // From 5.7.2
+    const levelAttackBonus = 5 + Math.floor(level / 10) * 2;
+    const levelResistance = Math.floor(level / 10) * 2;
+
+    // From 5.7.4
+    const strAttackBonus = Math.floor(modifiedStrength / 2.5);
+    const precisionAttackBonus = Math.floor(modifiedDexterity / 2.5);
+    const speedAttackBonus = Math.floor(modifiedSpeed / 2.5);
+    const arcaneAttackBonus = Math.floor(modifiedIntelligence / 2.5);
+    const willpowerAttackBonus = Math.floor(modifiedWisdom / 2.5);
+    const divineAttackBonus = Math.floor(modifiedFaith / 2.5);
+
+    const conResistance = Math.floor(modifiedConstitution / 10);
+    const critDamageLuckBonus = Math.floor(modifiedLuck / 2);
+    const finalCritMultiplier = 1.5 + (critDamageLuckBonus / 100);
+
+    const totalMeleeAttackBonus = levelAttackBonus + strAttackBonus;
+    const totalPrecisionAttackBonus = levelAttackBonus + precisionAttackBonus;
+    const totalSpeedAttackBonus = levelAttackBonus + speedAttackBonus;
+    const totalArcaneAttackBonus = levelAttackBonus + arcaneAttackBonus;
+    const totalWillpowerAttackBonus = levelAttackBonus + willpowerAttackBonus;
+    const totalDivineAttackBonus = levelAttackBonus + divineAttackBonus;
+
+    const totalGeneralResistance = levelResistance + conResistance;
+
+    return {
+        levelAttackBonus,
+        levelResistance,
+        strAttackBonus,
+        precisionAttackBonus,
+        speedAttackBonus,
+        arcaneAttackBonus,
+        willpowerAttackBonus,
+        divineAttackBonus,
+        conResistance,
+        critDamageLuckBonus,
+        finalCritMultiplier,
+        totalMeleeAttackBonus,
+        totalPrecisionAttackBonus,
+        totalSpeedAttackBonus,
+        totalArcaneAttackBonus,
+        totalWillpowerAttackBonus,
+        totalDivineAttackBonus,
+        totalGeneralResistance
+    };
+  }, [character]);
+
+  if (!character) {
+      return null;
+  }
+
+  const isEquipped = (itemId: string | null): boolean => {
+      if (!itemId || !character.equippedItems) return false;
+      return Object.values(character.equippedItems).includes(itemId);
+  }
+
+  const renderStats = () => (
+    <div className="space-y-4">
+        {(character?.attributePoints ?? 0) > 0 && (
+            <div className="p-3 bg-yellow-500/10 border border-yellow-500/20 rounded-lg text-center">
+                <p className="font-bold text-yellow-300">
+                    {t("You have {points} attribute points to spend!", { points: character.attributePoints })}
+                </p>
+                <p className="text-xs text-yellow-400/80">{t("Click the '+' next to a characteristic to increase it.")}</p>
+            </div>
+        )}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+            {Object.keys(character?.characteristics ?? {}).filter(k => k.startsWith('standard')).map(key => {
+                const charNameRaw = key.replace('standard', '');
+                const charName = charNameRaw.charAt(0).toLowerCase() + charNameRaw.slice(1);
+                const standardKey = `standard${charNameRaw}` as keyof typeof character.characteristics;
+                const modifiedKey = `modified${charNameRaw}` as keyof typeof character.characteristics;
+                const baseValue = character.characteristics[standardKey];
+                const modifiedValue = character.characteristics[modifiedKey];
+                const difference = modifiedValue - baseValue;
+                const canUpgrade = character.attributePoints > 0;
+                const isCapped = baseValue >= 100;
+
+                return (
+                     <div key={key} className="bg-gray-700/40 p-3 rounded-lg flex items-center justify-between shadow-inner group relative">
+                        <button onClick={() => onOpenModal(t("Characteristic: {name}", { name: t(charName) }), {type: 'characteristic', name: charName, value: modifiedValue})} className="w-full text-left flex items-center justify-between group-hover:text-cyan-300">
+                            <span className="text-gray-300 capitalize text-sm font-semibold">{t(charName)}</span>
+                            <div className="flex items-baseline gap-2">
+                                <span className="font-bold text-2xl text-cyan-400 font-mono">{modifiedValue}</span>
+                                {difference !== 0 && (
+                                    <span className={`text-xs font-mono ${difference > 0 ? 'text-green-400' : 'text-red-400'}`}>
+                                        ({baseValue}{difference > 0 ? '+' : ''}{difference})
+                                    </span>
+                                )}
+                            </div>
+                        </button>
+                         {canUpgrade && (
+                             <button
+                                 onClick={() => onSpendAttributePoint(charName)}
+                                 disabled={isCapped}
+                                 className={`absolute -right-2 -top-2 p-0.5 rounded-full text-white transform transition-transform ${isCapped ? 'bg-gray-600 cursor-not-allowed' : 'bg-green-600 hover:bg-green-500 hover:scale-110'}`}
+                                 title={isCapped ? t("Characteristic is at its maximum.") : t("Increase {name}", { name: t(charName) })}
+                             >
+                                 <PlusCircleIcon className="w-5 h-5" />
+                             </button>
+                         )}
+                    </div>
+                )
+            })}
+        </div>
+    </div>
+  );
+  
+  const renderInventory = (items: Item[]) => (
+    <div className="space-y-2">
+      <div className="flex justify-end mb-2">
+        <button
+          onClick={onOpenInventory}
+          className="flex items-center gap-2 px-3 py-1.5 text-xs font-semibold text-cyan-300 bg-cyan-500/10 rounded-md hover:bg-cyan-500/20 transition-colors"
+        >
+          <Squares2X2Icon className="w-4 h-4" />
+          {t('Manage Inventory')}
+        </button>
+      </div>
+      {(items ?? []).length > 0 ? (items ?? []).map((item, index) => (
+        <button key={item.existedId || index} onClick={() => onOpenModal(t("Item: {name}", { name: item.name }), item)} className={`w-full text-left p-3 rounded-md border-l-4 ${qualityColorMap[item.quality] || 'border-gray-500'} bg-gray-700/50 shadow-sm hover:bg-gray-700/80 hover:border-cyan-400 transition-colors`}>
+          <div className="flex justify-between items-start">
+            <span className={`font-semibold ${qualityColorMap[item.quality]?.split(' ')[0] || 'text-gray-200'}`}>
+                {item.name} {item.count > 1 ? `(x${item.count})` : ''}
+            </span>
+            {isEquipped(item.existedId) && <span className="text-xs bg-cyan-500/20 text-cyan-300 px-2 py-0.5 rounded-full">{t('Equipped')}</span>}
+          </div>
+          <p className="text-sm text-gray-400 italic my-1 line-clamp-2">{item.description}</p>
+        </button>
+      )) : <p className="text-sm text-gray-500 text-center p-4">{t('Your pockets are empty.')}</p>}
+    </div>
+  );
+
+  const renderSkills = (active: ActiveSkill[], passive: PassiveSkill[]) => {
+    const Section = ({ title, children }: { title: string; children: React.ReactNode }) => (
+        <div className="mt-4">
+            <h4 className="text-sm font-bold text-cyan-300/80 uppercase tracking-wider mb-3 pb-1 border-b border-cyan-500/20">{title}</h4>
+            <div className="space-y-3">
+                {children}
+            </div>
+        </div>
+    );
+    return (
+     <div className="space-y-4">
+      <Section title={t('Active Skills')}>
+        {(active ?? []).length > 0 ? (active ?? []).map((skill, index) => {
+            const masteryData = character.skillMasteryData.find(m => m.skillName.toLowerCase() === skill.skillName.toLowerCase());
+            const masteryProgress = (masteryData && masteryData.masteryProgressNeeded > 0) 
+                ? (masteryData.currentMasteryProgress / masteryData.masteryProgressNeeded) * 100 
+                : 0;
+            return (
+            <button key={index} onClick={() => onOpenModal(t("Active Skill: {name}", { name: skill.skillName }), { ...skill, owner: 'player' })} className={`w-full text-left bg-gray-700/50 p-3 rounded-md border-l-4 ${qualityColorMap[skill.rarity] || 'border-gray-500'} shadow-sm hover:bg-gray-700/80 hover:border-cyan-400 transition-colors`}>
+                <div className="flex justify-between items-baseline flex-wrap gap-x-4 gap-y-1">
+                    <span className={`font-semibold ${qualityColorMap[skill.rarity]?.split(' ')[0] || 'text-gray-200'} flex items-center gap-2 text-lg`}>
+                        {skill.skillName}
+                        {character.autoCombatSkill === skill.skillName && (
+                            <span className="text-xs bg-yellow-500/20 text-yellow-300 px-2 py-0.5 rounded-full font-mono">{t('AUTO')}</span>
+                        )}
+                    </span>
+                    <div className="text-xs space-x-3 flex items-center text-gray-400">
+                        {masteryData && (
+                             <span className="font-semibold whitespace-nowrap flex items-center gap-1.5">{t('Mastery Level')}: <span className="text-cyan-300 font-bold text-sm">{masteryData.currentMasteryLevel ?? '?'}/{masteryData.maxMasteryLevel ?? '?'}</span></span>
+                        )}
+                        {skill.energyCost && <span className="flex items-center gap-1"><BoltIcon className="w-3 h-3 text-blue-400"/>{skill.energyCost} E</span>}
+                        {skill.cooldownTurns != null && <span className="flex items-center gap-1"><ClockIcon className="w-3 h-3 text-purple-400"/>CD: {skill.cooldownTurns}T</span>}
+                    </div>
+                </div>
+                <p className="text-sm text-gray-400 italic mt-2 line-clamp-2">{skill.skillDescription}</p>
+                {masteryData && masteryData.masteryProgressNeeded > 0 && (
+                    <div className="mt-2">
+                        <div className="flex justify-between items-center text-xs text-gray-400 mb-1">
+                            <span className="font-medium">{t('Progress')}</span>
+                            <span className="font-mono">{masteryData.currentMasteryProgress ?? '?'}/{masteryData.masteryProgressNeeded ?? '?'}</span>
+                        </div>
+                        <div className="w-full bg-gray-800/70 rounded-full h-2 overflow-hidden">
+                            <div className="bg-cyan-500 h-2 rounded-full transition-all duration-300" style={{width: `${masteryProgress}%`}}></div>
+                        </div>
+                    </div>
+                )}
+            </button>
+        )}) : <p className="text-sm text-gray-500 text-center p-2">{t('No active skills known.')}</p>}
+      </Section>
+       <Section title={t('Passive Skills')}>
+        {(passive ?? []).length > 0 ? (passive ?? []).map((skill, index) => (
+            <button key={index} onClick={() => onOpenModal(t("Passive Skill: {name}", { name: skill.skillName }), skill)} className={`w-full text-left bg-gray-700/50 p-3 rounded-md border-l-4 ${qualityColorMap[skill.rarity] || 'border-gray-500'} shadow-sm hover:bg-gray-700/80 hover:border-cyan-400 transition-colors`}>
+                <div className="flex justify-between items-start">
+                    <span className={`font-semibold ${qualityColorMap[skill.rarity]?.split(' ')[0] || 'text-gray-200'}`}>{skill.skillName}</span>
+                    <span className="text-xs font-semibold text-gray-400 whitespace-nowrap pl-2">{t('Mastery Level')}: <span className="text-cyan-300 font-bold">{skill.masteryLevel} / {skill.maxMasteryLevel}</span></span>
+                </div>
+                <p className="text-sm text-gray-400 italic mt-1 line-clamp-2">{skill.skillDescription}</p>
+            </button>
+        )) : <p className="text-sm text-gray-500 text-center p-2">{t('No passive skills known.')}</p>}
+      </Section>
+    </div>
+    )
+  };
+
+  const renderConditions = (effects: Effect[], wounds: Wound[], customStates: PlayerCharacter['playerCustomStates']) => {
+    const Section = ({ title, children }: { title: string; children: React.ReactNode }) => (
+        <div className="mt-4">
+            <h4 className="text-sm font-bold text-cyan-300/80 uppercase tracking-wider mb-3 pb-1 border-b border-cyan-500/20">{title}</h4>
+            <div className="space-y-3">
+                {children}
+            </div>
+        </div>
+    );
+    return (
+     <div className="space-y-4">
+      <Section title={t('Active Effects')}>
+        {(effects ?? []).length > 0 ? (effects ?? []).map((effect, index) => {
+             if (effect.effectType === 'WoundReference' && effect.sourceWoundId) {
+                let linkedWound = wounds.find(w => w.woundId === effect.sourceWoundId);
+                
+                // Fallback: If not found by ID, try to find by name, using sourceSkill as the name.
+                if (!linkedWound && effect.sourceSkill) {
+                    linkedWound = wounds.find(w => w.woundName === effect.sourceSkill);
+                }
+
+                if (linkedWound) {
+                    return (
+                        <button key={index} onClick={() => onOpenModal(t("Wound: {name}", { name: linkedWound.woundName }), linkedWound)} className="w-full text-left p-3 rounded-md text-sm flex items-start gap-3 hover:scale-105 transition-transform bg-purple-900/40 text-purple-300">
+                            <ShieldExclamationIcon className="w-5 h-5 mt-0.5 text-purple-400 flex-shrink-0" />
+                            <div className="flex-1">
+                                <div className="flex justify-between">
+                                    <span className="font-semibold">{t('Wound')}</span>
+                                    {effect.duration < 999 && <span className="text-xs">{t('({duration} turns left)', { duration: effect.duration })}</span>}
+                                </div>
+                                <p>{effect.description}</p>
+                            </div>
+                        </button>
+                    );
+                }
+            }
+            // Fallback for regular effects or broken references
+            return (
+             <button key={index} onClick={() => onOpenModal(t("Effect: {name}", { name: effect.sourceSkill || t('Effect') }), effect)} className={`w-full text-left p-3 rounded-md text-sm flex items-start gap-3 hover:scale-105 transition-transform ${effect.effectType.includes('Buff') ? 'bg-green-900/40 text-green-300' : 'bg-red-900/40 text-red-300'}`}>
+                {effect.effectType.includes('Buff') ? <SunIcon className="w-5 h-5 mt-0.5 text-green-400 flex-shrink-0" /> : <CloudIcon className="w-5 h-5 mt-0.5 text-red-400 flex-shrink-0" />}
+                <div className="flex-1">
+                    <div className="flex justify-between">
+                        <span className="font-semibold">{effect.sourceSkill || t('Effect')}</span>
+                        {effect.duration < 999 && <span className="text-xs">{t('({duration} turns left)', { duration: effect.duration })}</span>}
+                    </div>
+                    <p>{effect.description}</p>
+                </div>
+             </button>
+            );
+        }) : <p className="text-sm text-gray-500 text-center p-2">{t('You are free of temporary effects.')}</p>}
+      </Section>
+      <Section title={t('Wounds')}>
+        {(wounds ?? []).length > 0 ? (wounds ?? []).map((wound, index) => (
+            <button key={wound.woundId || index} onClick={() => onOpenModal(t("Wound: {name}", { name: wound.woundName }), wound)} className="w-full text-left bg-gray-900/60 p-3 rounded-md border border-red-800/50 flex items-start gap-3 hover:border-red-600 transition-colors">
+                <ShieldExclamationIcon className="w-5 h-5 mt-0.5 text-red-500 flex-shrink-0" />
+                <div className="flex-1">
+                    <div className="flex justify-between items-baseline">
+                         <span className="font-semibold text-red-400">{wound.woundName}</span>
+                         <span className="text-xs text-red-500 bg-red-900/50 px-2 py-0.5 rounded-full">{t(wound.severity as any)}</span>
+                    </div>
+                     <p className="text-sm text-gray-400 italic mt-1 line-clamp-2">{wound.descriptionOfEffects}</p>
+                </div>
+            </button>
+        )) : <p className="text-sm text-gray-500 text-center p-2">{t('You are unwounded.')}</p>}
+      </Section>
+      <Section title={t('States')}>
+        {(customStates ?? []).length > 0 ? (customStates ?? []).map((state, index) => (
+             <StatBar 
+                key={state.stateId || index}
+                value={state.currentValue}
+                max={state.maxValue}
+                color="bg-purple-500"
+                label={t(state.stateName as any)}
+                icon={ExclamationTriangleIcon}
+                onClick={() => onOpenModal(t("CustomState: {name}", { name: state.stateName }), { ...state, type: 'customState' })}
+             />
+        )) : <p className="text-sm text-gray-500 text-center p-2">{t('No custom states are active.')}</p>}
+      </Section>
+    </div>
+    )
+  };
+
+  const renderCombat = () => {
+    if (!derivedStats) return null;
+    const Section = ({ title, children }: { title: string, children: React.ReactNode }) => (
+        <div className="mt-4">
+            <h4 className="text-sm font-bold text-cyan-300/80 uppercase tracking-wider mb-3 pb-1 border-b border-cyan-500/20">{title}</h4>
+            {children}
+        </div>
+    );
+    return (
+        <div className="space-y-4">
+            <Section title={t("Physical Combat")}>
+                <div className="space-y-2">
+                    <button onClick={() => onOpenModal(t("Derived Stat: {name}", { name: t("Melee Attack Bonus") }), { type: 'derivedStat', name: t("Melee Attack Bonus"), value: `+${derivedStats.totalMeleeAttackBonus}%`, breakdown: [{ label: t('Level Bonus'), value: `+${derivedStats.levelAttackBonus}%` }, { label: t('Strength Bonus'), value: `+${derivedStats.strAttackBonus}%` }], description: t('derived_stat_description_melee_attack')})} className="w-full text-left bg-gray-700/70 p-3 rounded-lg flex justify-between items-center text-base hover:bg-gray-700 transition-colors group">
+                        <span className="text-gray-300 font-semibold flex items-center gap-2 group-hover:text-red-300"><FireSolidIcon className="w-5 h-5 text-red-400" />{t('Melee Attack Bonus')}</span>
+                        <span className="font-mono text-red-300 font-bold">+{derivedStats.totalMeleeAttackBonus}%</span>
+                    </button>
+                    <button onClick={() => onOpenModal(t("Derived Stat: {name}", { name: t("Precision Attack Bonus") }), { type: 'derivedStat', name: t("Precision Attack Bonus"), value: `+${derivedStats.totalPrecisionAttackBonus}%`, breakdown: [{ label: t('Level Bonus'), value: `+${derivedStats.levelAttackBonus}%` }, { label: t('Dexterity Bonus'), value: `+${derivedStats.precisionAttackBonus}%` }], description: t('derived_stat_description_precision_attack')})} className="w-full text-left bg-gray-700/70 p-3 rounded-lg flex justify-between items-center text-base hover:bg-gray-700 transition-colors group">
+                        <span className="text-gray-300 font-semibold flex items-center gap-2 group-hover:text-red-300"><FireSolidIcon className="w-5 h-5 text-red-400" />{t('Precision Attack Bonus')}</span>
+                        <span className="font-mono text-red-300 font-bold">+{derivedStats.totalPrecisionAttackBonus}%</span>
+                    </button>
+                    <button onClick={() => onOpenModal(t("Derived Stat: {name}", { name: t("Speed Attack Bonus") }), { type: 'derivedStat', name: t("Speed Attack Bonus"), value: `+${derivedStats.totalSpeedAttackBonus}%`, breakdown: [{ label: t('Level Bonus'), value: `+${derivedStats.levelAttackBonus}%` }, { label: t('Speed Bonus'), value: `+${derivedStats.speedAttackBonus}%` }], description: t('derived_stat_description_speed_attack')})} className="w-full text-left bg-gray-700/70 p-3 rounded-lg flex justify-between items-center text-base hover:bg-gray-700 transition-colors group">
+                        <span className="text-gray-300 font-semibold flex items-center gap-2 group-hover:text-red-300"><FireSolidIcon className="w-5 h-5 text-red-400" />{t('Speed Attack Bonus')}</span>
+                        <span className="font-mono text-red-300 font-bold">+{derivedStats.totalSpeedAttackBonus}%</span>
+                    </button>
+                </div>
+            </Section>
+            <Section title={t("Magical & Psionic Combat")}>
+                <div className="space-y-2">
+                    <button onClick={() => onOpenModal(t("Derived Stat: {name}", { name: t("Arcane Attack Bonus") }), { type: 'derivedStat', name: t("Arcane Attack Bonus"), value: `+${derivedStats.totalArcaneAttackBonus}%`, breakdown: [{ label: t('Level Bonus'), value: `+${derivedStats.levelAttackBonus}%` }, { label: t('Intelligence Bonus'), value: `+${derivedStats.arcaneAttackBonus}%` }], description: t('derived_stat_description_arcane_attack')})} className="w-full text-left bg-gray-700/70 p-3 rounded-lg flex justify-between items-center text-base hover:bg-gray-700 transition-colors group">
+                        <span className="text-gray-300 font-semibold flex items-center gap-2 group-hover:text-indigo-300"><LightBulbSolidIcon className="w-5 h-5 text-indigo-400" />{t('Arcane Attack Bonus')}</span>
+                        <span className="font-mono text-indigo-300 font-bold">+{derivedStats.totalArcaneAttackBonus}%</span>
+                    </button>
+                    <button onClick={() => onOpenModal(t("Derived Stat: {name}", { name: t("Willpower Attack Bonus") }), { type: 'derivedStat', name: t("Willpower Attack Bonus"), value: `+${derivedStats.totalWillpowerAttackBonus}%`, breakdown: [{ label: t('Level Bonus'), value: `+${derivedStats.levelAttackBonus}%` }, { label: t('Wisdom Bonus'), value: `+${derivedStats.willpowerAttackBonus}%` }], description: t('derived_stat_description_willpower_attack')})} className="w-full text-left bg-gray-700/70 p-3 rounded-lg flex justify-between items-center text-base hover:bg-gray-700 transition-colors group">
+                        <span className="text-gray-300 font-semibold flex items-center gap-2 group-hover:text-cyan-300"><HandRaisedSolidIcon className="w-5 h-5 text-cyan-400" />{t('Willpower Attack Bonus')}</span>
+                        <span className="font-mono text-cyan-300 font-bold">+{derivedStats.totalWillpowerAttackBonus}%</span>
+                    </button>
+                    <button onClick={() => onOpenModal(t("Derived Stat: {name}", { name: t("Divine Attack Bonus") }), { type: 'derivedStat', name: t("Divine Attack Bonus"), value: `+${derivedStats.totalDivineAttackBonus}%`, breakdown: [{ label: t('Level Bonus'), value: `+${derivedStats.levelAttackBonus}%` }, { label: t('Faith Bonus'), value: `+${derivedStats.divineAttackBonus}%` }], description: t('derived_stat_description_divine_attack')})} className="w-full text-left bg-gray-700/70 p-3 rounded-lg flex justify-between items-center text-base hover:bg-gray-700 transition-colors group">
+                        <span className="text-gray-300 font-semibold flex items-center gap-2 group-hover:text-yellow-300"><SunSolidIcon className="w-5 h-5 text-yellow-400" />{t('Divine Attack Bonus')}</span>
+                        <span className="font-mono text-yellow-300 font-bold">+{derivedStats.totalDivineAttackBonus}%</span>
+                    </button>
+                </div>
+            </Section>
+            <Section title={t("General Combat")}>
+                <div className="space-y-2">
+                    <button onClick={() => onOpenModal(t("Derived Stat: {name}", { name: t("Critical Damage Multiplier") }), { type: 'derivedStat', name: t("Critical Damage Multiplier"), value: `${derivedStats.finalCritMultiplier.toFixed(2)}x`, breakdown: [{ label: t('Base Multiplier'), value: `1.50x` }, { label: t('Luck Bonus'), value: `+${derivedStats.critDamageLuckBonus}%` }], description: t('derived_stat_description_crit_multiplier')})} className="w-full text-left bg-gray-700/70 p-3 rounded-lg flex justify-between items-center text-base hover:bg-gray-700 transition-colors group">
+                        <span className="text-gray-300 font-semibold flex items-center gap-2 group-hover:text-yellow-300"><SparklesSolidIcon className="w-5 h-5 text-yellow-400" />{t('Critical Damage Multiplier')}</span>
+                        <span className="font-mono text-yellow-300 font-bold">{derivedStats.finalCritMultiplier.toFixed(2)}x</span>
+                    </button>
+                    <button onClick={() => onOpenModal(t("Derived Stat: {name}", { name: t("General Resistance") }), { type: 'derivedStat', name: t("General Resistance"), value: `${derivedStats.totalGeneralResistance}%`, breakdown: [{ label: t('Level Bonus'), value: `${derivedStats.levelResistance}%` }, { label: t('Constitution Bonus'), value: `${derivedStats.conResistance}%` }], description: t('derived_stat_description_general_resistance')})} className="w-full text-left bg-gray-700/70 p-3 rounded-lg flex justify-between items-center text-base hover:bg-gray-700 transition-colors group">
+                        <span className="text-gray-300 font-semibold flex items-center gap-2 group-hover:text-green-300"><ShieldCheckSolidIcon className="w-5 h-5 text-green-400" />{t('General Resistance')}</span>
+                        <span className="font-mono text-green-300 font-bold">{derivedStats.totalGeneralResistance}%</span>
+                    </button>
+                </div>
+            </Section>
+        </div>
+    );
+  };
+
+
+  return (
+    <div className="space-y-4 text-sm">
+      <div>
+        <div className="flex items-center gap-2">
+            <h2 className="text-3xl font-bold text-cyan-400 narrative-text">{character.name}</h2>
+            <button onClick={() => onOpenModal(t("Character Details"), { ...character, type: 'playerCharacter' })} className="p-1 text-gray-400 rounded-full hover:bg-gray-700/50 hover:text-white transition-colors">
+                <InformationCircleIcon className="w-5 h-5" />
+            </button>
+        </div>
+        <p className="text-gray-400">{t("Level {level} {race} {charClass}", { level: character.level, race: t(character.race), charClass: t(character.class) })}</p>
+      </div>
+
+      <div className="space-y-3">
+        <StatBar value={character.currentHealth} max={character.maxHealth} color="bg-red-500" label={t('Health')} icon={HeartIcon} onClick={() => onOpenModal(t('Primary Stat: {name}', { name: t('Health') }), { type: 'primaryStat', name: t('Health'), description: t('primary_stat_description_health') })} />
+        <StatBar value={character.currentEnergy} max={character.maxEnergy} color="bg-blue-500" label={t('Energy')} icon={BoltIcon} onClick={() => onOpenModal(t('Primary Stat: {name}', { name: t('Energy') }), { type: 'primaryStat', name: t('Energy'), description: t('primary_stat_description_energy') })} />
+        <StatBar value={character.experience} max={character.experienceForNextLevel} color="bg-yellow-500" label={t('Experience')} icon={StarIcon} onClick={() => onOpenModal(t('Primary Stat: {name}', { name: t('Experience') }), { type: 'primaryStat', name: t('Experience'), description: t('primary_stat_description_experience') })} />
+        <StatBar value={character.totalWeight} max={character.maxWeight} color="bg-orange-500" label={t('Weight')} unit={t('kg')} icon={ScaleIcon} onClick={() => onOpenModal(t('Primary Stat: {name}', { name: t('Weight') }), { type: 'primaryStat', name: t('Weight'), description: t('primary_stat_description_weight') })} />
+      </div>
+
+       <button onClick={() => onOpenModal(t('Resource: {name}', { name: t('Money') }), { type: 'primaryStat', name: t('Money'), description: t('primary_stat_description_money') })} className="w-full text-left bg-gray-700/70 p-3 rounded-lg flex justify-between items-center text-base hover:bg-gray-700 transition-colors group">
+            <span className="text-gray-300 font-semibold flex items-center gap-2 group-hover:text-yellow-300"><CurrencyDollarIcon className="w-5 h-5 text-yellow-400" />{t('Money')}</span>
+            <span className="font-mono text-yellow-300 font-bold">{character.money} {t(currencyName as any)}</span>
+      </button>
+
+      <button onClick={() => onOpenModal(t('Primary Stat: {name}', { name: t('Auto-Crit Threshold') }), { type: 'primaryStat', name: t('Auto-Crit Threshold'), description: t('primary_stat_description_critchance') })} className="w-full text-left bg-gray-700/70 p-3 rounded-lg flex justify-between items-center text-base hover:bg-gray-700 transition-colors group">
+            <span className="text-gray-300 font-semibold flex items-center gap-2 group-hover:text-cyan-300"><SparklesIcon className="w-5 h-5 text-cyan-400" />{t('Auto-Crit Threshold')}</span>
+            <span className="font-mono text-cyan-300 font-bold">{character.critChanceThreshold}+</span>
+      </button>
+      
+      <div className="flex space-x-1 rounded-lg bg-gray-900/50 p-1">
+          {TABS.map(tab => {
+            const Icon = tab.icon
+            const isActive = activeTab === tab.name;
+            return (
+              <button 
+                  key={tab.name}
+                  onClick={() => setActiveTab(tab.name)}
+                  className={`w-full rounded-md py-2 text-xs font-medium leading-5 transition flex items-center justify-center gap-1.5 ${isActive ? 'bg-gray-700 text-cyan-400 shadow' : 'text-gray-300 hover:bg-gray-700/50'}`}
+              >
+                  <Icon className="w-4 h-4" />
+                  {t(tab.name)}
+              </button>
+            )
+          })}
+      </div>
+
+      <div className="mt-2">
+          {activeTab === 'Stats' && renderStats()}
+          {activeTab === 'Combat' && renderCombat()}
+          {activeTab === 'Inventory' && renderInventory(character.inventory)}
+          {activeTab === 'Skills' && renderSkills(character.activeSkills, character.passiveSkills)}
+          {activeTab === 'Conditions' && renderConditions(character.activePlayerEffects, character.playerWounds, character.playerCustomStates)}
+      </div>
+    </div>
+  );
+}

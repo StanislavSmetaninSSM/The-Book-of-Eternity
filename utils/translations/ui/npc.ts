@@ -1,0 +1,96 @@
+
+
+export const npc = {
+  en: {
+    // NPC Details
+    "Core Information": "Core Information",
+    "Race & Class": "Race & Class",
+    "Attitude": "Attitude",
+    "History": "History",
+    "Forget NPC": "Forget NPC",
+    "Clear Journal": "Clear Journal",
+    "Are you sure you want to forget about {name}? This will remove them from your known NPCs list.": "Are you sure you want to forget about {name}? This will remove them from your known NPCs list.",
+    "Are you sure you want to clear the journal for {name}? This cannot be undone.": "Are you sure you want to clear the journal for {name}? This cannot be undone.",
+    "Faction Affiliations": "Faction Affiliations",
+    "Rank": "Rank",
+    "Appearance": "Appearance",
+    "Worldview": "Worldview",
+    "Characteristics": "Characteristics",
+    "Faction ID": "Faction ID",
+    "Status": "Status",
+    "Active": "Active",
+    "Former": "Former",
+    "Exiled": "Exiled",
+    "Undercover": "Undercover",
+    "Ally": "Ally",
+    "Enemy": "Enemy",
+    "Unknown Faction": "Unknown Faction",
+    "Unlocked Memories": "Unlocked Memories",
+    "Unlocked at relationship level {level}": "Unlocked at relationship level {level}",
+    "No memories have been unlocked yet.": "No memories have been unlocked yet.",
+    "Journal Preview": "Journal Preview",
+    "Read Full Journal": "Read Full Journal",
+    "Full Journal: {name}": "Full Journal: {name}",
+    "Entry": "Entry",
+
+
+    // NPC Log
+    "Encountered NPCs": "Encountered NPCs",
+    "No NPCs encountered yet.": "No NPCs encountered yet.",
+    "Relationship": "Relationship",
+
+    // Attitudes
+    "Hateful": "Hateful",
+    "Hostile": "Hostile",
+    "Neutral": "Neutral",
+    "Friendly": "Friendly",
+    "Loyal": "Loyal",
+    "Devoted": "Devoted",
+  },
+  ru: {
+    // NPC Details
+    "Giver": "Выдал",
+    "Core Information": "Основная информация",
+    "Race & Class": "Раса и класс",
+    "Attitude": "Отношение",
+    "History": "История",
+    "Forget NPC": "Забыть NPC",
+    "Clear Journal": "Очистить журнал",
+    "Are you sure you want to forget about {name}? This will remove them from your known NPCs list.": "Вы уверены, что хотите забыть о {name}? Это удалит его из списка известных NPC.",
+    "Are you sure you want to clear the journal for {name}? This cannot be undone.": "Вы уверены, что хотите очистить журнал для {name}? Это действие нельзя будет отменить.",
+    "Faction Affiliations": "Принадлежность к фракциям",
+    "Rank": "Ранг",
+    "Appearance": "Внешность",
+    "Worldview": "Мировоззрение",
+    "Characteristics": "Характеристики",
+    "Faction ID": "ID Фракции",
+    "Status": "Статус",
+    "Active": "Активный член",
+    "Former": "Бывший член",
+    "Exiled": "Изгнан",
+    "Undercover": "Под прикрытием",
+    "Ally": "Союзник",
+    "Enemy": "Враг",
+    "Unknown Faction": "Неизвестная фракция",
+    "Unlocked Memories": "Разблокированные воспоминания",
+    "Unlocked at relationship level {level}": "Открыто на уровне отношений {level}",
+    "No memories have been unlocked yet.": "Пока не разблокировано ни одного воспоминания.",
+    "Journal Preview": "Предпросмотр журнала",
+    "Read Full Journal": "Читать полный журнал",
+    "Full Journal: {name}": "Полный журнал: {name}",
+    "Entry": "Запись",
+
+    // NPC Log
+    "Encountered NPCs": "Встреченные NPC",
+    "No NPCs encountered yet.": "Пока не встречено ни одного NPC.",
+    "Relationship": "Уровень отношений",
+
+    // Attitudes
+    "Hateful": "Ненавистное",
+    "Hostile": "Враждебное",
+    "Neutral": "Нейтральное",
+    "Friendly": "Дружелюбное",
+    "Loyal": "Верное",
+    "Devoted": "Преданное",
+  }
+};

@@ -1,0 +1,213 @@
+import React, { useState, useMemo } from 'react';
+import { Item } from '../../types';
+import { DetailRendererProps } from './types';
+import Section from './Shared/Section';
+import DetailRow from './Shared/DetailRow';
+import EditableField from './Shared/EditableField';
+import CombatActionDetails from './Shared/CombatActionDetails';
+import FateCardDetailsRenderer from './Shared/FateCardDetailsRenderer';
+import { qualityColorMap } from './utils';
+import ImageRenderer from '../ImageRenderer';
+import { useLocalization } from '../../context/LocalizationContext';
+import MarkdownRenderer from '../MarkdownRenderer';
+import ConfirmationModal from '../ConfirmationModal';
+import {
+    InformationCircleIcon, TagIcon, PuzzlePieceIcon, CurrencyDollarIcon, HashtagIcon, ScaleIcon, CubeIcon,
+    ShieldCheckIcon, CogIcon, FireIcon, PaperClipIcon, HandRaisedIcon, BoltIcon, BeakerIcon, ArchiveBoxIcon,
+    CheckCircleIcon, MinusCircleIcon, MapPinIcon, SparklesIcon, StarIcon, Cog6ToothIcon, BookOpenIcon, UserPlusIcon, WrenchIcon,
+    Squares2X2Icon, WrenchScrewdriverIcon, TrashIcon
+} from '@heroicons/react/24/outline';
+
+interface ItemDetailsProps extends Omit<DetailRendererProps, 'data'> {
+  item: Item;
+}
+
+const ItemDetailsRenderer: React.FC<ItemDetailsProps> = ({ item, onOpenImageModal, allowHistoryManipulation, onEditItemData, playerCharacter, disassembleItem, onCloseModal }) => {
+    const { t } = useLocalization();
+    const [isDisassembleConfirmOpen, setIsDisassembleConfirmOpen] = useState(false);
+    const canHaveBond = ['Rare', 'Epic', 'Legendary', 'Unique'].includes(item.quality);
+    const imagePrompt = item.image_prompt || `A detailed, photorealistic fantasy art image of a single ${item.quality} ${item.name}. ${item.description.split('. ')[0]}`;
+
+    const isEquipped = useMemo(() => {
+        if (!playerCharacter || !item.existedId) return false;
+        return Object.values(playerCharacter.equippedItems).includes(item.existedId);
+    }, [playerCharacter, item]);
+    
+    const handleDisassembleConfirm = () => {
+        if (!disassembleItem || !onCloseModal) return;
+        disassembleItem(item);
+        setIsDisassembleConfirmOpen(false);
+        onCloseModal();
+    };
+
+    return (
+    <div className="space-y-4">
+        <div className="w-full h-48 rounded-lg overflow-hidden mb-4 bg-gray-900 group relative cursor-pointer" onClick={() => onOpenImageModal?.(imagePrompt)}>
+            <ImageRenderer prompt={imagePrompt} alt={item.name} width={1024} height={1024} />
+             <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                <p className="text-white font-bold text-lg">{t('Enlarge')}</p>
+            </div>
+        </div>
+
+        <div className="text-xl font-bold">
+             <EditableField 
+                label={t('Name')}
+                value={item.name}
+                isEditable={allowHistoryManipulation && !!item.existedId}
+                onSave={(val) => { if (item.existedId) onEditItemData(item.existedId, 'name', val) }}
+                as="input"
+                className={`${qualityColorMap[item.quality] || 'text-gray-300'} font-bold text-xl`}
+             />
+        </div>
+        
+        <div className={`${qualityColorMap[item.quality] || 'text-gray-300'} italic`}>
+             <EditableField 
+                label={t('Description')}
+                value={item.description}
+                isEditable={allowHistoryManipulation && !!item.existedId}
+                onSave={(val) => { if (item.existedId) onEditItemData(item.existedId, 'description', val) }}
+             />
+        </div>
+
+        <Section title={t("Core Properties")} icon={InformationCircleIcon}>
+            <DetailRow label={t("Quality")} value={<span className={qualityColorMap[item.quality] || 'text-gray-300'}>{t(item.quality)}</span>} icon={TagIcon} />
+            {item.type && <DetailRow label={t("Type")} value={t(item.type as any)} icon={PuzzlePieceIcon} />}
+            {item.group && <DetailRow label={t("Group")} value={t(item.group as any)} icon={Squares2X2Icon} />}
+            <DetailRow label={t("Price")} value={`${item.price} ${t('Gold')}`} icon={CurrencyDollarIcon} />
+            <DetailRow label={t("Count")} value={item.count} icon={HashtagIcon} />
+            <DetailRow label={t("Weight")} value={`${item.weight} ${t('kg')}`} icon={ScaleIcon} />
+            <DetailRow label={t("Volume")} value={`${item.volume} dm³`} icon={CubeIcon} />
+            <DetailRow label={t("Durability")} value={item.durability} icon={ShieldCheckIcon} />
+        </Section>
+        
+        {(item.equipmentSlot || item.isConsumption) && (
+            <Section title={t("Usage & Equipment")} icon={CogIcon}>
+                <DetailRow label={t("Consumable")} value={item.isConsumption ? t('Yes') : t('No')} icon={FireIcon} />
+                <DetailRow label={t("Equip Slot")} value={item.equipmentSlot ? (Array.isArray(item.equipmentSlot) ? item.equipmentSlot.map(s => t(s as any)).join(', ') : t(item.equipmentSlot as any)) : t('N/A')} icon={PaperClipIcon} />
+                <DetailRow label={t("Two-Handed")} value={item.requiresTwoHands ? t('Yes') : t('No')} icon={HandRaisedIcon} />
+            </Section>
+        )}
+
+        {item.resource != null && (
+            <Section title={t("Resource")} icon={BoltIcon}>
+                <DetailRow 
+                    label={t("Resource")} 
+                    value={
+                        item.maximumResource != null
+                        ? `${item.resource} / ${item.maximumResource}`
+                        : item.resource
+                    } 
+                    icon={BeakerIcon} 
+                />
+                {item.resourceType && <DetailRow label={t("Resource Type")} value={t(item.resourceType as any)} icon={TagIcon} />}
+            </Section>
+        )}
+
+        {item.isContainer && (
+             <Section title={t("Container Details")} icon={ArchiveBoxIcon}>
+                <DetailRow label={t("Is Container")} value={t("Yes")} icon={CheckCircleIcon} />
+                <DetailRow label={t("Capacity")} value={item.capacity === null ? t('Unlimited') : `${item.capacity} ${t('slots')}`} icon={HashtagIcon} />
+                {item.containerWeight != null && <DetailRow label={t("Empty Weight")} value={`${item.containerWeight} ${t('kg')}`} icon={ScaleIcon} />}
+                {item.weightReduction != null && <DetailRow label={t("Weight Reduction")} value={`${item.weightReduction}%`} icon={MinusCircleIcon} />}
+                {item.contentsPath && <DetailRow label={t("Location")} value={item.contentsPath.join(' > ')} icon={MapPinIcon} />}
+             </Section>
+        )}
+        
+        {(item.bonuses && item.bonuses.length > 0 || item.combatEffect && item.combatEffect.length > 0 || item.customProperties && item.customProperties.length > 0) && (
+             <Section title={t("Special Properties")} icon={SparklesIcon}>
+                {item.bonuses && item.bonuses.length > 0 && (
+                    <div className="mt-4">
+                        <h5 className="font-semibold text-gray-400 flex items-center gap-2"><StarIcon className="w-4 h-4" />{t("Bonuses")}</h5>
+                        <ul className="list-disc list-inside space-y-1 text-cyan-300/90 pl-2 mt-2">
+                            {item.bonuses.map((bonus, i) => {
+                                // Strip leading list markers to prevent nested lists from markdown renderer
+                                const cleanBonus = bonus.replace(/^[\s*\-\u2022]+\s*/, '');
+                                return <li key={i}><MarkdownRenderer content={cleanBonus} inline /></li>;
+                            })}
+                        </ul>
+                    </div>
+                )}
+                {item.combatEffect && item.combatEffect.length > 0 && (
+                    <div className="mt-4">
+                        <h5 className="font-semibold text-gray-400 flex items-center gap-2"><BoltIcon className="w-5 h-5" />{t("Combat Effects")}</h5>
+                        <div className="space-y-3 mt-2">
+                            {item.combatEffect.map((action, i) => (
+                                <CombatActionDetails key={i} action={action} />
+                            ))}
+                        </div>
+                    </div>
+                )}
+                {item.customProperties && item.customProperties.length > 0 && (
+                     <div className="mt-4">
+                        <h5 className="font-semibold text-gray-400 flex items-center gap-2"><Cog6ToothIcon className="w-4 h-4" />{t("Custom Properties")}</h5>
+                        <div className="space-y-2 text-sm mt-2">
+                            {item.customProperties.map((prop, i) => (
+                                <div key={i} className="bg-gray-800/60 p-2 rounded">
+                                    <p className="font-semibold text-gray-200">{t(prop.interactionType)}: {prop.targetStateName} ({prop.changeValue > 0 ? `+${prop.changeValue}` : prop.changeValue})</p>
+                                    <p className="text-gray-400 italic">{prop.description}</p>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
+            </Section>
+        )}
+        
+        <Section title={t("Crafting & Lore")} icon={BookOpenIcon}>
+             {canHaveBond && (
+                 <DetailRow label={t("Owner Bond")} value={`${item.ownerBondLevelCurrent || 0} / 100`} icon={UserPlusIcon} />
+             )}
+             <DetailRow 
+                label={t("Disassembles To")} 
+                value={item.disassembleTo && item.disassembleTo.length > 0 
+                    ? item.disassembleTo.map((m: any) => `${m.quantity}x ${m.materialName}`).join(', ') 
+                    : t('No')
+                } 
+                icon={WrenchIcon} 
+            />
+             {item.disassembleTo && item.disassembleTo.length > 0 && (
+                <div className="pt-2">
+                    <button
+                        onClick={() => setIsDisassembleConfirmOpen(true)}
+                        disabled={isEquipped}
+                        className="w-full flex items-center justify-center gap-2 px-4 py-2 text-sm font-semibold text-yellow-300 bg-yellow-600/20 rounded-md hover:bg-yellow-600/40 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        title={isEquipped ? t("Cannot disassemble equipped items.") : t("Disassemble")}
+                    >
+                        <WrenchScrewdriverIcon className="w-5 h-5" />
+                        {t("Disassemble")}
+                    </button>
+                </div>
+            )}
+        </Section>
+        
+        {item.fateCards && item.fateCards.length > 0 && (
+            <Section title={t("Fate Cards")} icon={SparklesIcon}>
+                <div className="space-y-3">
+                    {item.fateCards.map((card) => (
+                       <FateCardDetailsRenderer key={card.cardId} card={card} onOpenImageModal={onOpenImageModal} />
+                    ))}
+                </div>
+            </Section>
+        )}
+
+        <ConfirmationModal
+            isOpen={isDisassembleConfirmOpen}
+            onClose={() => setIsDisassembleConfirmOpen(false)}
+            onConfirm={handleDisassembleConfirm}
+            title={t("Confirm Disassembly")}
+        >
+            <p className="text-sm text-gray-300">{t("Are you sure you want to disassemble {name}?", { name: item.name })}</p>
+            <div className="mt-4 text-left bg-gray-900/50 p-3 rounded-md border border-gray-600">
+                <p className="text-sm font-semibold text-gray-300 mb-2">{t("You will receive the following materials:")}</p>
+                <ul className="list-disc list-inside text-gray-400 text-sm space-y-1">
+                    {item.disassembleTo?.map((mat: any, index: number) => (
+                        <li key={index}>{mat.quantity}x {mat.materialName}</li>
+                    ))}
+                </ul>
+            </div>
+        </ConfirmationModal>
+    </div>
+    );
+};
+
+export default ItemDetailsRenderer;
