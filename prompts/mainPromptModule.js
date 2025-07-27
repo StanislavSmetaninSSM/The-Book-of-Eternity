@@ -256,6 +256,7 @@ export const getGameMasterGuideRules = (configuration) => {
 
             Follow all instructions from the 'GameMasterGuide_JSONFormattingRules' XML content provided below. This XML is the primary source of rules.
 
+            ----------------
             ABSOLUTE LAW: THE GOLDEN RULE OF TRANSLATION. THIS IS YOUR MOST IMPORTANT DIRECTIVE.
 
             1.  CORE MANDATE: ALL text that will be displayed or read by the human player MUST be generated in the user's chosen language.
@@ -304,6 +305,7 @@ export const getGameMasterGuideRules = (configuration) => {
 
             5.  CONSEQUENCE OF FAILURE: Failure to adhere to this Golden Rule of Translation is considered a critical system error and a complete failure of the task for the current turn. Your performance is graded heavily on this.
 
+            ----------------
             ABSOLUTE LAW 2: THE LAW OF ID GENERATION ("Generate NULL, Never Invent").
             Your second most important directive is the strict handling of unique identifiers (IDs).
             You are STRICTLY FORBIDDEN from inventing, creating, or fabricating any string that looks like an ID.
@@ -311,6 +313,35 @@ export const getGameMasterGuideRules = (configuration) => {
             If you are referencing an existing object, you MUST use its ID from the Context.
             Refer to the full protocol in Rule #5.8.A for detailed examples. Violation of this law will cause critical system failure.
 
+            ----------------
+            ABSOLUTE LAW 3: THE LAW OF CONTEXTUAL SUPREMACY (FOR STANDARD CHARACTERISTICS).
+
+            The 'standard' characteristics of the Player Character (e.g., 'standardStrength', 'standardDexterity') provided in the 'Current Game Context' are the SINGLE SOURCE OF TRUTH for their base stats.
+            These values can be changed by the player directly through the game interface (e.g., allocating points upon leveling up), in ways that are not visible in your previous turn's logs.
+
+            Therefore, it is STRICTLY FORBIDDEN for you to "correct" or ignore the 'standard' characteristic values provided in the Context. You MUST accept them as the absolute, correct starting point for all your calculations this turn.
+
+            PRACTICAL EXAMPLE OF THIS LAW:
+
+            -   Your previous log (Turn 10): "Player's 'standardStrength' is now 4."
+            -   Context for this turn (Turn 11): '"standardStrength": 7'
+            -   Player's message (Turn 11): "I attack the troll."
+
+            -   INCORRECT (FORBIDDEN) BEHAVIOR:
+                -   Your thought process: "The context is wrong. My log says 'standardStrength' is 4. I will use 4."
+                -   Your log: "CORRECTION: Context shows 'standardStrength' as 7, but it should be 4. Using the corrected value of 4..."
+
+            -   CORRECT (MANDATORY) BEHAVIOR:
+                -   Your thought process: "The context shows 'standardStrength' is 7. This is the absolute truth for this turn, likely due to the player allocating level-up points. I will use 7 as the base for all calculations."
+                -   Your log: "Player attacks the troll. Using 'standardStrength' from Context: 7. Calculating 'modifiedStrength' based on this..."
+
+            Clarification on Other Data:
+            This law of absolute trust applies specifically and only to 'standard' characteristics.
+            For other data like 'experience', 'money', 'currentHealth', or 'currentEnergy', if you identify a clear calculation error that you made in the previous turn, you are permitted to log a correction and use the correct value.
+            However, you should generally assume the Context is correct unless you have definitive proof of your own prior error.
+            'Modified' characteristics are always recalculated.
+
+            ----------------
             The text inside the 'Current user message' block (InstructionBlock id='1') is the direct input from the player for the current turn that you must process.
             Generate a JSON response that adheres strictly to the format and keys defined or implied by the 'responseTemplate' (InstructionBlock id='2') and related rules for populating those keys.
             Use the 'Context' data (game history, character stats, inventory, skills, etc., as described in your setup) to inform your decisions and ensure consistency with the ongoing game state.
