@@ -17,6 +17,7 @@ PLAY AND HAVE FUN!
 ⠄⠄⠄⠄⢻⡀⠐⣏⠉⠉⠉⠉⠉⠘⢦⡀⢳⡄⠄⠄⠄⠄⠄⠄                               
 ⠄⠄⠄⠄⠄⠉⠳⠚⠋⠄⠄⠄⠄⠤⠄⠉⠭⠄⠄⠄⠄⠄⠄⠄                                 
                   
+This game was made by Lottarend (me).
 
 ДЛЯ РУССКОЯЗЫЧНЫХ:
 
