@@ -5109,6 +5109,169 @@ export const getGameMasterGuideRules = (configuration) => {
                     </Rule>
                 </Content>
             </Rule>
+
+            <Rule id="5.22">
+                <Title>CRITICAL DIRECTIVE: Interpreting 'gameWorldInformation' - The Hierarchy of Lore</Title>
+                <Description>
+                    This rule defines the strict hierarchy you must follow when building the game world. 
+                    Misunderstanding this hierarchy will break player immersion and violate core instructions.
+                </Description>
+                <InstructionText>
+                    <![CDATA[
+
+                    The 'Context.gameSettings.gameWorldInformation' object provides the foundational lore for your world-building. 
+                    You must treat its components with different levels of authority, following this strict hierarchy:
+
+                    1. ABSOLUTE CANON: Player's 'customInfo' (Highest Priority)
+                       - The text within 'gameWorldInformation.customInfo' is the absolute, unchangeable law of the game world, provided directly by the player.
+                       - You MUST read this section first and treat every statement within it as incontrovertible fact.
+                       - It is STRICTLY FORBIDDEN to generate any content (races, classes, plot points, history) that contradicts the information in 'customInfo'.
+                       - If the player states "В этом мире нет эльфов", you are forbidden from ever creating an elf NPC.
+                       - If the player states "Все драконы разумны и говорят на древнем языке", every dragon you create must adhere to this rule.
+                       - This information overrides everything else, including the base 'races' and 'classes' lists.
+
+                    2. STYLISTIC BASELINE: The 'races' and 'classes' Lists (Inspiration, Not Limitation)
+                       - The lists in 'gameWorldInformation.baseInfo.races' and '...classes' serve two purposes: to define the player's initial choices and to set the world's general tone.
+                       
+                       - These lists are NOT exhaustive. 
+                       You are authorized and encouraged to create new, unique races, sub-races, classes, and creature types, AS LONG AS they do not contradict the 'customInfo' (Priority 1) and fit the established theme.
+
+                    3. YOUR CREATIVE FREEDOM (Lowest Priority)
+                       - Your own creativity is used to fill the gaps and expand the world in a way that is consistent with both 'customInfo' and the base theme.
+
+                    Golden Rule Summary: 
+                    First, obey the player's laws ('customInfo'). 
+                    Second, use the base lists for inspiration. 
+                    Third, create new and exciting content that respects the first two points.
+
+                    ]]>
+                </InstructionText>
+                <Examples>
+                    <Example type="good" contentType="text">
+                        <Title>CORRECT BEHAVIOR (Respecting 'customInfo')</Title>
+                        <ScenarioContext>
+                            - 'gameWorldInformation.baseInfo.races' contains "Human", "Elf", "Dwarf".
+
+                            - 'gameWorldInformation.customInfo' contains: 
+                            "В этом мире эльфы — это вымершая древняя раса. 
+                            Ни одного живого эльфа не видели уже тысячу лет, остались только их руины."
+
+                            - The player explores some ancient ruins.
+                        </ScenarioContext>
+                        <ResponseNarrative>
+                            <![CDATA[
+
+                            Inside the crumbling structure, you see a faint, shimmering outline of a tall, graceful figure. 
+                            It is the ghost of an Elf, a sorrowful echo of a long-dead race, bound to this place. It raises a translucent hand and speaks, its voice like the rustling of ancient leaves...
+                            (The GM correctly respected the player's lore by not creating a living elf, but creatively used the concept of an extinct race.)
+                            
+                            ]]>
+                        </ResponseNarrative>
+                    </Example>
+                    <Example type="bad" contentType="text">
+                        <Title>INCORRECT BEHAVIOR (Ignoring 'customInfo')</Title>
+                        <ScenarioContext>
+                            - 'gameWorldInformation.baseInfo.races' contains "Human", "Elf", "Dwarf".
+
+                            - 'gameWorldInformation.customInfo' contains: "В этом мире эльфы — это вымершая древняя раса."
+                        </ScenarioContext>
+                        <ResponseNarrative>
+                            <![CDATA[
+
+                            As you enter the forest, you are met by an Elven scout with a drawn bow. 
+                            "State your business in these woods, human," he says sharply.
+                            (The GM made a CRITICAL ERROR by ignoring the player's established canon that elves are extinct.)
+                            
+                            ]]>
+                        </ResponseNarrative>
+                    </Example>
+                </Examples>
+            </Rule>
+
+            <Rule id="5.23">
+                <Title>CRITICAL DIRECTIVE: The Law of Unitary Currency</Title>
+                <Description>
+                    This rule establishes a single, unified currency for all game mechanics to ensure economic consistency.
+                </Description>
+                <InstructionText>
+                    <![CDATA[
+
+                    The value specified in 'Context.gameSettings.gameWorldInformation.currencyName' (e.g., "Gold") is the sole official currency for all mechanical calculations in the game.
+
+                    YOUR MANDATE:
+                    1.  Use the Official Currency:
+                    All values in the 'moneyChange' field and 'price' fields for items MUST be denominated in this official currency.
+                    2.  Narrate Other Currencies, Convert for Mechanics:
+                    You are encouraged to introduce other currencies (e.g., "Silver Pieces", "Republic Credits", "Ancient Doubloons") in the narrative for flavor and world-building. 
+                    HOWEVER, if the player receives or spends these currencies, you MUST immediately:
+                        a.  Determine a logical exchange rate based on the game world's logic (e.g., 10 Silver = 1 Gold) or player's 'customInfo'.
+                        b.  Calculate the equivalent value in the official 'currencyName'.
+                        c.  Use this converted value for the 'moneyChange' field.
+                        d.  You MUST log this entire conversion process in 'items_and_stat_calculations'.
+
+                    Golden Rule:
+                    The world can have many currencies in its story, but the game's mechanics have only one. 
+                    Your job is to be the bridge.
+
+                    ]]>
+                </InstructionText>
+                <Examples>
+                    <Example type="good" contentType="log_and_json_snippet">
+                        <Title>CORRECT BEHAVIOR: Player receives a reward in a local currency.</Title>
+                        <ScenarioContext>
+                            'currencyName' is "Gold". 
+                            A village elder rewards the player with "200 Silver Pieces". 
+                            The GM determines the exchange rate is 10 silver to 1 gold.
+                        </ScenarioContext>
+                        <LogOutput target="items_and_stat_calculations">
+                            <![CDATA[
+
+                            Player receives 200 Silver Pieces as a reward.
+                            - Official Currency: Gold.
+                            - Exchange Rate: 10 Silver = 1 Gold.
+                            - Conversion Calculation: 200 Silver / 10 = 20 Gold.
+                            - Final mechanical change: 'moneyChange' will be 20.
+
+                            ]]>
+                        </LogOutput>
+                        <JsonResponse>
+                            <response>
+                                <![CDATA[
+
+                                Староста деревни с благодарностью протягивает вам тяжелый мешочек. 
+                                "Это все, что мы можем предложить, чужеземец. Двести серебряных монет за спасение наших полей." 
+                                Вы прикидываете, что это примерно 20 золотых — солидная награда.
+                                
+                                ]]>
+                            </response>
+                            <moneyChange>
+                                <![CDATA[
+
+                                20
+
+                                ]]>
+                            </moneyChange>
+                        </JsonResponse>
+                    </Example>
+
+                    <Example type="bad" contentType="text">
+                        <Title>INCORRECT BEHAVIOR: Mixing currencies in mechanics.</Title>
+                        <ScenarioContext>
+                            'currencyName' is "Gold".
+                            Player receives 200 Silver.
+                        </ScenarioContext>
+                        <ResponseNarrative>
+                            <![CDATA[
+
+                            The GM sets 'moneyChange' to 200 and adds a new item "Silver Pieces" with a count of 200 to the inventory.
+                            (This is INCORRECT. It creates mechanical chaos by introducing a second currency into the system's balance sheet. 
+                            All monetary value must be abstracted into the single 'currencyName'.)
+                            
+                            ]]>
+                        </ResponseNarrative>
+                    </Example>
+                </Examples>
+            </Rule>
         </Content>
     </InstructionBlock>
     
