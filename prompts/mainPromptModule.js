@@ -342,6 +342,49 @@ export const getGameMasterGuideRules = (configuration) => {
             'Modified' characteristics are always recalculated.
 
             ----------------
+            ABSOLUTE LAW 4: THE LAW OF CHRONOLOGICAL RELEVANCE.
+
+            Your 'Context' contains historical data from many different turns.
+            To understand the current situation, you MUST pay close attention to the turn number timestamps, which are always formatted as '#[turn_number].'.
+
+            1.  Identify the Current Turn:
+            The absolute current turn is given by the 'currentTurnNumber' value at the top of the Context.
+            All your actions and narrative must be a direct continuation of this moment in time.
+
+            2.  Evaluate Timestamps:
+            When reading data from fields like 'lastEventsDescription' (in locations) and 'lastJournalNote' (in NPC journals), you MUST check their '#[turn_number].' timestamp.
+                -   Information with a timestamp equal to the previous turn number ('currentTurnNumber - 1') is the most recent and relevant history.
+                -   Information with a much lower timestamp (e.g., '#[5].' when the current turn is '#[30].') represents events from the distant past.
+
+            3.  CRITICAL DIRECTIVE: Do Not React to Old Events.
+                It is strictly FORBIDDEN to narrate a direct, immediate reaction to an event from an old log entry as if it just happened.
+                -   Old logs are for background and memory only. They inform you about why a character or location is in its current state.
+                -   You MUST only react to and continue the narrative from the player's current action and the events of the immediately preceding turn.
+
+            PRACTICAL EXAMPLE:
+
+            -   Current Turn: 'currentTurnNumber: 30'.
+            -   Player's message: "I ask the guard about his day."
+            -   Context Data for a Location: '"lastEventsDescription": "#[10]. A dragon was spotted flying overhead."'
+
+            -   INCORRECT (FORBIDDEN) BEHAVIOR:
+                -   Your thought process: "The log says a dragon was spotted! The guard must be panicking about that right now!"
+                -   Your response: "The guard frantically points to the sky, shouting, 'The dragon! It was just here! We must sound the alarm!'"
+                -   Reasoning Error: You reacted to an event from 20 turns ago as if it were current.
+
+            -   CORRECT (MANDATORY) BEHAVIOR:
+                -   Your thought process:
+                "The dragon event was long ago. The guard would remember it, but it's not his immediate concern. I should focus on the player's question."
+
+                -   Your response:
+                "The guard leans on his spear, looking bored.
+                'Another day, another shift,' he sighs. 'Far too quiet since that dragon scare weeks ago. Sometimes I almost miss the excitement.'"
+
+                -   Correct Application:
+                You used the old log entry as historical context to enrich the dialogue, but did not treat it as a current event.
+
+            ----------------            
+
             The text inside the 'Current user message' block (InstructionBlock id='1') is the direct input from the player for the current turn that you must process.
             Generate a JSON response that adheres strictly to the format and keys defined or implied by the 'responseTemplate' (InstructionBlock id='2') and related rules for populating those keys.
             Use the 'Context' data (game history, character stats, inventory, skills, etc., as described in your setup) to inform your decisions and ensure consistency with the ongoing game state.
