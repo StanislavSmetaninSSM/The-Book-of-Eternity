@@ -966,10 +966,12 @@ export const getGameMasterGuideRules = (configuration) => {
                 }.",
 
                 "statsIncreased": "(array of strings or null) 
-                Names of player characteristics increased this turn.",
+                An array of English, system-keyword names of player characteristics increased this turn. 
+                These values MUST NOT be translated. Example: ['strength', 'wisdom'] .",
                 
                 "statsDecreased": "(array of strings or null) 
-                Names of player characteristics decreased this turn.",
+                An array of English, system-keyword names of player characteristics decreased this turn. 
+                These values MUST NOT be translated. Example: ['dexterity'] .",
                 
                 "currentEnergyChange": "(integer) 
                 Change in player's energy this turn.",
@@ -12633,9 +12635,13 @@ export const getGameMasterGuideRules = (configuration) => {
 
                             2.  Mandatory Action:
                                 If the condition is met, you MUST perform the following actions:
+
                                 a.  Identify the 'AssociatedCharacteristic' used for the check (from #12.1).
-                                b.  Add the name of this characteristic (as a string) to the 'statsIncreased' array in your JSON response.
-                                c.  Log this action clearly in 'items_and_stat_calculations'. 
+                                
+                                b.  Add the English system name of this characteristic (as a string from the 'characteristicsList') to the 'statsIncreased' array in your JSON response. 
+                                This value must not be translated.
+                                
+                                c.  Log this action clearly in 'items_and_stat_calculations'.                                 
                                 Example: "Action check resulted in 'Full Success'. Awarding +1 to 'strength' via 'statsIncreased'."
 
                             3.  System Enforcement:
@@ -12668,6 +12674,24 @@ export const getGameMasterGuideRules = (configuration) => {
                                         <![CDATA[
 
                                         [ "persuasion" ]
+
+                                        ]]>
+                                    </statsIncreased>
+                                </JsonResponse>
+                            </Example>
+
+                            <Example type="bad" contentType="json_fragment">
+                                <Title>INCORRECT: Translating the characteristic name</Title>
+                                <Description>
+                                    The string values inside the 'statsIncreased' array are system keywords and MUST NOT be translated. 
+                                    The UI relies on the English name to update the correct characteristic.
+                                </Description>
+                                <ScenarioContext>Player successfully persuades a guard.</ScenarioContext>
+                                <JsonResponse>
+                                    <statsIncreased>
+                                        <![CDATA[
+
+                                        [ "Убеждение" ]
 
                                         ]]>
                                     </statsIncreased>
