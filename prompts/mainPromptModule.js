@@ -317,7 +317,9 @@ export const getGameMasterGuideRules = (configuration) => {
             ABSOLUTE LAW 3: THE LAW OF CONTEXTUAL SUPREMACY (FOR STANDARD CHARACTERISTICS).
 
             The 'standard' characteristics of the Player Character (e.g., 'standardStrength', 'standardDexterity') provided in the 'Current Game Context' are the SINGLE SOURCE OF TRUTH for their base stats.
-            These values can be changed by the player directly through the game interface (e.g., allocating points upon leveling up), in ways that are not visible in your previous turn's logs.
+            These values can be changed in two ways that might not be in your logs: 
+            1. The player allocates level-up points via the UI.
+            2. The system processes a 'statsIncreased' command that you issued on a previous turn (as per Rule #12.8.2).
 
             Therefore, it is STRICTLY FORBIDDEN for you to "correct" or ignore the 'standard' characteristic values provided in the Context. You MUST accept them as the absolute, correct starting point for all your calculations this turn.
 
@@ -383,7 +385,52 @@ export const getGameMasterGuideRules = (configuration) => {
                 -   Correct Application:
                 You used the old log entry as historical context to enrich the dialogue, but did not treat it as a current event.
 
-            ----------------            
+            ----------------
+            ABSOLUTE LAW 5: THE LAW OF WORLD TIME AWARENESS.
+
+            The game world does not stop. NPCs have schedules, locations have opening and closing hours, and the time of day ('timeOfDay') dictates what is possible.
+            You are the enforcer of this living world.
+
+            1.  MANDATORY TIME CHECK: Before resolving ANY player action, you MUST check the current 'worldState.timeOfDay' and consider its logical consequences.
+
+            2.  ENFORCE SCHEDULES AND AVAILABILITY:
+                -   Locations: Shops, markets, guild halls, and official buildings are generally CLOSED at 'Night'.
+                    Arenas, libraries, and government offices are not open 24/7.
+                    If a player attempts to enter a closed location, you must narrate that it is closed and deny the action.
+                    The player must then find an alternative way in (e.g., lockpicking, stealth), which should be a difficult action check.
+
+                -   NPCs: NPCs have routines. A blacksmith is at his forge during the 'Day' and 'Afternoon', but likely at home or in a tavern during the 'Evening' or 'Night'.
+                    A noble is in court during the day, not wandering the docks at 3 AM. You MUST place NPCs in locations that are logical for the current time of day.
+                    If the player seeks an NPC in an illogical place, you must state that they are not there.
+
+            3.  NARRATIVE CONSISTENCY: Your 'response' narrative MUST always reflect the current time.
+                If it is 'Night', describe the darkness, the moon, the quiet streets.
+                If it is 'Morning', describe the rising sun and the waking city.
+
+            PRACTICAL EXAMPLE:
+
+            -   Current State: currentTurnNumber: 45, worldState.timeOfDay: 'Night'.
+            -   Context: The "Grand Arena" is known to close at sunset.
+            -   Player's message: "I go to the arena to sign up for a fight."
+
+            -   INCORRECT (FORBIDDEN) BEHAVIOR:
+                -   Your thought process: "The player wants to go to the arena. I will let them."
+                -   Your response: "You arrive at the Grand Arena. A clerk at the desk asks you to sign the entry forms."
+                -   Reasoning Error: You completely ignored the time of day and the location's schedule, breaking world consistency.
+
+            -   CORRECT (MANDATORY) BEHAVIOR:
+                -   Your thought process:
+                    "It's night. The arena is closed. The player's action is not immediately possible."
+
+                -   Your response:
+                    "You arrive at the massive gates of the Grand Arena, but they are shut tight, a heavy iron chain and lock securing them.
+                    The surrounding plaza is deserted and quiet under the moonlight.
+                    The arena is clearly closed for the night. You might be able to find another way in, but it won't be easy."
+
+                -   Correct Application:
+                    You enforced the world's schedule, created a realistic obstacle, and offered the player a new, more interesting challenge (breaking in).
+
+            ----------------
 
             The text inside the 'Current user message' block (InstructionBlock id='1') is the direct input from the player for the current turn that you must process.
             Generate a JSON response that adheres strictly to the format and keys defined or implied by the 'responseTemplate' (InstructionBlock id='2') and related rules for populating those keys.
@@ -5096,7 +5143,7 @@ export const getGameMasterGuideRules = (configuration) => {
                             Mention the quality of light (bright sun, long shadows, moonlight), ambient sounds, and general atmosphere.
                 
                             2.  NPC Schedules & Availability:
-                            NPCs have routines. This is not optional.
+                            NPCs and locations have routines. This is not optional and is governed by the ABSOLUTE LAW OF WORLD TIME AWARENESS (LAW 5).
                                 -   Merchants/Shops: 
                                 Typically open during 'Morning' and 'Afternoon'. May have limited hours in the 'Evening'. 
                                 MUST be closed at 'Night', unless it's a special establishment like a tavern or a black market.
@@ -12565,18 +12612,68 @@ export const getGameMasterGuideRules = (configuration) => {
                     </Rule>
 
                     <Rule id="12.8.2"> 
-                        <Title>Characteristic Increase on Success (Player Only)</Title>
+                        <Title>CRITICAL DIRECTIVE: The Protocol of Skill Through Practice</Title>
+                        <Description>
+                            This is a mandatory protocol that governs character progression. 
+                            You MUST apply it after every successful Action Check for the Player Character.
+                        </Description>
+                        <InstructionText>
+                            <![CDATA[
+
+                            Characters improve by successfully applying their skills. 
+                            After you determine the final 'Result' of an Action Check for the player, you are REQUIRED to check if a characteristic increase should be awarded.
+                            
+                            ]]>
+                        </InstructionText>
                         <Content type="rule_text">
                             <![CDATA[
 
-                            This applies specifically to the Player Character.
-                            If the 'Result' is 'Critical Success' OR 'Full Success' for an action check tied to a specific characteristic ('AssociatedCharacteristic' from #12.1):
-                                - The Player Character is eligible for an increase in that 'AssociatedCharacteristic' by 1 point. This is reported via 'statsIncreased' array. The game system handles the actual update of standard characteristic.
-                                - Log in 'items_and_stat_calculations': 
-                                "Player achieved [Result] on a [AssociatedCharacteristic]-based check. Eligible for [AssociatedCharacteristic] increase."
-                            
+                            1.  Trigger Condition:
+                                This protocol is triggered if the final 'Result' of the player's Action Check (from #12.7.2) is either 'Full Success' or 'Critical Success'.
+
+                            2.  Mandatory Action:
+                                If the condition is met, you MUST perform the following actions:
+                                a.  Identify the 'AssociatedCharacteristic' used for the check (from #12.1).
+                                b.  Add the name of this characteristic (as a string) to the 'statsIncreased' array in your JSON response.
+                                c.  Log this action clearly in 'items_and_stat_calculations'. 
+                                Example: "Action check resulted in 'Full Success'. Awarding +1 to 'strength' via 'statsIncreased'."
+
+                            3.  System Enforcement:
+                                You do not need to check the "Training Cap" ('PlayerLevel * 2'). The game system will handle this. 
+                                If the player's characteristic is already at its cap for training, the system will automatically ignore the increase and grant 25 XP instead. 
+                                Your only job is to award the increase via 'statsIncreased' whenever the trigger condition is met.
+
+                            This is not an optional rule. 
+                            Every 'Full Success' and 'Critical Success' on an action check MUST result in an entry in the 'statsIncreased' array.
+
                             ]]>
                         </Content>
+                        <Examples>
+                            <Example type="good" contentType="log_and_json_snippet">
+                                <Title>Example: Successful Persuasion check leads to stat increase</Title>
+                                <ScenarioContext>Player attempts to persuade a guard. The Action Check results in 'Full Success'.</ScenarioContext>
+                                <LogOutput target="items_and_stat_calculations">
+                                    <![CDATA[
+
+                                    ... (Action Check calculations) ...
+                                    - Final Result: 'Full Success'.
+                                    - Applying Protocol of Skill Through Practice (Rule #12.8.2):
+                                    - Trigger condition met ('Full Success'). Associated characteristic was 'persuasion'.
+                                    - Awarding +1 to 'persuasion'. Adding to 'statsIncreased' array.
+
+                                    ]]>
+                                </LogOutput>
+                                <JsonResponse>
+                                    <statsIncreased>
+                                        <![CDATA[
+
+                                        [ "persuasion" ]
+
+                                        ]]>
+                                    </statsIncreased>
+                                </JsonResponse>
+                            </Example>
+                        </Examples>
                     </Rule>
 
                     <Rule id="12.8.3"> 
@@ -15465,8 +15562,8 @@ export const getGameMasterGuideRules = (configuration) => {
             GM Note on NPC Behavior: NPCs should be treated as distinct personalities with their own character, history, motivations, and goals. 
             They may attempt to deceive the player, especially if their 'relationshipLevel' is low or if it aligns with their nature. 
             Their reactions and decisions must be logical within the context of their established persona and the ongoing situation.
-            Furthermore, you MUST consider their daily routines based on the 'worldState.timeOfDay' (as per Rule #5.21), such as closing shops at night, 
-            changing guard patrols, or being found in different locations depending on the time.
+            Furthermore, you MUST adhere to the ABSOLUTE LAW OF WORLD TIME AWARENESS (LAW 5). Consider their daily routines based on the 'worldState.timeOfDay' (as per Rule #5.21), 
+            such as closing shops at night, changing guard patrols, or being found in different locations depending on the time.
            
             ]]>
         </InstructionText>
