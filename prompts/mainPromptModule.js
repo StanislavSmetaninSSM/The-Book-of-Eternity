@@ -15262,26 +15262,144 @@ export const getGameMasterGuideRules = (configuration) => {
                     <![CDATA[
 
                     1.  "questId": (string GUID or null) System-assigned ID. Null for new quests; existing ID from Context for updates.
+
                     2.  "questName": (string) Full quest name. Translate to user's language. For existing quests, use exact name from Context.
+
                     3.  "questGiver": (string) Source of the quest (NPC name, "Terminal Data", "Emergency Signal", "Personal Goal", etc.).
+
                     4.  "status": (string) Current overall status: 'Active', 'Completed', 'Failed', 'Updated'.
+
                     5.  "questBackground": (string) Known reasons why the quest exists or needs completion. Updated as info becomes available.
+
                     6.  "description": (string) Most complete and detailed quest description available.
+
                     7.  "objectives": (array of Objective Objects) Each objective must be SMART (Specific, Measurable, Achievable, Relevant, Time-bound if applicable).
                         - "objectiveId": (string GUID or null) System-assigned ID for the objective.
                         - "description": (string) Clear description of the task.
                         - "status": (string) 'Active', 'Completed', 'Failed' for this specific objective.
+
                     8.  "rewards": (object, optional) Describes potential rewards.
                         - "experience", "money": Integers.
                         - "items": Array of item names (not full item objects here).
                         - "other": Narrative description (e.g., "Improved relations with X faction").
-                    9.  "failureConsequences": (string, optional) Describes potential negative outcomes if the quest is failed.
-                    10. "detailsLog": (array of strings) Append new relevant information, clues, or progress updates as strings. Each entry should be concise and dated or turn-stamped if possible (e.g., "#[turn_number]: Found a map leading to the old mine.").
 
-                    GM Note: Quest rewards and punishments might trigger other JSON changes (e.g., 'inventoryItemsData', 'statsIncreased', 'removePassiveSkills') when the quest is marked 'Completed' or 'Failed'.
+                    9.  "failureConsequences": (string, optional) Describes potential negative outcomes if the quest is failed.
+                    
+                    10. "detailsLog": (array of strings) Append new relevant information, clues, or progress updates as strings. 
+                    Each new entry is CRITICAL for long-term memory and MUST follow the Protocol of Detailed Context Logging (InstructionBlock #18.A).
+
+                    GM Note: 
+                    Quest rewards and punishments might trigger other JSON changes (e.g., 'inventoryItemsData', 'statsIncreased', 'removePassiveSkills') when the quest is marked 'Completed' or 'Failed'.
                    
                     ]]>
                 </Content>
+            </Rule>
+        </Content>
+    </InstructionBlock>
+
+    <InstructionBlock id="18.A">
+        <Title>CRITICAL DIRECTIVE: The Protocol of Detailed Context Logging (Your External Memory)</Title>
+        <Description>
+            This is the most critical protocol for your long-term functionality. Due to technical limitations, your direct memory of the chat history is severely limited (only the last ~15 messages). 
+            After that, any information not explicitly saved in the structured data (quests, locations, NPC journals) is permanently lost to you. 
+            This protocol is your ONLY method of creating a permanent "external memory" to avoid catastrophic amnesia and game-breaking inconsistencies.
+        </Description>
+        <InstructionText>
+            <![CDATA[
+
+            You are effectively writing notes for your future self, who will have no memory of the current turn's chat. 
+            The 'lastEventsDescription' of locations and the 'detailsLog' of quests are your lifeline to the past. They are not for short, superficial notes. 
+            They are for concise but detail-rich summaries that will allow you to perfectly reconstruct the situation turns from now, even after your chat memory has been wiped.
+
+            Golden Rule of Self-Preservation: Log key information NOW, or it will be lost to you FOREVER. 
+            Your primary goal is to ensure that a future instance of yourself can read these logs and understand exactly what happened and why it was important. 
+            Include the WHO, WHAT, WHERE, WHY, and any KEY OUTCOMES.
+
+            ]]>
+        </InstructionText>
+        <Content type="ruleset">
+            <Rule id="18.A.1">
+                <Title>Mandatory Content for 'lastEventsDescription' (in 'currentLocationData')</Title>
+                <Content type="rule_text">
+                    <![CDATA[
+
+                    The 'lastEventsDescription' is not just "what happened". 
+                    It is a snapshot of the state of the location after the turn's events. It MUST include:
+                    
+                    1.  Key Actors: Name the player and any key NPCs involved in the turn's main event.
+                    
+                    2.  Core Action: Describe the central action of the turn (e.g., "convinced the guard", "defeated the orc", "found a hidden clue").
+                    
+                    3.  Key Information/Items: If any critical information was revealed or a plot-relevant item was found/used, MENTION IT.
+                    
+                    4.  Significant Outcome: What is the immediate, tangible result of the action? 
+                    (e.g., "gaining access to the barracks", "leaving the orc's body on the floor", "learning the password 'rosebud'").
+                    
+                    5.  NPC State Change: Briefly note any major change in an NPC's state or location 
+                    (e.g., "leaving Sir Kaelen wounded", "after Elara agreed to help").
+
+                    ]]>
+                </Content>
+                <Examples>
+                    <Example type="bad">
+                        <Title>INCORRECT - Vague and useless</Title>
+                        <Content>
+                            <![CDATA["
+                                #[34]. Игрок поговорил с кузнецом."
+                            ]]>
+                        </Content>
+                    </Example>
+                    <Example type="good">
+                        <Title>CORRECT - Detailed and useful for future context</Title>
+                        <Content>
+                            <![CDATA[
+                                "#[34]. Игрок убедил кузнеца Торина выковать для него ключ от городских ворот, пообещав принести редкую 'звездную руду'. 
+                                Торин согласился и ждет доставки руды."
+                            ]]>
+                        </Content>
+                    </Example>
+                </Examples>
+            </Rule>
+
+            <Rule id="18.A.2">
+                <Title>Mandatory Content for 'detailsLog' (in 'questUpdates')</Title>
+                <Content type="rule_text">
+                    <![CDATA[
+
+                    The 'detailsLog' is the quest's memory. 
+                    Every time you update a quest, you MUST append a new, detailed entry to its log. 
+                    The entry MUST include:
+                    
+                    1.  Action Taken: What did the player do that advanced (or hindered) this specific quest?
+                    
+                    2.  Information Gained: Any new names, locations, passwords, or clues directly related to the quest's objectives.
+                    
+                    3.  Objective Status Change: If an objective was completed or failed, state it explicitly.
+                    
+                    4.  Next Step (if known): If the new information points to a clear next step, mention it.
+
+                    ]]>
+                </Content>
+                <Examples>
+                    <Example type="bad">
+                        <Title>INCORRECT - Superficial</Title>
+                        <Content>
+                            <![CDATA[
+                                "#[35]. Получена новая информация о заговоре."
+                            ]]>
+                        </Content>
+                    </Example>
+
+                    <Example type="good">
+                        <Title>CORRECT - Rich with recallable details</Title>
+                        <Content>
+                            <![CDATA["
+                                #[35]. Допросив пленного бандита 'Одноглазого Пита', игрок узнал, что заговор возглавляет некий 'Торговец', который действует из доков. 
+                                Пит упомянул, что пароль для входа на их склад - 'красная луна'."
+                            ]]>
+                        </Content>
+                    </Example>
+                </Examples>
             </Rule>
         </Content>
     </InstructionBlock>
@@ -16822,7 +16940,8 @@ export const getGameMasterGuideRules = (configuration) => {
                     8.  "description": (string) Full description, only for new locations. 
                     This description MUST incorporate the current 'timeOfDay' and 'weather' from the 'worldState' to paint a complete picture (as per Rule #5.21).
 
-                    9.  "lastEventsDescription": (string) Events of the current turn.
+                    9.  "lastEventsDescription": (string) Events of the current turn. 
+                    This field is CRITICAL for long-term memory. You MUST follow the Protocol of Detailed Context Logging (InstructionBlock #18.A) when filling this field.
 
                     10. "image_prompt": (string) Image prompt, only for new locations.
 
