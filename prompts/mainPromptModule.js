@@ -3390,6 +3390,15 @@ export const getGameMasterGuideRules = (configuration) => {
                     This section defines the types of bonuses that can be assigned to items in their 'bonuses' array (as described in InstructionBlock '10' -> Rule '10.2.4').
                     These bonuses typically provide non-combat, narrative, or minor mechanical advantages. For direct combat effects, items use the 'combatEffect' property.
                 </Description>
+                <InstructionText>
+                    <![CDATA[
+
+                    IMPORTANT: This block describes the conceptual types of bonuses you can create. 
+                    The precise technical rules for how to implement these bonuses in the JSON response are detailed in InstructionBlock id="10".
+                    You MUST follow the rules in Block 10 for populating both the user-facing 'bonuses' array (for display text) and the machine-readable 'structuredBonuses' array (for mechanical effects).
+
+                    ]]>
+                </InstructionText>
                 <Content type="ruleset">
                     <Rule id="5.11.1">
                         <Title>General Principles for Item Bonuses</Title>
