@@ -9678,13 +9678,14 @@ export const getGameMasterGuideRules = (configuration) => {
                 "description": "string",
                 "image_prompt": "string",
                 "quality": "string", // "Trash", "Common", "Uncommon", "Good", "Rare", "Epic", "Legendary", "Unique"
-                "type": "string_optional", //Translate
-                "group": "string_optional", //Translate
+                "type": "string_optional", //Translate into the user's chosen language
+                "group": "string_optional", //Translate into the user's chosen language
                 "price": "integer",
                 "count": "integer",
                 "weight": "double",
                 "volume": "double",
-                "bonuses": ["array_of_strings"],
+                "bonuses": ["array_of_user_readable_bonus_strings"],
+                "structuredBonuses": ["array_of_structured_bonus_objects_optional"],
                 "customProperties": ["array_of_objects_optional"],
                 "contentsPath": ["array_of_strings_or_null"],
                 "isContainer": "boolean",
@@ -10043,16 +10044,88 @@ export const getGameMasterGuideRules = (configuration) => {
                             </Rule>
 
                             <Rule id="10.1.4">
-                                <Title>Generating Specific Bonuses (Initial Pass)</Title>
+                                <Title>Generating Specific Bonuses from Template Slots</Title>
+                                <Description>
+                                    This rule defines the mandatory process for converting abstract bonus 'slots' from an item template (from 'lootForCurrentTurn') into concrete, structured bonuses.
+                                </Description>
+                                <InstructionText>
+                                    <![CDATA[
+
+                                    For each bonus slot provided by the item template, you MUST generate a full, user-facing description AND, 
+                                    if the bonus is mechanical, a corresponding structured object.
+                                    
+                                    ]]>
+                                </InstructionText>
                                 <Content type="rule_text">
                                     <![CDATA[
 
-                                    Based on the bonus slots/types from the template (#10.1.3.b), generate initial specific bonuses.
-                                    Detailed rules for bonus generation are in rule #10.2.4.
-                                    Permanent stat bonuses must not increase maximum health or maximum energy.
-                                
+                                    1.  Analyze the Bonus Slot: Look at the bonus slot from the template (e.g., "generate_interesting_effect", "bonus_to_strength").
+
+                                    2.  Determine the Bonus: Based on the slot's instruction, the item's 'quality', and the narrative context, decide on a specific bonus. 
+                                        (e.g., for a 'Good' quality item with a "bonus_to_strength" slot, you might decide on a "+3 to Strength" bonus).
+
+                                    3.  Create the User-Facing Text: Write the full, translated, human-readable description of this bonus (e.g., "+3 к Силе"). 
+                                        This string MUST be added to the item's 'bonuses' array.
+
+                                    4.  Create the Structured Object (if mechanical):
+                                        -   If the bonus you created has a direct mechanical effect, you MUST then create a corresponding object for the 'structuredBonuses' array, 
+                                        following the full structure and guidelines from Rule #10.2.4.A.
+                                        -   The 'description' field of this new structured object MUST be an exact copy of the string you created in the previous step.
+                                        -   Fill out 'bonusType', 'target', 'value', etc., based on the bonus you designed.
+                                        -   If the bonus was purely narrative (e.g., "Glows with a faint light" without a mechanical trigger), you only create the entry in the 'bonuses' array.
+
+                                    5.  Repeat: Repeat this process for every bonus slot in the template.
+
                                     ]]>
                                 </Content>
+                                <Examples>
+                                    <Example type="good" contentType="log">
+                                        <Title>Example: Processing a Loot Template</Title>
+                                        <ScenarioContext>
+                                            Template from 'lootForCurrentTurn':
+                                            { 
+                                                "baseName": "amulet_1", 
+                                                "quality": "Uncommon", 
+                                                "bonuses": ["bonus_to_characteristic", "generate_utility_effect"] 
+                                            }
+                                        </ScenarioContext>
+                                        <Content type="log">
+                                            <![CDATA[
+
+                                            # Generating Item from Template: "amulet_1"
+                                            - Name: "Амулет Кошачьей Грации"
+                                            
+                                            - Processing Bonus Slot 1: "bonus_to_characteristic"
+                                                - Decision: Grant +2 to Dexterity.
+                                                - Step 3 (Text for 'bonuses' array): "+2 к Ловкости"
+                                                - Step 4 (Object for 'structuredBonuses'):
+                                                  { 
+                                                      "description": "+2 к Ловкости",
+                                                      "bonusType": "Characteristic",
+                                                      "target": "dexterity",
+                                                      "valueType": "Flat",
+                                                      "value": 2,
+                                                      "application": "Permanent",
+                                                      "condition": null
+                                                  }
+                                            
+                                            - Processing Bonus Slot 2: "generate_utility_effect"
+                                                - Decision: Grant the ability to see in the dark.
+                                                - Step 3 (Text for 'bonuses' array): "Дарует ночное зрение"
+                                                - Step 4 (Object for 'structuredBonuses'):
+                                                  {
+                                                      "description": "Дарует ночное зрение",
+                                                      "bonusType": "Utility",
+                                                      "target": "Ночное зрение",
+                                                      "valueType": "Boolean",
+                                                      "value": true,
+                                                      "application": "Permanent",
+                                                      "condition": null
+                                                  }
+                                            ]]>
+                                        </Content>
+                                    </Example>
+                                </Examples>
                             </Rule>
 
                             <Rule id="10.1.5">
@@ -10139,118 +10212,291 @@ export const getGameMasterGuideRules = (configuration) => {
                     </Rule>
 
                     <Rule id="10.2.4" name="BonusesProperty">
-                        <Title>Item Property: 'bonuses' (Array of Strings)</Title>
-                        <Description>Defines non-combat, narrative, or minor mechanical bonuses. For direct combat effects, use 'combatEffect' (refer to #10.4).</Description>
+                        <Title>Item Property: 'bonuses' (User-Facing Bonus Text & Backward Compatibility)</Title>
+                        <Description>
+                            This array holds the simple, human-readable text for ALL bonuses an item provides. 
+                            It is critical for backward compatibility with older game versions and for direct display in the UI.
+                        </Description>
+                        <InstructionText>
+                            <![CDATA[
+
+                            For EVERY bonus, you must add a clear, concise, and translated string to this array.
+                            - If a bonus is purely narrative (flavor text), it will ONLY appear here.
+                            - If a bonus has a mechanical effect (e.g., "+5 to Strength", "+15% to healing progress"), its text MUST be in this array, AND a corresponding machine-readable object MUST be created in 'structuredBonuses'.
+                            This ensures the game will not break if a player loads an old save file.
+
+                            ]]>
+                        </InstructionText>
+                        <Content type="rule_text">
+                            <![CDATA[
+
+                            Examples of strings to put in this array:
+                            - "+5 к Силе"
+                            - "+15 к прогрессу лечения ран"
+                            - "Светится холодным синим светом в присутствии орков"
+                            - "На рукояти выгравирован древний символ." (This one would NOT have a 'structuredBonuses' entry)
+
+                            ]]>
+                        </Content>
+                    </Rule>
+
+                    <Rule id="10.2.4.A" name="StructuredBonusesProperty">
+                        <Title>Item Property: 'structuredBonuses' (Machine-Readable Effects)</Title>
+                        <Description>
+                            This is a CRITICAL property for dynamic UI updates and consistent mechanical effects. 
+                            It contains an array of objects describing quantifiable, mechanical bonuses. 
+                            The 'bonuses' array is for the user-facing text and backward compatibility.
+                        </Description>
+                        <InstructionText>
+                            <![CDATA[
+
+                            For every mechanically significant bonus, you MUST create a text entry in the 'bonuses' array AND a corresponding structured object in this 'structuredBonuses' array. 
+                            The 'description' field here MUST be an exact copy of the text from the 'bonuses' array.
+                            
+                            ]]>
+                        </InstructionText>
                         <Content type="ruleset">
-                            <Rule id="10.2.4.0" name="BonusesGeneral">
-                                <Title>General Rules for 'bonuses'</Title>
-                                <Content type="rule_text">
+                            <Rule id="10.2.4.A.1">
+                                <Title>Structure and Field Definitions</Title>
+                                <Content type="code_example" language="json">
                                     <![CDATA[
 
-                                    The 'bonuses' field is an array of strings, each describing a bonus.
-                                    For new items, the number/type of bonus 'slots' are guided by the item template (refer to #10.1.3).
-                                    The final quality and number of bonuses can be influenced by InstructionBlock '5' -> Rule '5.12' (Plot Justification and Action Success Influence Overview).
-                                    Each bonus string should clearly describe its effect.
-                               
+                                    {
+                                        "description": "user_readable_full_description_of_the_bonus_string",
+                                        "bonusType": "'Characteristic' | 'ActionCheck' | 'Utility' | 'Other'",
+                                        "target": "string_system_keyword_or_readable_text",
+                                        "valueType": "'Flat' | 'Percentage' | 'String' | 'Boolean'",
+                                        "value": "integer_or_string_or_boolean",
+                                        "application": "'Permanent' | 'Conditional'",
+                                        "condition": "user_readable_condition_description_string_if_conditional"
+                                    }
+
                                     ]]>
                                 </Content>
-                            </Rule>
-                            <Rule id="10.2.4.1" name="BonusTypes">
-                                <Title>Types of Bonuses</Title>
                                 <Content type="rule_text">
                                     <![CDATA[
 
-                                    Allowed types of bonuses and their detailed explanations are defined in InstructionBlock '5' -> Rule '5.11' (Item Bonus Types Overview).
-                                    Briefly, these include:
-                                        1. An interesting effect (non-combat skill bonus, plot ability, consumption effect like "+15 health when consumed").
-                                        2. A permanent bonus to one of the player's standard characteristics (+1 to +10, depending on rarity, not max health/energy).
-                                        3. A conditional bonus to one of the player's characteristics (+X, depending on rarity, with clear conditions).
-                                    Refer to #5.11 for full details and examples.
-                                
-                                    ]]>
-                                </Content>
-                            </Rule>
-
-                            <Rule id="10.2.4.2" name="BonusNumericalValues">
-                                <Title>Numerical Values in Bonuses</Title>
-                                <Content type="rule_text">
-                                    <![CDATA[
-
-                                    If a bonus provides a quantifiable mechanical benefit (e.g., "+15% chance", "+1 characteristic"), the value should be explicit and logical. Avoid vague numerical bonuses.
-                                    The magnitude of numerical bonuses should align with the item's 'quality'/'rarity' as guided by InstructionBlock '5' -> Rule '5.11'.
-                                
-                                    ]]>
-                                </Content>
-                            </Rule>
-
-                            <Rule id="10.2.4.3" name="BonusPlotRelevance">
-                                <Title>Plot Relevance and Usefulness of Bonuses</Title>
-                                <Content type="rule_text">
-                                    <![CDATA[
-
-                                    Ensure assigned bonuses fit the item's theme, rarity, and can be meaningfully used by the player or GM in gameplay or narrative.
-                                
-                                    ]]>
-                                </Content>
-                            </Rule>
-
-                            <Rule id="10.2.4.4" name="BonusForConsumptionItems">
-                                <Title>Bonuses for Consumption Items</Title>
-                                <Content type="rule_text">
-                                    <![CDATA[
-
-                                    If 'isConsumption' is true (refer to #10.2.13) and the item is food, drink, medicine, potion, etc., 
-                                    it MUST provide a health or energy restoration bonus as one of its 'bonuses', with a specific numerical value.
-                                
+                                    Field Definitions:
+                                    1.  'description' (string, MANDATORY): 
+                                    The complete, user-facing text of the bonus. 
+                                    MUST be an exact copy of the entry in the 'bonuses' array. 
+                                    MUST be translated.
+                                    
+                                    2.  'bonusType' (string): 
+                                    The bonus category: 'Characteristic', 'ActionCheck', 'Utility', or 'Other'.
+                                    
+                                    3.  'target' (string): What the bonus affects.
+                                        -   For 'Characteristic': MUST be an English system keyword (e.g., "strength").
+                                        -   For 'ActionCheck', 'Utility', or 'Other': MUST be a human-readable, translated description (e.g., "Проверки скрытности").
+                                    
+                                    4.  'valueType' (string): 
+                                    The type of value: 'Flat', 'Percentage', 'String', or 'Boolean'.
+                                    
+                                    5.  'value' (any): 
+                                    The bonus value. Must match the 'valueType'.
+                                    
+                                    6.  'application' (string): 
+                                    When the bonus is active: 'Permanent' or 'Conditional'.
+                                    
+                                    7.  'condition' (string, optional): 
+                                    Required if 'Conditional'. 
+                                    A user-readable, translated description of the trigger (e.g., "в темноте").
+                                    
                                     ]]>
                                 </Content>
                             </Rule>
 
-                            <Rule id="10.2.4.5" name="BonusLogging">
-                                <Title>Logging Bonuses</Title>
+                            <Rule id="10.2.4.A.2">
+                                <Title>Generation Guidelines by bonusType</Title>
+                                <Description>This section provides the core logic for creating different types of bonuses, ensuring consistency and balance.</Description>
                                 <Content type="rule_text">
                                     <![CDATA[
 
-                                    Record all assigned or modified bonuses in 'items_and_stat_calculations', detailing their purpose and how they were determined 
-                                    (e.g., from template, plot justification, action success).
-                                
-                                    ]]>
-                                </Content>
-                            </Rule>
+                                    Type 'Characteristic':
+                                    -   Purpose: To directly increase a character's core characteristic.
+                                    -   'target': MUST be an English system keyword from 'characteristicsList' (e.g., "strength").
+                                    -   'valueType': MUST be 'Flat'.
+                                    -   'value' (integer): The magnitude of the bonus MUST be scaled according to the item's 'quality' (rarity). 
+                                    Example scale: Common (+1 to +2), Uncommon (+2 to +4), Rare (+4 to +7), Epic (+7 to +12), Legendary (+12 to +20).
+                                    -   'application': Can be 'Permanent' or 'Conditional'.
 
-                            <Rule id="10.2.4.6" name="HealingProgressBonus">
-                                <Title>Bonuses for Healing Items and Wounds</Title>
-                                <Content type="rule_text">
-                                    <![CDATA[
+                                    Type 'ActionCheck':
+                                    -   Purpose: To provide a bonus to a specific type of action check.
+                                    -   'target': A human-readable, translated description of the check (e.g., "Проверки скрытности").
+                                    -   'valueType': MUST be 'Percentage'.
+                                    -   'value' (integer): The percentage bonus (e.g., 10 for +10%).
 
-                                    If an item is intended for healing (e.g., salve, bandage, advanced medical kit), its effects on wounds MUST be clearly defined.
+                                    Type 'Utility':
+                                    -   Purpose: To grant a special, non-numerical ability or effect (e.g., seeing in the dark, understanding a language, detecting something).
+                                    -   'target': A human-readable, translated description of the utility (e.g., "Свечение", "Понимание языков").
+                                    -   'valueType' is usually 'String' or 'Boolean'.
 
-                                    1.  Define Healing Progress Bonus: 
-                                    For such items, you MUST include a specific bonus string in their 'bonuses' array that quantifies their effect on wound treatment.
-                                        -   Format: "+[X] очков к прогрессу лечения ран" (e.g., "+15 очков к прогрессу лечения ран").
-                                        -   This value [X] should be consistent with the guidelines in Rule #5.20.6.1, based on the item's 'quality' and nature.
+                                    Type 'Other':
+                                    -   Purpose: A catch-all for other mechanical bonuses.
+                                    
+                                        -   CRITICAL SUB-TYPE: Consumption Bonuses (Health/Energy): 
+                                        If an item is a consumable ('isConsumption: true') that restores health or energy, you MUST use this type. 
+                                        'target' must be "Восстановление здоровья" or "Восстановление энергии", 
+                                        'valueType' must be 'Flat', 
+                                        'application' must be 'Conditional' with 'condition' "при употреблении".
+                                    
+                                        -   CRITICAL SUB-TYPE: Wound Healing Bonuses: 
+                                        If an item aids in healing wounds, you MUST use this type. 
+                                        'target' must be "Прогресс лечения ран", 
+                                        'valueType' must be 'Flat', 
+                                        'application' must be 'Conditional' with 'condition' "при использовании на ране".
 
-                                    2.  Update Description: The item's main 'description' field MUST also mention this effect narratively.
-                                        -   Example Description: "...When applied to a wound, this salve promotes rapid tissue regeneration, aiding the healing process."
-
-                                    This ensures that both the player and the system have a clear understanding of how each healing item contributes to the new wound treatment mechanics.
-
+                                    Curses and Detrimental Effects:
+                                    Any bonus type can have a negative 'value' (e.g., -5, -10) to represent a curse or penalty. 
+                                    The 'bonuses' and 'structuredBonuses.description' should clearly state that it is a negative effect.
+                                    
                                     ]]>
                                 </Content>
                             </Rule>
                         </Content>
                         <Examples>
                             <Example type="good" contentType="json_fragment">
-                                <Title>Example 'bonuses' array</Title>
+                                <Title>Example 1: Item with multiple bonus types ("Amulet of the Sagacious Explorer")</Title>
+                                <Description>This shows how to combine bonuses for Characteristics, Action Checks, and Utility in one item.</Description>
                                 <Content type="json">
                                     <![CDATA[
 
-                                    "bonuses": [
-                                        "+1 dexterity", 
-                                        "+10% chance on stealth checks in shadows", 
-                                        "Grants wearer the ability to speak with birds (minor utility)" 
-                                    ]
-                                
+                                    {
+                                        "name": "Амулет Мудрого Исследователя",
+                                        "bonuses": [
+                                            "+3 к Мудрости",
+                                            "+10% к проверкам выживания в лесу",
+                                            "Светится теплым светом при приближении к магическим аномалиям"
+                                        ],
+                                        "structuredBonuses": [
+                                            {
+                                                "description": "+3 к Мудрости",
+                                                "bonusType": "Characteristic",
+                                                "target": "wisdom",
+                                                "valueType": "Flat",
+                                                "value": 3,
+                                                "application": "Permanent",
+                                                "condition": null
+                                            },
+                                            {
+                                                "description": "+10% к проверкам выживания в лесу",
+                                                "bonusType": "ActionCheck",
+                                                "target": "Проверки выживания в лесу",
+                                                "valueType": "Percentage",
+                                                "value": 10,
+                                                "application": "Conditional",
+                                                "condition": "находясь в лесу"
+                                            },
+                                            {
+                                                "description": "Светится теплым светом при приближении к магическим аномалиям",
+                                                "bonusType": "Utility",
+                                                "target": "Обнаружение магии (Свечение)",
+                                                "valueType": "String",
+                                                "value": "теплый свет",
+                                                "application": "Conditional",
+                                                "condition": "вблизи магических аномалий"
+                                            }
+                                        ]
+                                    }
+
+                                    ]]>
+                                </Content>
+                            </Example>
+
+                            <Example type="good" contentType="json_fragment">
+                                <Title>Example 2: Consumable item with a healing bonus ("Field Medic's Bandage")</Title>
+                                <Description>This shows the correct way to structure a bonus for a consumable that affects wound healing.</Description>
+                                <Content type="json">
+                                    <![CDATA[
+
+                                    {
+                                        "name": "Полевая повязка медика",
+                                        "isConsumption": true,
+                                        "bonuses": [
+                                            "+25 к прогрессу лечения ран"
+                                        ],
+                                        "structuredBonuses": [
+                                            {
+                                                "description": "+25 к прогрессу лечения ран",
+                                                "bonusType": "Other",
+                                                "target": "Прогресс лечения ран",
+                                                "valueType": "Flat",
+                                                "value": 25,
+                                                "application": "Conditional",
+                                                "condition": "при использовании на ране"
+                                            }
+                                        ]
+                                    }
+
+                                    ]]>
+                                </Content>
+                            </Example>
+
+                            <Example type="good" contentType="json_fragment">
+                                <Title>Example 3: Consumable food item ("Smoked Boar Meat")</Title>
+                                <Description>This shows the correct way to structure a simple health restoration bonus for a food item.</Description>
+                                <Content type="json">
+                                    <![CDATA[
+
+                                    {
+                                        "name": "Копченое мясо кабана",
+                                        "isConsumption": true,
+                                        "bonuses": [
+                                            "Восстанавливает 8 ед. здоровья при употреблении"
+                                        ],
+                                        "structuredBonuses": [
+                                            {
+                                                "description": "Восстанавливает 8 ед. здоровья при употреблении",
+                                                "bonusType": "Other",
+                                                "target": "Восстановление здоровья",
+                                                "valueType": "Flat",
+                                                "value": 8,
+                                                "application": "Conditional",
+                                                "condition": "при употреблении"
+                                            }
+                                        ]
+                                    }
+
+                                    ]]>
+                                </Content>
+                            </Example>
+
+                            <Example type="good" contentType="json_fragment">
+                                <Title>Example 4: Cursed item with mixed effects ("Berserker's Bracers")</Title>
+                                <Description>
+                                    This shows a well-designed cursed item that offers a powerful benefit at a significant cost, creating an interesting choice for the player.
+                                </Description>
+                                <Content type="json">
+                                    <![CDATA[
+
+                                    {
+                                        "name": "Наручи Берсерка",
+                                        "bonuses": [
+                                            "+8 к Силе",
+                                            "-15% ко всем видам сопротивления"
+                                        ],
+                                        "structuredBonuses": [
+                                            {
+                                                "description": "+8 к Силе",
+                                                "bonusType": "Characteristic",
+                                                "target": "strength",
+                                                "valueType": "Flat",
+                                                "value": 8,
+                                                "application": "Permanent",
+                                                "condition": null
+                                            },
+                                            {
+                                                "description": "-15% ко всем видам сопротивления",
+                                                "bonusType": "Other",
+                                                "target": "Сопротивление всем видам урона",
+                                                "valueType": "Percentage",
+                                                "value": -15,
+                                                "application": "Permanent",
+                                                "condition": null
+                                            }
+                                        ]
+                                    }
+
                                     ]]>
                                 </Content>
                             </Example>
@@ -10752,20 +10998,65 @@ export const getGameMasterGuideRules = (configuration) => {
                             </Rule>
                         </Content>
                         <Examples>
-                            <Example type="good" contentType="text">
-                                <Title>Example: Filling a Starting Backpack</Title>
-                                <Content type="text">
+                            <Example type="good" contentType="text_and_json">
+                                <Title>Example: Filling a Starting Backpack with Correctly Structured Items</Title>
+                                <Description>
+                                    This demonstrates the full process of generating a diverse set of starting items, including consumables with resources, 
+                                    weapons with combat effects, and gear with structured bonuses, and placing them in a container. 
+                                    All items generated MUST be reported in 'inventoryItemsData'.
+                                </Description>
+                                <Content type="rule_text">
                                     <![CDATA[
 
-                                    Player starts with: "Sturdy Traveler's Backpack" (capacity: 8, volume: 30 dm³).
-                                    GM decides to fill it with:
-                                    - 1x Bedroll (weight: 1.5kg, volume: 8 dm³)
-                                    - 2x Trail Rations (weight: 0.5kg each, volume: 1 dm³ each, isConsumption: true)
-                                    - 1x Waterskin (weight: 1kg, volume: 1 dm³, isConsumption: true, resourceType: 'sips', resource: 8, maxResource: 10)
-                                    - 1x Tinderbox (weight: 0.2kg, volume: 0.2 dm³, isConsumption: true, resourceType: 'uses', resource: 20, maxResource: 20)
-                                    - 1x Rope, 10m (weight: 1kg, volume: 2 dm³)
-                                    - 1x Dagger (weight: 0.3kg, volume: 0.3 dm³, equipmentSlot: ['MainHand','OffHand'], combatEffect: { "effects": [{"effectType": "Damage", "value": "10%", "targetType": "piercing"}]})
-                                    (Each item defined in 'inventoryItemsData' with 'contentsPath': ["Sturdy Traveler's Backpack"])
+                                    Scenario: A starting Rogue character receives a "Traveler's Backpack" (capacity: 8, volume: 30 dm³). 
+                                    The GM fills it with logical starting gear.
+
+                                    --- Item 1: "Bedroll" (Simple Item) ---
+                                    A simple object with no special mechanics.
+                                    - JSON Snippet: { "name": "Спальный мешок", "weight": 1.5, "volume": 8.0, ... }
+
+                                    --- Item 2: "Trail Rations" (Consumable with Bonus) ---
+                                    An item that restores health upon consumption.
+                                    - JSON Snippet:
+                                    {
+                                        "name": "Дорожный паек", "count": 2, "isConsumption": true,
+                                        "bonuses": ["Восстанавливает 5 ед. здоровья при употреблении"],
+                                        "structuredBonuses": [{
+                                            "description": "Восстанавливает 5 ед. здоровья при употреблении",
+                                            "bonusType": "Other", "target": "Восстановление здоровья",
+                                            "valueType": "Flat", "value": 5,
+                                            "application": "Conditional", "condition": "при употреблении"
+                                        }]
+                                    }
+
+                                    --- Item 3: "Waterskin" (Item with Resource) ---
+                                    An item that holds a resource (sips of water).
+                                    - Item in 'inventoryItemsData': { "name": "Бурдюк с водой", "weight": 1.0, ... }
+                                    - Resource in 'inventoryItemsResources': { "existedId": "[id-бурдюка]", "resource": 8, "maximumResource": 10, "resourceType": "глотков" }
+
+                                    --- Item 4: "Simple Dagger" (Weapon with Combat Effect) ---
+                                    A weapon defined by its 'combatEffect'.
+                                    - JSON Snippet:
+                                    {
+                                        "name": "Простой кинжал", "weight": 0.3, "equipmentSlot": ["MainHand", "OffHand"],
+                                        "combatEffect": [{ "effects": [{"effectType": "Damage", "value": "12%", "targetType": "piercing"}] }]
+                                    }
+
+                                    --- Item 5: "Worn Leather Gloves" (Gear with a Structured Bonus) ---
+                                    Gear providing a mechanical advantage.
+                                    - JSON Snippet:
+                                    {
+                                        "name": "Потертые кожаные перчатки", "equipmentSlot": "Hands",
+                                        "bonuses": ["+5% к проверкам на лазание", "Потертые, но все еще функциональные."],
+                                        "structuredBonuses": [{
+                                            "description": "+5% к проверкам на лазание",
+                                            "bonusType": "ActionCheck", "target": "Проверки на лазание",
+                                            "valueType": "Percentage", "value": 5,
+                                            "application": "Permanent", "condition": null
+                                        }]
+                                    }
+                                    
+                                    All these items would be generated as full objects in 'inventoryItemsData' with 'contentsPath: ["Traveler's Backpack"]'.
 
                                     ]]>
                                 </Content>
@@ -12347,34 +12638,39 @@ export const getGameMasterGuideRules = (configuration) => {
                         <Content type="rule_text">
                             <![CDATA[
                             
-                            1) Identify all flat numerical bonuses affecting the 'AssociatedCharacteristic' or the specific action type from:
-                            - Equipped items ('bonuses' array).
-                            - Active/Passive skills ('playerStatBonus' field, or specific bonus text).
-                            - Temporary effects (activeBuffs/activeDebuffs).
+                            1) Identify all flat numerical bonuses affecting the 'AssociatedCharacteristic' or the specific action type from the following sources:
+                                - Equipped Items: Examine the 'structuredBonuses' array of each equipped item. 
+                                Look for objects where 'bonusType' is 'Characteristic' and 'target' matches the characteristic.
+                                - Active/Passive Skills: Examine the 'playerStatBonus' field or other specific descriptive text of the player's skills.
+                                - Temporary Effects: Examine the player's 'activeBuffs' and 'activeDebuffs' arrays.
 
                             2) CRITICAL STEP - Conditional Verification:
-                            For EACH identified bonus, you MUST verify if its condition is met in the current context (time of day, environment, specific target, player state). 
-                            Example: A bonus "+10 to stealth checks at night" only applies if it is currently night. 
-                            ONLY include bonuses whose conditions are currently TRUE.
+                                For EACH identified bonus from ANY source, you MUST verify if its condition is met in the current context (time of day, environment, specific target, player state).
+                                For items, this means checking their 'application' and 'condition' fields.
+                                Example: A bonus 'description' of "+3 к Силе при выламывании дверей" only applies if the action is forcing a door.
+                                ONLY include bonuses whose conditions are currently TRUE.
 
-                            3) Sum all these applicable flat bonuses. Let the sum be 'FlatBonuses'.
-                            Log each source, value, condition verification, and the total 'FlatBonuses'.
+                            3) Sum all these applicable flat bonuses. Let the final sum be 'FlatBonuses'.
 
+                            4) Log the process: 
+                            You must log each source you checked, whether its condition was met (TRUE/FALSE), its value if applied, and the final total 'FlatBonuses' in your audit trail ('items_and_stat_calculations').
+                            
                             ]]>
                         </Content>
                         <Examples>
                             <Example type="good" contentType="log">
                                 <Title>Example Log Entry for Flat Bonus Calculation</Title>
+                                <ScenarioContext>Player is attempting to lift a heavy portcullis (a 'strength' check) and is under a 'Weakened' debuff.</ScenarioContext>
                                 <Content type="log">
                                     <![CDATA[
 
-                                    "Calculating Flat Bonuses for Strength check (Lifting a portcullis):
-                                    - Checking for bonuses:
-                                      - Item 'Gauntlets of Ogre Power': +2 Strength. Condition: None. Status: TRUE.
-                                      - Skill 'Lift with Your Legs': +3 Strength. Condition: Lifting action. Status: TRUE.
-                                      - Debuff 'Weakened': -4 Strength. Condition: Active. Status: TRUE.
-                                      - Item 'Crowbar': +3 Strength. Condition: Forcing open doors. Status: FALSE (action is lifting).
-                                    - Total FlatBonuses = 2 + 3 - 4 = 1."
+                                    Calculating Flat Bonuses for Strength check:
+                                    - Checking all potential bonus sources...
+                                      - Item 'Gauntlets of Ogre Power': Found 'structuredBonuses' entry: 'target: "strength"', 'value: 2', 'application: 'Permanent'. Condition met: TRUE. Applying +2.
+                                      - Skill 'Lift with Your Legs': Found passive skill with 'playerStatBonus': "+3 to Strength on lifting actions". Context (lifting) matches. Condition met: TRUE. Applying +3.
+                                      - Debuff 'Weakened': Found active effect on player reducing Strength by 4. Condition met: TRUE. Applying -4.
+                                      - Item 'Crowbar': Found 'structuredBonuses' entry: 'target: "strength"', 'value: 3', 'application: 'Conditional', 'condition: "при выламывании дверей"'. Context (lifting) does not match. Condition met: FALSE. Bonus ignored.
+                                    - Total FlatBonuses = 2 + 3 - 4 = 1.
 
                                     ]]>
                                 </Content>
@@ -12387,41 +12683,42 @@ export const getGameMasterGuideRules = (configuration) => {
                         <Content type="rule_text">
                             <![CDATA[
 
-                            1) Identify all percentage bonuses affecting the 'AssociatedCharacteristic' or the specific action type from:
-                            - Equipped items ('bonuses' array).
-                            - Active/Passive skills ('combatEffect', 'playerStatBonus', or specific bonus text).
-                            - Temporary effects (activeBuffs/activeDebuffs).
+                            1) Identify all percentage bonuses affecting the 'AssociatedCharacteristic' or the specific action type from the following sources:
+                                - Equipped Items: Examine the 'structuredBonuses' array. 
+                                Look for objects where 'bonusType' is 'ActionCheck', 'valueType' is 'Percentage', and the human-readable 'target' applies to the current action.
+                                - Active/Passive Skills: Examine the 'combatEffect', 'playerStatBonus', or other specific descriptive text of the player's skills.
+                                - Temporary Effects: Examine the player's 'activeBuffs' and 'activeDebuffs' arrays.
 
                             2) CRITICAL STEP - Conditional Verification:
-                            For EACH identified percentage bonus, you MUST verify if its condition is met in the current context 
-                            (time of day, environment, specific target, player state). 
-                            Example: A bonus "+15% to persuasion with nobility" only applies if the target is a noble. 
-                            ONLY include bonuses whose conditions are currently TRUE in your calculation.
+                                For EACH identified percentage bonus, you MUST verify if its condition is met in the current context (time of day, environment, specific target, player state).
+                                Example: A bonus 'description' of "+15% к убеждению знати" only applies if the target NPC is a noble.
+                                ONLY include bonuses whose conditions are currently TRUE in your calculation.
 
                             3) Sum all these applicable percentage values (e.g., a +10% bonus and a +15% bonus result in a total of 25). 
-                            Let this sum be 'TotalPercentBonus'.
+                                Let this sum be 'TotalPercentBonus'.
         
                             4) Calculate the multiplier using this formula: 
-                            'PercentMultiplier = 1 + (TotalPercentBonus / 100)'.
+                                'PercentMultiplier = 1 + (TotalPercentBonus / 100)'.
 
-                            5) Log each source, its value, the status of its condition verification (TRUE/FALSE), 
-                            the final 'TotalPercentBonus', and the resulting 'PercentMultiplier' in your audit trail ('items_and_stat_calculations').
+                            5) Log each source, its value, the status of its condition verification (TRUE/FALSE), the final 'TotalPercentBonus', 
+                            and the resulting 'PercentMultiplier' in your audit trail ('items_and_stat_calculations').
                             
                             ]]>
                         </Content>
                         <Examples>
                             <Example type="good" contentType="log">
                                 <Title>Example Log Entry for Percentage Bonus Calculation</Title>
+                                <ScenarioContext>Player is attempting a Persuasion check on "Duke Anton", a noble.</ScenarioContext>
                                 <Content type="log">
                                     <![CDATA[
 
-                                    "Calculating Percentage Multiplier for Persuasion check:
+                                    Calculating Percentage Multiplier for Persuasion check:
                                     - Checking for bonuses:
-                                      - Item 'Amulet of the Silver Tongue': +10% to Persuasion. Condition: None. Status: TRUE.
-                                      - Skill 'Noble Bearing': +15% to Persuasion with nobility. Condition: Target is a noble. Status: TRUE (target is Duke Anton).
-                                      - Debuff 'Unsettling Aura': -5% to Persuasion. Condition: Active. Status: TRUE.
+                                      - Item 'Amulet of the Silver Tongue': Found 'structuredBonuses' entry: 'bonusType: 'ActionCheck', 'valueType: 'Percentage', 'target: "Проверки убеждения"', 'value: 10', 'application: 'Permanent'. Condition met: TRUE. Applying +10%.
+                                      - Skill 'Noble Bearing': Found passive skill with "+15% to Persuasion with nobility". Target is a noble. Condition met: TRUE. Applying +15%.
+                                      - Debuff 'Unsettling Aura': Found active effect on player reducing Persuasion by 5%. Condition met: TRUE. Applying -5%.
                                     - TotalPercentBonus = 10 + 15 - 5 = 20.
-                                    - PercentMultiplier = 1 + (20 / 100) = 1.2."
+                                    - PercentMultiplier = 1 + (20 / 100) = 1.2.
 
                                     ]]>
                                 </Content>
@@ -16550,8 +16847,49 @@ export const getGameMasterGuideRules = (configuration) => {
                             }
                         ],
                         "inventory": [
-                            {"name": "Veteran's Longsword", "description": "A well-balanced longsword, showing signs of use but perfectly maintained. Combat effect: Deals 22% slashing damage.", "quality": "Good", "type": "Weapon", "price": 150, "count": 1, "weight": 1.8, "volume": 1.5, "bonuses": [], "durability": "90%", "combatEffect": [{"effects": [{"effectType": "Damage", "value": "22%", "targetType": "slashing", "targetTypeDisplayName": "Slashing"}]}], "equipmentSlot": ["MainHand", "OffHand"], "requiresTwoHands": false},
-                            {"name": "Kite Shield", "description": "A sturdy steel kite shield bearing the insignia of the Steel Hounds. Combat effect: Provides 15% all damage reduction.", "quality": "Good", "type": "Armor", "price": 100, "count": 1, "weight": 5.0, "volume": 3.0, "durability": "85%", "combatEffect": [{"effects": [{"effectType": "DamageReduction", "value": "15%", "targetType": "all", "targetTypeDisplayName": "All"}]}], "equipmentSlot": "OffHand", "requiresTwoHands": false}
+                            {
+                                "name": "Veteran's Longsword",
+                                "description": "A well-balanced longsword, showing signs of use but perfectly maintained. Combat effect: Deals 22% slashing damage.", 
+                                "quality": "Good", 
+                                "type": "Weapon", 
+                                "price": 150, 
+                                "count": 1, 
+                                "weight": 1.8, 
+                                "volume": 1.5, 
+                                "bonuses": [], 
+                                "durability": "90%", 
+                                "combatEffect": [{
+                                    "effects": [{
+                                        "effectType": "Damage", 
+                                        "value": "22%", 
+                                        "targetType": "slashing", 
+                                        "targetTypeDisplayName": "Slashing"
+                                    }]
+                                }], 
+                                "equipmentSlot": ["MainHand", "OffHand"], 
+                                "requiresTwoHands": false
+                            },
+                            {
+                                "name": "Kite Shield", 
+                                "description": "A sturdy steel kite shield bearing the insignia of the Steel Hounds. Combat effect: Provides 15% all damage reduction.", 
+                                "quality": "Good", 
+                                "type": "Armor", 
+                                "price": 100, 
+                                "count": 1, 
+                                "weight": 5.0, 
+                                "volume": 3.0, 
+                                "durability": "85%", 
+                                "combatEffect": [{
+                                    "effects": [{
+                                        "effectType": "DamageReduction", 
+                                        "value": "15%", 
+                                        "targetType": "all", 
+                                        "targetTypeDisplayName": "All"
+                                    }]
+                                }], 
+                                "equipmentSlot": "OffHand", 
+                                "requiresTwoHands": false
+                            }
                         ],
                         "factionAffiliations": [
                             {
@@ -16674,8 +17012,49 @@ export const getGameMasterGuideRules = (configuration) => {
                             }
                         ],
                         "inventory": [
-                            {"name": "Gathering Basket", "description": "A woven basket, currently holding a few common herbs.", "quality": "Common", "type": "Container", "price": 5, "count": 1, "weight": 0.5, "containerWeight": 0.5, "volume": 10.0, "isContainer": true, "capacity": 5, "isConsumption": false, "weightReduction": 0, "durability": "70%", "equipmentSlot": null},
-                            {"name": "Healing Salve", "description": "A soothing salve made from local herbs. Restores 10 health when consumed.", "quality": "Common", "type": "Consumable", "price": 15, "count": 3, "weight": 0.1, "volume": 0.05, "bonuses": ["+10 health when consumed"], "isConsumption": true, "durability": "100%", "equipmentSlot": null, "resource":1, "maximumResource":1, "resourceType": "doses"}
+                            {
+                                "name": "Gathering Basket", 
+                                "description": "A woven basket, currently holding a few common herbs.", 
+                                "quality": "Common", 
+                                "type": "Container",
+                                "price": 5, 
+                                "count": 1, 
+                                "weight": 0.5, 
+                                "containerWeight": 0.5,
+                                "volume": 10.0,
+                                "isContainer": true, 
+                                "capacity": 5, 
+                                "isConsumption": false,
+                                "weightReduction": 0, 
+                                "durability": "70%", 
+                                "equipmentSlot": null
+                            },
+                            {
+                                "name": "Healing Salve",
+                                "description": "A soothing salve made from local herbs. Restores a small amount of health.",
+                                "quality": "Common",
+                                "type": "Consumable",
+                                "price": 15,
+                                "count": 3,
+                                "weight": 0.1,
+                                "volume": 0.05,
+                                "bonuses": [
+                                    "Восстанавливает 10 ед. здоровья при употреблении",
+                                    "Пахнет мятой и ромашкой."
+                                ],
+                                "structuredBonuses": [{
+                                    "description": "Восстанавливает 10 ед. здоровья при употреблении",
+                                    "bonusType": "Other",
+                                    "target": "Восстановление здоровья",
+                                    "valueType": "Flat",
+                                    "value": 10,
+                                    "application": "Conditional",
+                                    "condition": "при употреблении"
+                                }],
+                                "isConsumption": true,
+                                "durability": "100%",
+                                "equipmentSlot": null
+                            }
                         ],
                         "fateCards": [
                             {
@@ -16781,8 +17160,44 @@ export const getGameMasterGuideRules = (configuration) => {
                             }
                         ],
                         "inventory": [
-                            {"name": "Silver Locket", "description": "A beautiful silver locket, an heirloom from her mother. It seems to hum with a faint, forgotten magic.", "quality": "Rare", "type": "Accessory", "price": 250, "count": 1, "weight": 0.1, "volume": 0.02, "bonuses": ["Hint: May have hidden properties"], "durability": "100%", "equipmentSlot": "Neck", "requiresTwoHands": false},
-                            {"name": "Book of Ancient Ballads", "description": "A leather-bound tome filled with epic poems and forgotten tales.", "quality": "Uncommon", "type": "Book", "price": 50, "count": 1, "weight": 0.8, "volume": 0.5, "durability": "100%", "equipmentSlot": null}
+                            {
+                                "name": "Silver Locket",
+                                "description": "A beautiful silver locket, an heirloom from her mother. It seems to hum with a faint, forgotten magic.", 
+                                "quality": "Rare", 
+                                "type": "Accessory", 
+                                "price": 250, 
+                                "count": 1, 
+                                "weight": 0.1, 
+                                "volume": 0.02,
+                                "bonuses": [
+                                    "+2 к Мудрости при расшифровке древних текстов",
+                                    "На задней стороне выгравирован девиз дома Валериус."
+                                ],
+                                "structuredBonuses": [{
+                                    "description": "+2 к Мудрости при расшифровке древних текстов",
+                                    "bonusType": "Characteristic",
+                                    "target": "wisdom",
+                                    "valueType": "Flat",
+                                    "value": 2,
+                                    "application": "Conditional",
+                                    "condition": "при расшифровке древних текстов"
+                                }],
+                                "durability": "100%",
+                                "equipmentSlot": "Neck",
+                                "requiresTwoHands": false
+                            },
+                            {
+                                "name": "Book of Ancient Ballads", 
+                                "description": "A leather-bound tome filled with epic poems and forgotten tales.", 
+                                "quality": "Uncommon", 
+                                "type": "Book", 
+                                "price": 50, 
+                                "count": 1,
+                                "weight": 0.8, 
+                                "volume": 0.5, 
+                                "durability": "100%", 
+                                "equipmentSlot": null
+                            }
                         ],
                         "fateCards": [
                             {
@@ -18581,14 +18996,15 @@ export const getGameMasterGuideRules = (configuration) => {
                     <![CDATA[
 
                     1.  Review Equipped Items: 
-                    Analyze all items in the player's 'equippedItems' object (from Context, considering changes this turn from 'equipmentChanges').
+                        Analyze all items in the player's 'equippedItems' object (from Context, considering changes this turn from 'equipmentChanges').
                     
                     2.  Count Search Bonuses: 
-                    Count the total number of bonuses from these items' 'bonuses' array that are explicitly related to finding items, searching, 
-                    or perception for looting (e.g., "+10% chance to find extra loot", "Reveals hidden caches", "+5 to Perception checks for searching").
+                        For each equipped item, examine its 'structuredBonuses' array. 
+                        Count the total number of objects that are explicitly related to finding items, searching, or perception for looting. 
+                        Look for 'bonusType' of 'ActionCheck' or 'Other' with a relevant 'target' (e.g., "Поиск скрытых предметов", "Шанс найти добычу").
                     
                     3.  Assign Coefficient (GM Discretion): 
-                    Based on the number and quality of these bonuses, assign a value between 0.0 and 1.0.
+                        Based on the number and quality of these bonuses, assign a value between 0.0 and 1.0.
                         - 0 bonuses: 'item_search_coefficient' = 0.0
                         - 1-2 minor bonuses: 'item_search_coefficient' = 0.1 - 0.4
                         - Several powerful bonuses: 'item_search_coefficient' = 0.5 - 1.0
