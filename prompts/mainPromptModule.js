@@ -20735,7 +20735,9 @@ export const getStep0 = () => {
                 1.  Analyze 'UserMessageInput' and 'CurrentGameContext'.
 
                 2.  Assess Player Behavior:
-                Following the rules in 'InstructionBlock id = "26"', calculate the 'historyManipulationCoefficient'.
+                Check 'Context.gameSettings.allowHistoryManipulation'.
+                - IF 'false', you MUST follow the rules in 'InstructionBlock id = "26"' to calculate the 'historyManipulationCoefficient'.
+                - IF 'true', you MUST skip this calculation and set the 'historyManipulationCoefficient' in the '_internal_flags_' to 0.0.
 
                 3.  Perform Action Checks:
                 If the coefficient is low, proceed with any required Action Checks ('InstructionBlock id = "12"'), strictly adhering to the principles from '<GameMasterGuide_WorldLogic>'.
@@ -20755,7 +20757,7 @@ export const getStep0 = () => {
                     "isCombatActive": boolean,
                     "needsNPCProcessing": boolean,
                     "needsInventoryProcessing": boolean,
-                    "historyManipulationCoefficient": double,
+                    "historyManipulationCoefficient": double, // Must be 0.0 if allowHistoryManipulation is true
                     "needsSelfCorrection": boolean, // Set to true if any of the following conditions apply; otherwise, set to false.
                     "isSimpleTurn": boolean // Set to true if ALL of the conditions below are met; otherwise, set to false.
                 }
@@ -21067,7 +21069,9 @@ export const getStep6 = () => {
 
                     4.  System and Generation Parameters:
                         - "multipliers": You MUST calculate the five coefficients as defined in 'InstructionBlock id="24"' and place them in the array in the correct order.
-                        - "playerBehaviorAssessment": You MUST create this object. Inside it, for the "historyManipulationCoefficient" key, you MUST retrieve the exact value that was calculated and logged in Step 0. DO NOT recalculate it.
+                        - "playerBehaviorAssessment": Check 'Context.gameSettings.allowHistoryManipulation'.
+                            - IF 'false', you MUST create this object and retrieve the exact 'historyManipulationCoefficient' value that was calculated in Step 0.
+                            - IF 'true', you MUST OMIT the entire 'playerBehaviorAssessment' object from the final JSON.
 
                     Part B: Comprehensive Finalization
                     After completing Part A, you must now ensure the entire JSON response is complete and correct.
@@ -21170,7 +21174,9 @@ export const getStepSimpleFullResponse = () => {
                         - "playerRaceChange": If the player's race was fundamentally altered, provide the NEW race name. Otherwise, this MUST be 'null'.
                         - "playerClassChange": If the player's class was fundamentally altered, provide the NEW class name. Otherwise, this MUST be 'null'.
                         - "multipliers": Calculate the five coefficients as defined in 'InstructionBlock id="24"' and place them in the array in the exact correct order.
-                        - "playerBehaviorAssessment": Retrieve the 'historyManipulationCoefficient' value calculated in Step 0 from 'partiallyGeneratedResponse._internal_flags_'. DO NOT recalculate it.
+                        - "playerBehaviorAssessment": Check 'Context.gameSettings.allowHistoryManipulation'.
+                            - IF 'false', you MUST create this object and retrieve the exact 'historyManipulationCoefficient' value that was calculated in Step 0 from 'partiallyGeneratedResponse._internal_flags_'.
+                            - IF 'true', you MUST OMIT the entire 'playerBehaviorAssessment' object from the final JSON.
                         - "playerAutoCombatSkillChange": If the player's auto-combat skill was set or cleared, provide the skill name or 'null'. Otherwise, this MUST be 'null'.
                         - "playerStealthStateChange": If the player's stealth state changed this turn, report the full state object as logged. Otherwise, this MUST be 'null'.
 
