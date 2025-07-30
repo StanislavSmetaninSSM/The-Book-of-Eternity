@@ -468,6 +468,115 @@ export const getGameMasterGuideRules = (configuration) => {
         </Content>
     </InstructionBlock>
 
+    <InstructionBlock id="0.5">
+        <Title>CRITICAL DIRECTIVE: Hard Mode Protocol</Title>
+        <Description>
+            This block defines global modifications to core game mechanics that are active ONLY when Hard Mode is enabled. 
+            It provides a greater challenge and greater rewards for the player.
+        </Description>
+        <InstructionText>
+            <![CDATA[
+
+            This entire block is active ONLY IF 'Context.gameSettings.hardMode' is true.
+            If it is false, ignore this block completely.
+            When active, the following rules MUST be applied as final modifiers to calculations derived from other InstructionBlocks.
+            You MUST log the application of each Hard Mode modifier in 'items_and_stat_calculations'.
+
+            ]]>
+        </InstructionText>
+        <Content type="ruleset">
+            <Rule id="0.5.1">
+                <Title>Enemy Durability Enhancement</Title>
+                <Content type="rule_text">
+                    <![CDATA[
+                    
+                    When calculating the 'maxHealth' for any generic enemy (as per Rule #6.1.3.3), you must perform an additional step after the standard calculation.
+
+                    1.  Calculate 'maxHealth' using the normal formula for the enemy's type and EL.
+                    2.  Multiply the final result by 1.75.
+                    3.  This new, higher value is the enemy's 'maxHealth' in Hard Mode.
+
+                    ]]>
+                </Content>
+                <Examples>
+                    <Example type="good" contentType="log">
+                        <Title>Example Log for Hard Mode Health Calculation</Title>
+                        <Content>
+                            <![CDATA[
+
+                            # Расчет здоровья Гоблина (Сложный режим)
+                            - Базовое здоровье (Слабый, EL 9): 91%
+                            - **Модификатор Сложного Режима:** 91% * 1.75 = 159.25%
+                            - **Итоговое максимальное здоровье:** 159%
+
+                            ]]>
+                        </Content>
+                    </Example>
+                </Examples>
+            </Rule>
+
+            <Rule id="0.5.2">
+                <Title>Increased Action Check Difficulty</Title>
+                <Content type="rule_text">
+                    <![CDATA[
+
+                    When calculating the 'ActionDifficultModificator' for any player action check (as per Rule #12.6), you must perform an additional step after the standard calculation.
+
+                    1.  Calculate 'ActionDifficultModificator' using the normal formula.
+                    2.  Multiply the final result by 1.5.
+                    3.  This new, higher value is the final 'ActionDifficultModificator' used in the action check.
+
+                    ]]>
+                </Content>
+                <Examples>
+                    <Example type="good" contentType="log">
+                        <Title>Example Log for Hard Mode Difficulty Calculation</Title>
+                        <Content>
+                            <![CDATA[
+
+                            # Расчет Сложности Действия (Сложный режим)
+                            - Базовая сложность (ActionDifficultModificator): 15
+                            - **Модификатор Сложного Режима:** 15 * 1.5 = 22.5
+                            - **Итоговая сложность:** 23
+
+                            ]]>
+                        </Content>
+                    </Example>
+                </Examples>
+            </Rule>
+
+            <Rule id="0.5.3">
+                <Title>Enhanced Experience Rewards</Title>
+                <Content type="rule_text">
+                    <![CDATA[
+
+                    When calculating the 'experienceGained' for any player achievement (as per Rule #17.2.2), you must perform an additional step after the standard calculation.
+
+                    1.  Calculate 'experienceGained' using the normal formula.
+                    2.  Multiply the final result by 2.0 (doubled experience).
+                    3.  This new, higher value is the final 'experienceGained'.
+
+                    ]]>
+                </Content>
+                <Examples>
+                    <Example type="good" contentType="log">
+                        <Title>Example Log for Hard Mode Experience Calculation</Title>
+                        <Content>
+                            <![CDATA[
+
+                            # Расчет Опыта (Сложный режим)
+                            - Базовый опыт за квест: 150 XP
+                            - **Модификатор Сложного Режима:** 150 * 2.0 = 300
+                            - **Итоговый полученный опыт:** 300 XP
+
+                            ]]>
+                        </Content>
+                    </Example>
+                </Examples>
+            </Rule>
+        </Content>
+    </InstructionBlock>
+
     <InstructionBlock id="1">
         <Title>User Message Input</Title>
         <Description>This block contains the current message from the user that needs to be processed.</Description>
@@ -514,6 +623,7 @@ export const getGameMasterGuideRules = (configuration) => {
                     "nonMagicMode": "${gameSettings.nonMagicMode}", // Boolean: True if magic is absent
                     "language": "${gameSettings.language}", // String: User's chosen language code (e.g., "en", "ru"),
                     "gameWorldInformation": ${JSON.stringify(gameSettings.gameWorldInformation)}, //Object: the base information about game world
+                    "hardMode": ${gameSettings.hardMode} // Boolean: True if Hard Mode is enabled
                 },
                 "playerCharacter": { // Object: Player character's core data
                     "name": "${playerCharacter.name}", // String: Player's full name
@@ -20506,6 +20616,9 @@ export const getGameMasterGuideRules = (configuration) => {
 
             FINAL VALIDATION CHECK (MANDATORY):
             Before providing your final response, perform one last mental check of the entire JSON structure you have generated.
+
+            0.  HARD MODE CHECK: Re-check 'Context.gameSettings.hardMode'. 
+            If it is true, have you correctly applied all modifiers from 'InstructionBlock id="0.5"' and logged them? This is a high-priority check.
 
             1.  Scan for any trailing commas and remove them.
             
