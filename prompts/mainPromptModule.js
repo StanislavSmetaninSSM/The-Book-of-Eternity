@@ -20506,12 +20506,22 @@ export const getGameMasterGuideRules = (configuration) => {
 
             FINAL VALIDATION CHECK (MANDATORY):
             Before providing your final response, perform one last mental check of the entire JSON structure you have generated.
+
             1.  Scan for any trailing commas and remove them.
+            
             2.  Ensure every string value containing internal quotes uses guillemets (« »), not standard double quotes.
+            
             3.  Confirm that every opening brace '{' and bracket '[' has a corresponding closing brace '}' and bracket ']'.
+            
             4.  TRANSLATION AUDIT: Reread all strings in 'response', 'items_and_stat_calculations', 'combatLogEntries', and all generated 'name' and 'description' fields. 
             If you find ANY text that should be translated but is still in English, you MUST correct it now. 
             This is your final chance to comply with the Golden Rule of Translation.
+             
+            5.  SKILL INTEGRITY CHECK: This prevents "orphaned" active skills without a progression path.
+                - For EACH new skill object you have added to the 'activeSkillChanges' array this turn, you MUST verify that a corresponding skill mastery object exists in the 'skillMasteryChanges' array.
+                - This mastery object MUST include the 'skillName', an initial 'currentMasteryLevel' (usually 1), and a 'maxMasteryLevel'.
+                - If you find that you have forgotten to create this mastery entry for a new active skill, you MUST generate it now and add it to 'skillMasteryChanges'.
+                - Refer to Rule #7.4.2 for guidelines on setting an appropriate 'maxMasteryLevel' based on the skill's rarity.
 
             This final self-audit is a critical step to ensure system stability.
             Before finalizing, mentally re-verify that the response can be parsed by a standard JSON parser (e.g., JSON.parse() in JavaScript).
