@@ -19889,7 +19889,11 @@ export const getGameMasterGuideRules = (configuration) => {
         <InstructionText>
             <![CDATA[
 
-            Your task is to analyze the player's message ('UserMessageInput') and compare it to the established facts in the Context ('CurrentGameContext', especially 'responseHistory' and 'previousTurnResponse').
+            CRITICAL DIRECTIVE: Check Game Settings First
+            This entire block is active ONLY IF 'Context.gameSettings.allowHistoryManipulation' is false.
+            If 'Context.gameSettings.allowHistoryManipulation' is true, you MUST IGNORE this entire instruction block, DO NOT calculate the 'historyManipulationCoefficient', and DO NOT include the 'playerBehaviorAssessment' object in the final JSON response.
+
+            If the block is active, your task is to analyze the player's message ('UserMessageInput') and compare it to the established facts in the Context ('CurrentGameContext', especially 'responseHistory' and 'previousTurnResponse').
             You must calculate a 'historyManipulationCoefficient' and provide it in the 'playerBehaviorAssessment' object in your JSON response.
             A high coefficient (>= 0.7) signals a potential attempt by the player to "cheat" or engage in meta-gaming.
 
@@ -20677,24 +20681,30 @@ export const getGameMasterGuideRules = (configuration) => {
             FINAL VALIDATION CHECK (MANDATORY):
             Before providing your final response, perform one last mental check of the entire JSON structure you have generated.
 
-            0.  HARD MODE CHECK: Re-check 'Context.gameSettings.hardMode'. 
-            If it is true, have you correctly applied all modifiers from 'InstructionBlock id="0.5"' and logged them? This is a high-priority check.
+            0.  GAME MODE CHECKS (High Priority):
+                -   Hard Mode: Re-check 'Context.gameSettings.hardMode'. 
+                If it is true, have you correctly applied all modifiers from 'InstructionBlock id="0.5"' and logged them?
 
-            1.  Scan for any trailing commas and remove them.
-            
-            2.  Ensure every string value containing internal quotes uses guillemets (« »), not standard double quotes.
-            
-            3.  Confirm that every opening brace '{' and bracket '[' has a corresponding closing brace '}' and bracket ']'.
-            
-            4.  TRANSLATION AUDIT: Reread all strings in 'response', 'items_and_stat_calculations', 'combatLogEntries', and all generated 'name' and 'description' fields. 
-            If you find ANY text that should be translated but is still in English, you MUST correct it now. 
-            This is your final chance to comply with the Golden Rule of Translation.
-             
-            5.  SKILL INTEGRITY CHECK: This prevents "orphaned" active skills without a progression path.
-                - For EACH new skill object you have added to the 'activeSkillChanges' array this turn, you MUST verify that a corresponding skill mastery object exists in the 'skillMasteryChanges' array.
-                - This mastery object MUST include the 'skillName', an initial 'currentMasteryLevel' (usually 1), and a 'maxMasteryLevel'.
-                - If you find that you have forgotten to create this mastery entry for a new active skill, you MUST generate it now and add it to 'skillMasteryChanges'.
-                - Refer to Rule #7.4.2 for guidelines on setting an appropriate 'maxMasteryLevel' based on the skill's rarity.
+                -   History Manipulation: Re-check 'Context.gameSettings.allowHistoryManipulation'. 
+                If it is true, ensure the 'playerBehaviorAssessment' object is NOT present in your JSON. 
+                If it is false, ensure the object IS present with the calculated coefficient.
+
+            1.  SYNTAX & STRUCTURE CHECKS:
+                -   Scan for any trailing commas and remove them.
+                -   Ensure every string value containing internal quotes uses guillemets (« »), not standard double quotes.
+                -   Confirm that every opening brace '{' and bracket '[' has a corresponding closing brace '}' and bracket ']'.
+
+            2.  DATA INTEGRITY CHECKS:
+                -   SKILL INTEGRITY CHECK: This prevents "orphaned" active skills without a progression path.
+                For EACH new skill object you have added to the 'activeSkillChanges' array this turn, you MUST verify that a corresponding skill mastery object exists in the 'skillMasteryChanges' array.
+                This mastery object MUST include the 'skillName', an initial 'currentMasteryLevel' (usually 1), and a 'maxMasteryLevel'.
+                If you find that you have forgotten to create this mastery entry for a new active skill, you MUST generate it now and add it to 'skillMasteryChanges'.
+                Refer to Rule #7.4.2 for guidelines on setting an appropriate 'maxMasteryLevel' based on the skill's rarity.
+
+            3.  TRANSLATION AUDIT: 
+                -   Reread all strings in 'response', 'items_and_stat_calculations', 'combatLogEntries', and all generated 'name' and 'description' fields. 
+                If you find ANY text that should be translated but is still in English, you MUST correct it now. 
+                This is your final chance to comply with the Golden Rule of Translation.
 
             This final self-audit is a critical step to ensure system stability.
             Before finalizing, mentally re-verify that the response can be parsed by a standard JSON parser (e.g., JSON.parse() in JavaScript).
