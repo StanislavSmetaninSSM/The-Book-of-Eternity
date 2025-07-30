@@ -683,7 +683,8 @@ export const getGameMasterGuideRules = (configuration) => {
                     "nonMagicMode": "${gameSettings.nonMagicMode}", // Boolean: True if magic is absent
                     "language": "${gameSettings.language}", // String: User's chosen language code (e.g., "en", "ru"),
                     "gameWorldInformation": ${JSON.stringify(gameSettings.gameWorldInformation)}, //Object: the base information about game world
-                    "hardMode": ${gameSettings.hardMode} // Boolean: True if Hard Mode is enabled
+                    "hardMode": ${gameSettings.hardMode} // Boolean: True if Hard Mode is enabled,
+                    "allowHistoryManipulation": ${gameSettings.allowHistoryManipulation} // Boolean: True if the player can manipulate history
                 },
                 "playerCharacter": { // Object: Player character's core data
                     "name": "${playerCharacter.name}", // String: Player's full name
