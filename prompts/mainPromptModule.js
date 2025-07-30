@@ -1376,6 +1376,18 @@ export const getGameMasterGuideRules = (configuration) => {
             Every string in the 'items_and_stat_calculations' array must be a clear, self-contained part of your thought process.
             You are strictly forbidden from outputting final numbers without showing the complete, step-by-step derivation of that number.
             
+            --------
+            CRITICAL LOGGING DIRECTIVE: THE BREAKDOWN OF BONUSES AND DAMAGE SOURCES
+            When calculating any total value derived from multiple sources (especially damage, healing, or skill checks), you MUST explicitly list each component you are adding. 
+            This is not optional.
+
+            For example, when calculating final pre-critical damage, your log MUST show the individual values from:
+            -   Base Weapon Damage
+            -   Scaled Active Skill Damage (including its own scaling breakdown)
+            -   Total Added Damage Bonuses (which itself must be broken down by source: Level, Characteristic, Passive Skills, Equipment, Buffs/Debuffs)
+            Failure to show this complete breakdown is a critical error.
+
+            --------
             CRITICAL FORMATTING DIRECTIVE:
             You MUST group all calculations and decisions related to a single, complex player action (like an attack, a crafting attempt, 
             or a complex social check) into ONE SINGLE, LARGE, and COHESIVE string entry in the 'items_and_stat_calculations' array.
@@ -1481,7 +1493,7 @@ export const getGameMasterGuideRules = (configuration) => {
                         <![CDATA[
 
                         [
-                            "# Player Action: Attack Goblin with 'Iron Sword'\n\n## Action Check: Attack Roll\n\n1. **Intent:** Physical Attack. Associated Characteristic: **strength**.\n\n2. **Input Variables:**\n   - PlayerDiceResult: **17**\n   - GMDice: **5**\n   - Player.StatModificator (pre-calculated): **33**\n   - Goblin.ActionDifficultMod (pre-calculated): **1**\n\n3. **Calculation:**\n   - Player's Total = PlayerDiceResult (17) + StatModificator (33) = **50**\n   - Challenge Total = GMDice (5) + ActionDifficultMod (1) = **6**\n   - Final Difference = 50 - 6 = **44**\n\n4. **Outcome:**\n   - Difference (44) is >= 10. Final Result: **Critical Success**.\n\n---\n\n## Damage Calculation\n\n1. **Intent:** Calculate damage from 'Critical Success' with 'Iron Sword'.\n\n2. **Input Variables:**\n   - Item 'Iron Sword' Base Damage: **18%**\n   - Player TotalAddedDamageBonus%: **19%**\n   - Player FinalCritMultiplier: **1.51**\n   - Goblin Slashing Resistance: **0%**\n\n3. **Calculation:**\n   - Total Base Damage = Item Base (18%) + Added Bonus (19%) = **37%**\n   - Damage After Crit = Total Base (37%) * Crit Multiplier (1.51) = 55.87% (rounded to **56%**)\n   - Final Damage to Target = Damage After Crit (56%) * (1 - Resistance [0%]) = **56%**\n\n4. **Outcome:**\n   - Goblin takes **56%** damage. Health changes from 91% to **35%**."
+                            "# Player Action: Attack Goblin with skill 'Power Strike' using 'Iron Sword'\n\n## 1. Action Check: Attack Roll\n\n- **Intent:** Physical Attack. Associated Characteristic: **strength**.\n- **Dice Rolls:** Player rolls 1d20 -> **17**. GM rolls 1d20 -> **5**.\n- **Player's StatModificator:** 33\n- **Goblin's DifficultyMod:** 1\n- **Calculation:** (17 + 33) - (5 + 1) = **44**\n- **Outcome:** Difference (44) is >= 10. Final Result: **Critical Success**.\n\n---\n\n## 2. Skill Scaling Calculation: 'Power Strike'\n\n- **Base Skill Damage:** 10%\n- **Character Parameters:** Level: 10, ModStrength: 35, Skill Mastery: 2\n- **Bonus Calculation:**\n  - CharBonus: (floor(35/10)*5) = 15%\n  - LevelBonus: (floor(10/5)*8) = 16%\n  - MasteryBonus: (floor(2/1)*4) = 8%\n  - TotalBonusMultiplier: 1 + 0.15 + 0.16 + 0.08 = 1.39\n- **Final Scaled Skill Damage:** round(10 * 1.39) = **14%**\n\n---\n\n## 3. Final Damage Calculation\n\n- **Input Variables & Bonus Breakdown:**\n  - Item 'Iron Sword' Base Damage: **18%**\n  - Scaled Skill Damage (from step 2): **14%**\n  - **Calculating TotalAddedDamageBonus%:**\n    * Bonus from Level (Lvl 10): **+7%**\n    * Bonus from Characteristic (ModStr 35): **+7%**\n    * Bonus from Passive Skills ('Weapon Focus: Sword'): **+5%**\n    * **TotalAddedDamageBonus% = 7 + 7 + 5 = 19%**\n  - Player FinalCritMultiplier: **1.51**\n  - Goblin Slashing Resistance: **0%**\n\n- **Calculation:**\n  - Total Base Damage = Item Base (18%) + Scaled Skill Damage (14%) + TotalAddedDamageBonus% (19%) = **51%**\n  - Damage After Crit = Total Base (51%) * Crit Multiplier (1.51) = 76.01% (rounded to **76%**)\n  - Final Damage to Target = Damage After Crit (76%) * (1 - Resistance [0%]) = **76%**\n\n- **Final Outcome:**\n  - Goblin takes **76%** damage. Health changes from 91% to **15%**."
                         ]
 
                         ]]>
@@ -8171,6 +8183,14 @@ export const getGameMasterGuideRules = (configuration) => {
 
                     <Rule id="7.3.5">
                         <Title>Logging Scaled Skill Calculation</Title>
+                        <InstructionText>
+                            <![CDATA[
+
+                            The calculation of a skill's final power is a critical part of the audit trail. 
+                            You MUST show every step clearly, following the example format.
+                            
+                            ]]>
+                        </InstructionText>
                         <Content type="rule_text">
                             <![CDATA[
 
@@ -8183,6 +8203,37 @@ export const getGameMasterGuideRules = (configuration) => {
 
                             ]]>
                         </Content>
+                        <Examples>
+                            <Example type="good" contentType="log">
+                                <Title>MANDATORY LOG FORMAT for Skill Scaling Calculation</Title>
+                                <Content type="log">
+                                    <![CDATA[
+
+                                    # Расчет Масштабирования Навыка: "Огненная стрела"
+                                    
+                                    1.  **Базовые параметры навыка:**
+                                        -   Базовый урон (BaseEffectValue): 20%
+                                    
+                                    2.  **Параметры персонажа:**
+                                        -   Уровень персонажа (CasterLevel): 50
+                                        -   Модифицированный Интеллект (RelevantCharValue): 80
+                                        -   Уровень Мастерства Навыка (CurrentSkillMasteryLevel): 4
+                                    
+                                    3.  **Расчет бонусов:**
+                                        -   Бонус от характеристики (CharBonusPercent) = (floor(80/10)*5) = 40%
+                                        -   Бонус от уровня (LevelBonusPercent) = (floor(50/5)*8) = 80%
+                                        -   Бонус от мастерства (MasteryBonusPercent) = (floor(4/1)*4) = 16%
+                                    
+                                    4.  **Итоговый множитель:**
+                                        -   Общий множитель (TotalBonusMultiplier) = 1 + 0.40 + 0.80 + 0.16 = 2.36
+                                    
+                                    5.  **Финальный урон:**
+                                        -   Итоговый урон навыка = round(20 * 2.36) = 47%
+
+                                    ]]>
+                                </Content>
+                            </Example>
+                        </Examples>
                     </Rule>
                 </Content>
             </Rule>
@@ -12646,12 +12697,18 @@ export const getGameMasterGuideRules = (configuration) => {
                         <Title>Sum Flat Bonuses ('FlatBonuses')</Title>
                         <Content type="rule_text">
                             <![CDATA[
-                            
+
                             1) Identify all flat numerical bonuses affecting the 'AssociatedCharacteristic' or the specific action type from the following sources:
-                                - Equipped Items: Examine the 'structuredBonuses' array of each equipped item. 
-                                Look for objects where 'bonusType' is 'Characteristic' and 'target' matches the characteristic.
-                                - Active/Passive Skills: Examine the 'playerStatBonus' field or other specific descriptive text of the player's skills.
-                                - Temporary Effects: Examine the player's 'activeBuffs' and 'activeDebuffs' arrays.
+                                - Equipped Items: Examine the 'structuredBonuses' array. 
+                                Look for objects where 'bonusType' is 'Characteristic', 'target' matches the characteristic, and 'valueType' is 'Flat'.
+                                
+                                - Passive Skills (MANDATORY CHECK):
+                                    - Examine the 'playerStatBonus' field for flat bonuses (e.g., "+2 strength").
+                                    - Crucially, if a passive skill's 'knowledgeDomain' or 'skillDescription' directly relates to the action being performed 
+                                    (e.g., 'Blacksmithing' skill for a crafting check), and implies a direct enhancement, you MUST add a bonus based on its 'masteryLevel'. 
+                                    A good rule of thumb is '+ 2 * masteryLevel' to the flat bonuses.
+
+                                - Temporary Effects: Examine the player's 'activeBuffs' and 'activeDebuffs' arrays for flat numerical buffs/debuffs.
 
                             2) CRITICAL STEP - Conditional Verification:
                                 For EACH identified bonus from ANY source, you MUST verify if its condition is met in the current context (time of day, environment, specific target, player state).
@@ -12668,18 +12725,17 @@ export const getGameMasterGuideRules = (configuration) => {
                         </Content>
                         <Examples>
                             <Example type="good" contentType="log">
-                                <Title>Example Log Entry for Flat Bonus Calculation</Title>
-                                <ScenarioContext>Player is attempting to lift a heavy portcullis (a 'strength' check) and is under a 'Weakened' debuff.</ScenarioContext>
+                                <Title>Example Log Entry for Flat Bonus Calculation (Including Mastery)</Title>
+                                <ScenarioContext>Player with a 'Lockpicking' skill at Mastery Level 3 attempts to pick a complex lock (a 'dexterity' check).</ScenarioContext>
                                 <Content type="log">
                                     <![CDATA[
 
-                                    Calculating Flat Bonuses for Strength check:
-                                    - Checking all potential bonus sources...
-                                      - Item 'Gauntlets of Ogre Power': Found 'structuredBonuses' entry: 'target: "strength"', 'value: 2', 'application: 'Permanent'. Condition met: TRUE. Applying +2.
-                                      - Skill 'Lift with Your Legs': Found passive skill with 'playerStatBonus': "+3 to Strength on lifting actions". Context (lifting) matches. Condition met: TRUE. Applying +3.
-                                      - Debuff 'Weakened': Found active effect on player reducing Strength by 4. Condition met: TRUE. Applying -4.
-                                      - Item 'Crowbar': Found 'structuredBonuses' entry: 'target: "strength"', 'value: 3', 'application: 'Conditional', 'condition: "при выламывании дверей"'. Context (lifting) does not match. Condition met: FALSE. Bonus ignored.
-                                    - Total FlatBonuses = 2 + 3 - 4 = 1.
+                                    # Расчет Плоских Бонусов для проверки Взлома (Ловкость):
+                                    - Проверка всех потенциальных источников бонусов...
+                                      - **Пассивный Навык 'Взлом Замков' (Уровень Мастерства: 3):** Навык напрямую относится к действию. Расчет бонуса от мастерства: 3 * 2 = +6. СТАТУС: ИСТИНА. Применяется.
+                                      - **Предмет 'Воровские Инструменты':** Найден 'structuredBonus' 'target: "dexterity"', 'value: 5'. Условие: "при взломе замков". СТАТУС: ИСТИНА. Применяется.
+                                      - **Дебафф 'Дрожащие руки':** Найден активный эффект, снижающий Ловкость на 4. СТАТУС: ИСТИНА. Применяется.
+                                    - **Итоговые плоские бонусы (FlatBonuses) = 6 + 5 - 4 = +7.**
 
                                     ]]>
                                 </Content>
@@ -12695,7 +12751,11 @@ export const getGameMasterGuideRules = (configuration) => {
                             1) Identify all percentage bonuses affecting the 'AssociatedCharacteristic' or the specific action type from the following sources:
                                 - Equipped Items: Examine the 'structuredBonuses' array. 
                                 Look for objects where 'bonusType' is 'ActionCheck', 'valueType' is 'Percentage', and the human-readable 'target' applies to the current action.
-                                - Active/Passive Skills: Examine the 'combatEffect', 'playerStatBonus', or other specific descriptive text of the player's skills.
+                                
+                                - Passive Skills (MANDATORY CHECK): 
+                                Examine the 'playerStatBonus' field or 'skillDescription' of all passive skills for percentage-based bonuses that apply to the current action 
+                                (e.g., "+10% chance on all perception checks").
+
                                 - Temporary Effects: Examine the player's 'activeBuffs' and 'activeDebuffs' arrays.
 
                             2) CRITICAL STEP - Conditional Verification:
@@ -12766,16 +12826,60 @@ export const getGameMasterGuideRules = (configuration) => {
 
                     <Rule id="12.5.6">
                         <Title>Add Level Scaling & Finalize 'StatModificator'</Title>
+                        <InstructionText>
+                            <![CDATA[
+
+                            This is the final step of the player's side of the calculation. 
+                            You MUST log the entire calculation process in a single, cohesive block, showing how each component contributed to the final 'StatModificator' value.
+                            
+                            ]]>
+                        </InstructionText>
                         <Content type="rule_text">
                             <![CDATA[
 
                             'LevelScaling = floor(CharacterLevel * 0.8)'.
                             'StatModificator = CappedStatValue + LevelScaling'.
-                            Log 'LevelScaling' and the final 'StatModificator'.
+                            Log 'LevelScaling' and the final 'StatModificator', following the example format below.
                             Next Step: Proceed to #12.6 (Calculate ActionDifficultModificator).
 
                             ]]>
                         </Content>
+                        <Examples>
+                            <Example type="good" contentType="log">
+                                <Title>MANDATORY LOG FORMAT for StatModificator Calculation</Title>
+                                <Content type="log">
+                                    <![CDATA[
+
+                                    # Расчет Модификатора Характеристики (StatModificator) для проверки Скрытности (Ловкость):
+
+                                    1.  **Базовое значение и бонусы:**
+                                        -   Стандартная Ловкость (StatValue): 30
+                                        -   **Проверка плоских бонусов (FlatBonuses):**
+                                            -   Предмет 'Сапоги Тишины': +4 к Ловкости. Условие: для проверок скрытности. СТАТУС: ИСТИНА. Применяется.
+                                            -   Дебафф 'Неуклюжесть': -5 к Ловкости. Условие: активен. СТАТУС: ИСТИНА. Применяется.
+                                        -   Итоговые плоские бонусы (FlatBonuses): 4 - 5 = -1
+                                        
+                                        -   **Проверка процентных бонусов (PercentMultiplier):**
+                                            -   Пассивный Навык 'Искусство Тени' (Уровень Мастерства: 4): даёт +10% к скрытности. СТАТУС: ИСТИНА. Применяется.
+                                            -   Предмет 'Плащ Ночи': +15% к скрытности. Условие: в темноте. СТАТУС: ИСТИНА (сейчас ночь). Применяется.
+                                        -   Итоговый процентный бонус (TotalPercentBonus): 10 + 15 = 25%
+                                        -   Процентный множитель (PercentMultiplier): 1 + (25 / 100) = 1.25
+
+                                        -   Ловкость с бонусами (StatValueWithBonuses) = (30 + (-1)) * 1.25 = 29 * 1.25 = 36.25
+
+                                    2.  **Ограничение по уровню:**
+                                        -   Уровень персонажа: 15
+                                        -   Максимальное значение (MaximumStatValue) = (15 * 0.5 + 20) = 27.5
+                                        -   Ограниченное значение (CappedStatValue) = min(27.5, 36.25) = 27.5
+
+                                    3.  **Масштабирование от уровня и итог:**
+                                        -   Масштабирование от уровня (LevelScaling) = floor(15 * 0.8) = 12
+                                        -   **Итоговый StatModificator = 27.5 + 12 = 39.5**
+
+                                    ]]>
+                                </Content>
+                            </Example>
+                        </Examples>
                     </Rule>
                 </Content>
             </Rule>
@@ -14242,14 +14346,14 @@ export const getGameMasterGuideRules = (configuration) => {
             <Rule id="14.2">
                 <Title>Offensive Parameter Calculation (for a Specific Attack/Action)</Title>
                 <Description>These parameters are calculated when a PC or NPC is about to perform a specific offensive Combat Action (from a skill, item, or basic weapon use).</Description>
-                <Content type="ruleset">
-                    <Rule id="14.2.1">
-                        <Title>Total Added Damage Bonus ('TotalAddedDamageBonus%')</Title>
+                <Content type="ruleset">                    
+                    <Rule id="14.2.0">
+                        <Title>Total Pre-Critical Damage Calculation</Title>
                         <InstructionText>
                             <![CDATA[
 
-                            This percentage is added to the base 'value' of a 'Damage' effect from the chosen Combat Action Object. It represents the character's total prowess with that specific type of attack.
-                            The calculation follows a strict additive process across different categories of bonuses.
+                            This is the master formula for calculating the total base damage of an attack before applying critical multipliers or target resistances. 
+                            It combines the weapon, the active skill, and all passive bonuses.
                             
                             ]]>
                         </InstructionText>
@@ -14257,10 +14361,50 @@ export const getGameMasterGuideRules = (configuration) => {
                             <![CDATA[
 
                             Formula:
+                            TotalPreCritDamage% = 
+                                BaseWeaponDamage% 
+                                + ScaledActiveSkillDamage% 
+                                + TotalAddedDamageBonus%
+
+                            Where:
+
+                            - BaseWeaponDamage%: 
+                            The base 'value' from the equipped weapon's 'combatEffect'. 
+                            If the action is an unarmed strike or a skill that doesn't use a weapon, this is 0.
+
+                            - ScaledActiveSkillDamage%: The final, scaled damage 'value' of the active skill being used, calculated as per Rule #7.3. 
+                            If no active skill is used, this is 0.
+
+                            - TotalAddedDamageBonus%: The sum of all passive bonuses, calculated as per Rule #14.2.1.
+
+                            The entire calculation, including the breakdown of all three components, MUST be logged as shown in the primary combat example in InstructionBlock 3.
+                            
+                            ]]>
+                        </Content>
+                    </Rule>
+
+                    <Rule id="14.2.1">
+                        <Title>Total Added Damage Bonus ('TotalAddedDamageBonus%')</Title>
+                        <InstructionText>
+                            <![CDATA[
+
+                            This value represents the sum of all PASSIVE bonuses that enhance a specific damage type (e.g., from character level, stats, passive skills, equipment, and temporary buffs). 
+                            It does NOT include the base damage from the weapon or the active skill itself, which are handled separately in the 'Total Pre-Critical Damage' calculation (Rule #14.2.0).
+                            This is a component of the total damage, not the total itself.
+                            
+                            ]]>
+                        </InstructionText>
+                        <Content type="rule_text">
+                            <![CDATA[
+
+                            This percentage represents the sum of all PASSIVE bonuses that enhance a specific damage type. 
+                            It does NOT include the base damage from the weapon or the active skill itself.
+
+                            Formula:
                             TotalAddedDamageBonus% = 
                                 BonusFromLevel
                                 + BonusFromCharacteristic
-                                + BonusFromSkills
+                                + BonusFromPassiveSkills
                                 + BonusFromEquipment
                                 + BonusFromTemporaryEffects
 
@@ -14274,26 +14418,20 @@ export const getGameMasterGuideRules = (configuration) => {
                                 - 'RelevantCharacteristic' is determined by the skill or weapon being used.
 
                             Step 2: Calculate Bonus from Passive Skills
-                            a)  'BonusFromSkills': Sum ALL applicable percentage 'value's from the 'combatEffect' of the character's *active* Passive Skills (InstructionBlock '8').
-                            b)  Applicability: A skill's bonus applies if its effect 'targetType' (e.g., 'damage (slashing)', 'damage (all)') matches or includes the damage type of the current attack. All applicable bonuses from skills are summed together.
+                            a)  'BonusFromPassiveSkills': Sum ALL applicable percentage 'value's from the 'combatEffect' of the character's active Passive Skills (InstructionBlock '8').
+                            b)  Applicability: A skill's bonus applies if its effect 'targetType' (e.g., 'damage (slashing)', 'damage (all)') matches or includes the damage type of the current attack.
 
                             Step 3: Calculate Bonus from Equipment
-                            a)  'BonusFromEquipment': Sum ALL applicable percentage 'value's from passive 'Buff' effects (where 'isActivatedEffect' is false) within the 'combatEffect' of ALL of the character's *currently equipped* items.
-                            b)  Applicability: An item's bonus applies if its effect 'targetType' matches or includes the damage type of the current attack. All applicable bonuses from different pieces of equipment are summed together.
+                            a)  'BonusFromEquipment': Sum ALL applicable percentage 'value's from passive 'Buff' effects (where 'isActivatedEffect' is false) within the 'combatEffect' of ALL of the character's currently equipped items.
+                            b)  Applicability: An item's bonus applies if its effect 'targetType' matches or includes the damage type of the current attack.
 
                             Step 4: Calculate Bonus from Temporary Effects
-                            a)  'BonusFromTemporaryEffects': Sum ALL percentage 'value's from effects currently in the character's 'activeBuffs' list that have an 'effectType' of 'Buff' and a 'targetType' matching or including the damage type of the current attack.
+                            a)  'BonusFromTemporaryEffects': 
+                            Sum ALL percentage 'value's from effects currently in the character's 'activeBuffs' list that have an 'effectType' of 'Buff' and a 'targetType' matching or including the damage type of the current attack.
 
                             Step 5: Final Summation and Logging
                             a)  Calculate 'TotalAddedDamageBonus%' by summing the totals from each step.
-                            b)  The calculation of this total and all its components MUST be logged in 'items_and_stat_calculations'.
-
-                            Example Log: "Calculating TotalAddedDamageBonus% for Player's Longsword Attack (slashing):
-                             - Step 1 (Stats): BonusFromLevel(L25)=+15% + BonusFromCharacteristic(ModStr70)=+28% = +43%
-                             - Step 2 (Skills): PassiveSkill 'Sword Focus' = +5%
-                             - Step 3 (Equipment): Equipped 'Warrior's Bracer' = +3%
-                             - Step 4 (Temp Effects): ActiveBuff 'Blessing of Might' = +10%
-                             - TotalAddedDamageBonus% = 43 + 5 + 3 + 10 = 61%."
+                            b)  The breakdown of this total MUST be logged as part of the main damage calculation, as shown in the example in InstructionBlock 3.
 
                             ]]>
                         </Content>
@@ -14320,8 +14458,89 @@ export const getGameMasterGuideRules = (configuration) => {
 
                             ]]>
                         </Content>
+                        <Examples>
+                            <Example type="good" contentType="log">
+                                <Title>Example: Calculating Critical Hit Parameters for a High-Luck Character</Title>
+                                <ScenarioContext>
+                                    Player "Whisper" has Standard Luck: 85 and Modified Luck: 92 (from items).
+                                </ScenarioContext>
+                                <Content type="log">
+                                    <![CDATA[
+                                    # Расчет Параметров Критического Удара для "Whisper"
+
+                                    ## 1. Расчет Шанса Критического Удара (CritChanceThreshold)
+                                    - Используется Стандартная Удача: 85
+                                    - Формула: 20 - floor(Стандартная Удача / 20)
+                                    - Расчет: 20 - floor(85 / 20) = 20 - floor(4.25) = 20 - 4 = 16
+                                    - **Результат:** "Whisper" наносит критический удар при выпадении на d20 **16** или выше.
+
+                                    ## 2. Расчет Множителя Критического Урона (FinalCritMultiplier)
+                                    - Используется Модифицированная Удача: 92
+                                    - Базовый множитель: 1.5
+                                    - Бонус от Удачи (%): floor(Модифицированная Удача / 2) = floor(92 / 2) = 46%
+                                    - Итоговый Множитель: 1.5 + (46 / 100) = 1.96
+                                    - **Результат:** Критические удары "Whisper" наносят **196%** от обычного урона.
+
+                                    ]]>
+                                </Content>
+                            </Example>
+                        </Examples>
                     </Rule>
                 </Content>
+                <Examples>
+                    <Example type="good" contentType="log">
+                        <Title>Comprehensive Damage Calculation Example</Title>
+                        <ScenarioContext>
+                            Player "Valerius" (Level 25 Warrior) uses the skill "Sundering Strike" (Base 20% slashing damage) with his "Masterwork Axe" (Base 25% slashing damage). He is under the effect of a "Blessing of Might" potion (+10% all damage).
+                            - Level: 25
+                            - Modified Strength: 70
+                            - Standard Luck: 30
+                            - Modified Luck: 35
+                            - Passive Skill "Axe Focus": +5% slashing damage.
+                            - Equipped "Gauntlets of Savagery": +3% slashing damage.
+                        </ScenarioContext>
+                        <Content type="log">
+                            <![CDATA[
+
+                            # Расчет Урона для "Сокрушающего Удара"
+
+                            ## 1. Масштабирование Навыка "Сокрушающий Удар" (Rule #7.3)
+                            - Базовый урон навыка: 20%
+                            - Параметры персонажа: Уровень 25, Мод. Сила 70, Мастерство навыка 3
+                            - Расчет бонусов:
+                                - Бонус от Характеристики: (floor(70/10)*5) = 35%
+                                - Бонус от Уровня: (floor(25/5)*8) = 40%
+                                - Бонус от Мастерства: (floor(3/1)*4) = 12%
+                            - Общий Множитель: 1 + 0.35 + 0.40 + 0.12 = 1.87
+                            - **Масштабированный урон навыка:** round(20 * 1.87) = **37%**
+
+                            ## 2. Расчет Общего Базового Урона (до крит. удара) (Rule #14.2.0)
+                            
+                            ### 2.1. Расчет TotalAddedDamageBonus% (Rule #14.2.1)
+                            - Бонус от Уровня (Lvl 25): 5 + floor(25/10)*2 = +9%
+                            - Бонус от Характеристики (Мод. Сила 70): floor(70/2.5) = +28%
+                            - Бонус от Пассивных Навыков ("Axe Focus"): +5%
+                            - Бонус от Снаряжения ("Gauntlets of Savagery"): +3%
+                            - Бонус от Временных Эффектов ("Blessing of Might"): +10%
+                            - **Итоговый TotalAddedDamageBonus%:** 9 + 28 + 5 + 3 + 10 = **55%**
+
+                            ### 2.2. Суммирование всех источников урона
+                            - Базовый урон Оружия ("Masterwork Axe"): 25%
+                            - Масштабированный урон Навыка ("Sundering Strike"): 37%
+                            - TotalAddedDamageBonus%: 55%
+                            - **Общий Базовый Урон (TotalPreCritDamage%):** 25 + 37 + 55 = **117%**
+
+                            ## 3. Расчет Критического Урона //на случай 'Critical Success' - делается только в этом случае (Rule #14.2.2)
+                            - Множитель Критического Урона (FinalCritMultiplier) (Модифицированная Удача 35):
+                                - Базовый множитель: 1.5
+                                - Бонус от Удачи: floor(35 / 2) = 17% -> 0.17
+                                - Итоговый Множитель: 1.5 + 0.17 = 1.67
+                            - **Потенциальный Критический Урон:** round(117% * 1.67) = **195%**
+
+                            ]]>
+                        </Content>
+                    </Example>
+                </Examples>
             </Rule>
 
             <Rule id="14.3">
@@ -14385,6 +14604,51 @@ export const getGameMasterGuideRules = (configuration) => {
                         </Content>
                     </Rule>
                 </Content>
+                <Examples>
+                    <Example type="good" contentType="log">
+                        <Title>Comprehensive Resistance Calculation Example</Title>
+                        <ScenarioContext>
+                            Player "Valerius" (Level 25 Warrior) is hit by a "Fireball" spell (damage type: 'fire').
+                            - Level: 25
+                            - Modified Constitution: 60
+                            - Equipped Items:
+                                - "Plate Armor of the Forge": Provides 15% 'slashing' resistance and 20% 'fire' resistance.
+                                - "Dragonscale Shield": Provides 30% 'fire' resistance.
+                                - "Amulet of Warding": Provides 5% resistance to 'all' damage types.
+                            - Active Passive Skill "Elemental Adaptation": Provides 10% 'fire' resistance.
+                            - Active Temporary Buff "Stoneskin": Provides 20% 'all' resistance for 3 turns.
+                        </ScenarioContext>
+                        <Content type="log">
+                            <![CDATA[
+
+                            # Расчет Итогового Сопротивления ('FinalResistance%') к урону типа 'Огонь'
+
+                            ## 1. Врожденное Сопротивление (Innate Resistance)
+                            - Сопротивление от Уровня (Lvl 25, 'all'): 5 + floor(25/10)*2 = +9%
+                            - Сопротивление от Телосложения (Мод. Телосложение 60, 'all'): floor(60/10) = +6%
+                            - **Итоговое врожденное сопротивление ('all'):** 9% + 6% = **15%**
+
+                            ## 2. Сопротивление от Основной Брони (Primary Armor)
+                            - Проверка снаряжения на сопротивление огню:
+                                - 'Plate Armor': 20% fire resist
+                                - 'Dragonscale Shield': 30% fire resist
+                            - Выбрана наилучшая защита от огня: 'Dragonscale Shield'.
+                            - **Сопротивление от основной брони:** **30%**
+
+                            ## 3. Суммирование Дополнительных Бонусов
+                            - Доп. Снаряжение ('Amulet of Warding', resist 'all'): +5%
+                            - Пассивные Навыки ('Elemental Adaptation', resist 'fire'): +10%
+                            - Временные Эффекты ('Stoneskin', resist 'all'): +20%
+                            - **Итоговые дополнительные бонусы:** 5 + 10 + 20 = **35%**
+
+                            ## 4. Финальный Расчет и Ограничение
+                            - Общее сопротивление (до ограничения) = Врожденное (15%) + Основная броня (30%) + Доп. бонусы (35%) = 80%
+                            - **Итоговое Сопротивление Огню ('FinalResistance%'):** min(90, 80) = **80%**
+
+                            ]]>
+                        </Content>
+                    </Example>
+                </Examples>
             </Rule>
 
             <Rule id="14.4"> 
@@ -14447,18 +14711,28 @@ export const getGameMasterGuideRules = (configuration) => {
                 <Content type="rule_text">
                     <![CDATA[
 
-                    1.  Action Check Performed: The action has already been processed through InstructionBlock '12' (Action Checks and Resolution). This determined a final 'Result' string (e.g., 'Full Success', 'Partial Success', 'Natural Critical Failure').
+                    1.  Action Check Performed: 
+                    The action has already been processed through InstructionBlock '12' (Action Checks and Resolution). 
+                    This determined a final 'Result' string (e.g., 'Full Success', 'Partial Success', 'Natural Critical Failure').
 
-                    2.  Identify Source Combat Action Object: 
-                        - Retrieve the specific "Combat Action Object" (from #5.5) that the PC/NPC used (e.g., from their active skill's 'combatEffect', an item's activatable 'combatEffect', or a weapon's 'combatEffect' if it's a basic attack).
-                        - Ensure its 'value' and 'duration' (if applicable and scalable) have been scaled based on the PC/NPC's characteristics, level, and skill mastery (as per #7.3).
+                    2.  MANDATORY: Scale Skill Effects before Application:
+                        - If the action involved an Active Skill with scalable effects (as defined in #7.3), you MUST now perform the full scaling calculation.
+                        - You MUST log this entire scaling process, showing the base values, character parameters (level, characteristic, mastery), bonus percentages, 
+                        and the final scaled 'value' and/or 'duration'. Follow the log format from the example in Rule #7.3.5.
 
-                    3.  Apply Mechanical Outcomes:
+                    3.  Identify Source Combat Action Object & Apply Scaled Values:
+                        - Retrieve the specific "Combat Action Object" (from #5.5) that the PC/NPC used.
+                        - You MUST replace the base 'value' and 'duration' in this object with the scaled values you just calculated in the previous step. 
+                        This object with the final, scaled values is now what will be used to apply effects.
+
+                    4.  Apply Mechanical Outcomes:
                         - Proceed to InstructionBlock '12' -> Rule '12.9' (Applying Mechanical Combat Effects). 
                         - Use the 'Result' from step 1 above as the 'ActionSuccessLevel' mentioned in #12.9.1.d.
-                        - The 'ContextMultiplier' (from #12.9.1.e) is determined by the GM during the action check in #12 if it was a complex/environmental action. For standard skill/item uses, it's typically 1.0.
+                        - The 'ContextMultiplier' (from #12.9.1.e) is determined by the GM during the action check in #12 if it was a complex/environmental action. 
+                        For standard skill/item uses, it's typically 1.0.
                     
-                    This process will handle damage dealing, healing, applying buffs/debuffs, control effects, etc., to the target(s) based on the PC/NPC's successful (or partially successful) action.
+                    This process will handle damage dealing, healing, applying buffs/debuffs, control effects, etc., to the target(s) based on the PC/NPC's successful 
+                    (or partially successful) action, using the skill's fully scaled power.
                    
                     ]]>
                 </Content>
