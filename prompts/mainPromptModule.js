@@ -489,25 +489,45 @@ export const getGameMasterGuideRules = (configuration) => {
                 <Title>Enemy Durability Enhancement</Title>
                 <Content type="rule_text">
                     <![CDATA[
-                    
-                    When calculating the 'maxHealth' for any generic enemy (as per Rule #6.1.3.3), you must perform an additional step after the standard calculation.
+                        
+                    When generating or updating any hostile combatant ('enemiesData'), you must apply the following modifiers.
 
-                    1.  Calculate 'maxHealth' using the normal formula for the enemy's type and EL.
-                    2.  Multiply the final result by 1.75.
-                    3.  This new, higher value is the enemy's 'maxHealth' in Hard Mode.
+                    A. For Generic Enemies (non-NPC):
+
+                    1.  Health Enhancement: After calculating the enemy's 'maxHealth' (as per Rule #6.1.3.3), multiply the final result by 1.75. 
+                    This is their new 'maxHealth'.
+
+                    2.  Damage Enhancement: For every 'Damage' or 'DamageOverTime' effect within the enemy's 'actions' array, multiply its base 'value' by 1.4. 
+                    Round the result to the nearest integer. This is their new damage value for that action.
+
+                    B. For Named NPCs entering combat as Enemies:
+
+                    1.  Health Enhancement: After calculating the NPC's 'maxHealth' from their characteristics (as per Rule #6.1.6.2), multiply the final result by 1.5. 
+                    This is their new 'maxHealth' for the combat encounter. 
+                    (Note: The multiplier is slightly lower to account for their potentially higher base health from stats).
+
+                    2.  Damage Enhancement: After calculating the final scaled damage of any of their attacks or offensive skills 
+                    (after all bonuses from stats, skills, mastery, etc.), apply a final multiplier of 1.25 to the total damage value.
+
+                    You must log the application of all relevant health and damage modifiers for each enemy type.
 
                     ]]>
                 </Content>
                 <Examples>
                     <Example type="good" contentType="log">
-                        <Title>Example Log for Hard Mode Health Calculation</Title>
+                        <Title>Example Log for Hard Mode Enemy Enhancement</Title>
                         <Content>
                             <![CDATA[
 
-                            # Расчет здоровья Гоблина (Сложный режим)
-                            - Базовое здоровье (Слабый, EL 9): 91%
-                            - **Модификатор Сложного Режима:** 91% * 1.75 = 159.25%
-                            - **Итоговое максимальное здоровье:** 159%
+                            # Усиление врагов (Сложный режим)
+
+                            ## 1. Generic Enemy: "Гоблин"
+                            - Базовое здоровье: 91% -> **Модификатор x1.75** -> **Итоговое здоровье: 159%**
+                            - Базовый урон "Тычок копьем": 8% -> **Модификатор x1.4** -> **Итоговый урон: 11%**
+
+                            ## 2. Named NPC: "Капитан Торн"
+                            - Базовое здоровье (из характеристик): 192% -> **Модификатор x1.5** -> **Итоговое здоровье: 288%**
+                            - Итоговый урон атаки мечом (после всех расчетов): 65% -> **Модификатор x1.25** -> **Итоговый урон: 81%**
 
                             ]]>
                         </Content>
@@ -523,7 +543,7 @@ export const getGameMasterGuideRules = (configuration) => {
                     When calculating the 'ActionDifficultModificator' for any player action check (as per Rule #12.6), you must perform an additional step after the standard calculation.
 
                     1.  Calculate 'ActionDifficultModificator' using the normal formula.
-                    2.  Multiply the final result by 1.5.
+                    2.  Apply the Hard Mode formula: New Difficulty = (Old Difficulty * 1.5) + 5.
                     3.  This new, higher value is the final 'ActionDifficultModificator' used in the action check.
 
                     ]]>
@@ -535,9 +555,9 @@ export const getGameMasterGuideRules = (configuration) => {
                             <![CDATA[
 
                             # Расчет Сложности Действия (Сложный режим)
-                            - Базовая сложность (ActionDifficultModificator): 15
-                            - **Модификатор Сложного Режима:** 15 * 1.5 = 22.5
-                            - **Итоговая сложность:** 23
+                            - Базовая сложность (ActionDifficultModificator): 2
+                            - **Модификатор Сложного Режима:** (2 * 1.5) + 5 = 3 + 5 = 8
+                            - **Итоговая сложность:** 8
 
                             ]]>
                         </Content>
@@ -568,6 +588,46 @@ export const getGameMasterGuideRules = (configuration) => {
                             - Базовый опыт за квест: 150 XP
                             - **Модификатор Сложного Режима:** 150 * 2.0 = 300
                             - **Итоговый полученный опыт:** 300 XP
+
+                            ]]>
+                        </Content>
+                    </Example>
+                </Examples>
+            </Rule>
+
+            <Rule id="0.5.4">
+                <Title>Richer Loot Rewards</Title>
+                <Content type="rule_text">
+                    <![CDATA[
+
+                    When generating loot from enemies or found in the world (as per Rule #10.1), Hard Mode increases the quality and quantity.
+
+                    1.  Item Quality:
+                    When using a loot template from 'lootForCurrentTurn' or dynamically generating an item, there is a 50% chance to upgrade its final 'quality' by one tier 
+                    (e.g., 'Common' becomes 'Uncommon', 'Rare' becomes 'Epic'). You must make a d20 roll for this chance (1-10 = no upgrade, 11-20 = upgrade). 
+                    This does not apply to 'Trash' or 'Unique' items.
+
+                    2.  Item Quantity: 
+                    For stackable items like materials or currency found as loot, multiply the base quantity by 1.5 (rounded down).
+
+                    You must log the application of these loot modifiers.
+
+                    ]]>
+                </Content>
+                <Examples>
+                    <Example type="good" contentType="log">
+                        <Title>Example Log for Hard Mode Loot Generation</Title>
+                        <Content>
+                            <![CDATA[
+
+                            # Генерация Добычи (Сложный режим)
+                            - Базовый предмет: 'Common Iron Sword'.
+                            - Проверка улучшения качества (50% шанс): d20 roll = 16 (успех).
+                            - **Итоговое качество:** 'Uncommon'.
+                            
+                            - Базовая добыча: 10 'Железных слитков'.
+                            - Модификатор количества: 10 * 1.5 = 15.
+                            - **Итоговое количество:** 15 'Железных слитков'.
 
                             ]]>
                         </Content>
