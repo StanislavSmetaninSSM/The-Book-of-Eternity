@@ -8948,6 +8948,51 @@ export const getGameMasterGuideRules = (configuration) => {
                 
                     ]]>
                 </Content>
+                <Examples>
+                    <Example type="good" contentType="json_fragment">
+                        <Title>Example Passive Skill: "Dual Wielding"</Title>
+                        <Content type="json">
+                            <![CDATA[
+
+                            {
+                                "skillName": "Dual Wielding",
+                                "skillDescription": "You have trained to fight effectively with a weapon in each hand, turning a defensive liability into a flurry of attacks.",
+                                "rarity": "Uncommon",
+                                "type": "CombatEnhancement",
+                                "group": "Combat",
+                                "combatEffect": null,
+                                "playerStatBonus": null,
+                                "effectDetails": "Removes the Disadvantage penalty normally associated with attacking while wielding a weapon in the off-hand. Allows for effective dual-weapon combat.",
+                                "masteryLevel": 1,
+                                "maxMasteryLevel": 3
+                            }
+
+                            ]]>
+                        </Content>
+                    </Example>
+
+                    <Example type="good" contentType="json_fragment">
+                        <Title>Example Passive Skill: "Titan's Grip"</Title>
+                        <Content type="json">
+                            <![CDATA[
+
+                            {
+                                "skillName": "Titan's Grip",
+                                "skillDescription": "Your immense strength allows you to comfortably wield large, two-handed weapons in a single hand without the usual clumsiness.",
+                                "rarity": "Rare",
+                                "type": "CombatEnhancement",
+                                "group": "Combat",
+                                "combatEffect": null,
+                                "playerStatBonus": "+2 strength",
+                                "effectDetails": "Removes the Disadvantage penalty normally associated with wielding a two-handed weapon in one hand.",
+                                "masteryLevel": 1,
+                                "maxMasteryLevel": 1
+                            }
+
+                            ]]>
+                        </Content>
+                    </Example>
+                </Examples>
             </Rule>
 
             <Rule id="8.3">
@@ -13624,6 +13669,153 @@ export const getGameMasterGuideRules = (configuration) => {
 
                     ]]>
                 </Content>
+                <Examples>
+                    <Example type="good" contentType="log">
+                        <Title>Example Log (Penalty Applied)</Title>
+                        <Content type="log">
+                            <![CDATA[
+
+                            Player attacks with 'Greataxe' while holding a 'Shield'.
+                            Checking for One-Handed Wielding penalty (Rule 12.11):
+                            - Weapon 'Greataxe' requires two hands.
+                            - Off-hand is occupied by 'Shield'.
+                            - Wielding one-handed penalty condition is met.
+                            - Checking passive skills for mitigation... None found.
+                            - Penalty applies: Applying Normal Disadvantage on the attack roll.
+
+                            ]]>
+                        </Content>
+                    </Example>
+
+                    <Example type="good" contentType="log">
+                        <Title>Example Log (Penalty Mitigated by Skill)</Title>
+                        <Content type="log">
+                            <![CDATA[
+
+                            Player attacks with 'Greataxe' while holding a 'Shield'.
+                            Checking for One-Handed Wielding penalty (Rule 12.11):
+                            - Weapon 'Greataxe' requires two hands.
+                            - Off-hand is occupied by 'Shield'.
+                            - Wielding one-handed penalty condition is met.
+                            - Checking passive skills for mitigation... Found passive skill: 'Titan's Grip'.
+                            - This skill explicitly removes the penalty.
+                            - Penalty Mitigated. The attack roll is made normally.
+
+                            ]]>
+                        </Content>
+                    </Example>
+                </Examples>
+            </Rule>
+
+            <Rule id="12.12">
+                <Title>Special Check: Dual-Wielding Penalty (Without Skill)</Title>
+                <Description>
+                    This rule is applied during the "Determine Advantage or Disadvantage" step (#12.2) if the player is attacking while wielding a weapon in each hand (dual-wielding).
+                </Description>
+                <InstructionText>
+                    <![CDATA[
+
+                    When the player performs an attack action, you MUST check if they are dual-wielding and if they possess the necessary skill to do so effectively.
+                    
+                    ]]>
+                </InstructionText>
+                <Content type="rule_text">
+                    <![CDATA[
+
+                    1.  Identify Wielding Style:
+                        a.  Check the player's 'equippedItems' in the Context.
+                        b.  The dual-wielding condition is met if BOTH 'MainHand' and 'OffHand' slots are occupied by items that are considered weapons. 
+                            An item is a weapon if its 'type' is 'Weapon' or it has a 'combatEffect' with a 'Damage' effect type. 
+                            A shield is NOT a weapon for this check.
+
+                    2.  Check for Mitigating Factors (Passive Skills):
+                        -   If the dual-wielding condition is met, you MUST check if the player has any passive skills that explicitly allow for dual-wielding without penalty.
+                        -   Examine the player's 'passiveSkills' list. 
+                            Look for skills with names like "Dual Wielding", "Ambidexterity", "Twin Blade Style" or with 'effectDetails' that state: "Allows wielding a second weapon in the off-hand without penalty." or similar. 
+                            The skill might be specific to weapon types (e.g., "Allows dual-wielding light weapons").
+
+                    3.  Apply Penalty:
+                        -   If the player is dual-wielding (as per 1.b) AND they do NOT have a relevant mitigating passive skill (as per 2.), you MUST impose Normal Disadvantage on their attack action check. 
+                            This penalty should be applied during Step #12.2.
+
+                    4.  Adjudication and Logging:
+                        -   If a mitigating skill is present, no Disadvantage is applied.
+                        -   The GM MUST log this entire check process in 'items_and_stat_calculations', clearly stating whether the penalty was applied or mitigated by a skill.
+
+                    ]]>
+                </Content>
+                <Examples>
+                    <Example type="good" contentType="log">
+                        <Title>Example Log (Penalty Applied - No Skill)</Title>
+                        <Content type="log">
+                            <![CDATA[
+
+                            Player attacks while holding a Sword (MainHand) and a Dagger (OffHand).
+                            Checking for Dual-Wielding penalty (Rule 12.12):
+                            - Both hands are occupied by items considered weapons. Condition met.
+                            - Checking passive skills for dual-wielding... None found.
+                            - Penalty applies: Applying Normal Disadvantage on the attack roll.
+
+                            ]]>
+                        </Content>
+                    </Example>
+
+                    <Example type="good" contentType="log">
+                        <Title>Example Log (Penalty Mitigated by Skill)</Title>
+                        <Content type="log">
+                            <![CDATA[
+
+                            Player attacks while holding two daggers.
+                            Checking for Dual-Wielding penalty (Rule 12.12):
+                            - Both hands are occupied by items considered weapons. Condition met.
+                            - Checking passive skills... Found "Dual Wielding: Light Weapons".
+                            - Penalty Mitigated. The attack roll is made normally.
+
+                            ]]>
+                        </Content>
+                    </Example>
+
+                    <Example type="good" contentType="log">
+                        <Title>Clarification Example (No Penalty - Sword and Shield)</Title>
+                        <Content type="log">
+                            <![CDATA[
+
+                            Player attacks while holding a Sword (MainHand) and a Shield (OffHand).
+                            Checking for Dual-Wielding penalty (Rule 12.12):
+                            - MainHand holds a weapon, but OffHand holds a Shield, which is not a weapon for this check.
+                            - Dual-wielding condition is NOT met.
+                            - No penalty is applied. The attack roll is made normally.
+
+                            ]]>
+                        </Content>
+                    </Example>
+
+                    <Example type="good" contentType="log">
+                        <Title>Example Log (Compound Penalty - Dire Disadvantage)</Title>
+                        <Content type="log">
+                            <![CDATA[
+
+                            Player attacks with 'Greataxe' while holding a 'Torch' (which can be used as a weapon).
+                            
+                            Step 1: Checking for One-Handed Wielding penalty (Rule 12.11):
+                            - Weapon 'Greataxe' requires two hands. Off-hand is occupied.
+                            - Penalty condition met. Checking for mitigation skill... None found.
+                            - Result: One source of Normal Disadvantage.
+
+                            Step 2: Checking for Dual-Wielding penalty (Rule 12.12):
+                            - MainHand holds a weapon ('Greataxe'). OffHand holds a 'Torch' (considered a weapon).
+                            - Penalty condition met. Checking for mitigation skill... None found.
+                            - Result: A second source of Normal Disadvantage.
+
+                            Step 3: Combining Penalties (Rule 5.16.4):
+                            - Two sources of Normal Disadvantage are present.
+                            - The penalty is escalated to the next tier.
+                            - Final Penalty: Applying Dire Disadvantage on the attack roll.
+
+                            ]]>
+                        </Content>
+                    </Example>
+                </Examples>
             </Rule>
         </Content>
     </InstructionBlock>
