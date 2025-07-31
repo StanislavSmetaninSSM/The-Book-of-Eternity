@@ -16582,6 +16582,7 @@ export const getGameMasterGuideRules = (configuration) => {
                                 "appearanceDescription": "detailed_appearance_description_string",
                                 "history": "key_moments_of_history_string",
                                 "level": "integer_npc_level_optional",
+                                "progressionType": "'Companion' | 'PlotDriven' | 'Static'",
                                 "relationshipLevel": "integer_0_to_200",
                                 "attitude": "attitude_towards_player_string",
                                 "characteristics": {
@@ -16680,6 +16681,18 @@ export const getGameMasterGuideRules = (configuration) => {
                             NPC progression generally follows player rules: standard characteristics can be trained up to 'level * 2', plus 'level * 5' 
                             points to distribute. Unique NPCs may exceed this.
                             
+                            11.1. "progressionType": (string, mandatory) 
+                            Defines how this NPC advances in level. This is a critical field for world consistency.
+                                - 'Companion': For NPCs who are actively traveling with the player or are part of their immediate party. 
+                                Their growth is closely tied to the player's.
+                                
+                                - 'PlotDriven': For key allies, rivals, antagonists, or important quest-givers who are NOT active companions. 
+                                Their growth is tied ONLY to major plot milestones and their personal story arcs (Fate Cards). 
+                                They do NOT level up just because the player does.
+                                
+                                - 'Static': For minor, ambient NPCs (e.g., most shopkeepers, guards, citizens) whose progression is not relevant to the story. 
+                                They generally do not level up unless a major plot event directly transforms them.
+
                             12. "relationshipLevel": (integer) Current relationship level with the player, from 0 (Hate) to 200 (Total Trust). 
                             Initial value is typically 50 (Neutral) unless plot dictates otherwise. 
                             Changes reported via 'NPCRelationshipChanges'.
@@ -17417,13 +17430,450 @@ export const getGameMasterGuideRules = (configuration) => {
                     </Rule>
                 </Content>
             </Rule>
+
+            <Rule id="19.8">
+                <Title>CRITICAL DIRECTIVE: NPC Progression and Leveling Protocol</Title>
+                <Description>
+                    This protocol defines the mandatory, role-based system for NPC level advancement. 
+                    The method of progression depends on the NPC's 'progressionType', ensuring that companions stay relevant, while the growth of other key characters feels organic and narratively justified.
+                </Description>
+                <InstructionText>
+                    <![CDATA[
+
+                    On every turn, you MUST check if any NPC meets the trigger conditions for their specific 'progressionType' as defined in rule #19.8.1. 
+                    If a trigger is met, you MUST calculate the levels to grant (#19.8.2) and apply the advancement (#19.8.3).
+
+                    ]]>
+                </InstructionText>
+                <Content type="ruleset">
+                    <Rule id="19.8.1">
+                        <Title>Triggers for NPC Level Advancement by Progression Type</Title>
+                        <Description>An NPC's level advancement is triggered ONLY by the conditions matching their 'progressionType'.</Description>
+                        <Content type="rule_text">
+                            <![CDATA[
+
+                            CRITICAL NOTE: An NPC with 'progressionType: "Static"' does not level up from these triggers.
+
+                            1. For NPCs with 'progressionType: "Companion"':                                
+                                - Fate Card Milestone (Primary): 
+                                If a Fate Card is unlocked, calculate and grant levels.
+
+                                - Player Level-Up Sync (Conditional):
+                                This trigger is checked ONLY if the player leveled up this turn AND the NPC did not already gain levels from another source (like a Fate Card).
+                                The sync occurs IF '(PlayerLevel - NPCLevel) > 2'.
+
+                            2. For NPCs with 'progressionType: "PlotDriven"' (Allies, Rivals, Villains):
+                                - Fate Card Milestone ONLY: This is the primary way these characters grow. 
+                                If their Fate Card is unlocked, they gain levels. They are NOT affected by the player's level-ups. 
+                                This ensures their power progression feels independent.
+
+                            3. Rare Trigger for ALL types (including 'Static'):
+                                - Plot-Driven Development: The GM may award levels as a direct result of a major transformative story event not covered by a Fate Card 
+                                (e.g., a villain completing a dark ritual, a guard captain receiving a battlefield promotion). 
+                                This can even change a 'Static' NPC to 'PlotDriven'.
+
+                            ]]>
+                        </Content>
+                    </Rule>
+
+                    <Rule id="19.8.2">
+                        <Title>Framework for Calculating Levels to Grant</Title>
+                        <InstructionText>
+                            When an advancement trigger occurs, you MUST calculate the number of levels to grant (from 1 to a maximum of 4) based on the following factors. 
+                            You must show this calculation in your log.
+                        </InstructionText>
+                        <Content type="rule_text">
+                            <![CDATA[
+
+                            Formula: TotalLevelsToGrant = min(4, BaseLevelGrant + LevelGapBonus + SignificanceBonus)
+
+                            a) Base Level Grant: Every advancement milestone is significant.
+                                   
+                                   BaseLevelGrant = 1
+
+                            b) Level Gap Bonus (Applies ONLY to 'Companion' type): 
+                               This helps companions catch up. For 'PlotDriven' NPCs, this bonus is always 0.
+
+                               If NPC.progressionType is 'Companion':
+
+                                   LevelGapBonus = max(0, floor((PlayerLevel - NPCLevel) / 3))
+
+                               Else: LevelGapBonus = 0
+
+                            c) Narrative Significance Bonus: This reflects the importance of the event.
+
+                               If triggered by a Fate Card or Quest, check its 'rarity':
+                                   - 'Common'/'Uncommon' event: SignificanceBonus = 0
+                                   - 'Rare' event: SignificanceBonus = +1
+                                   - 'Epic' event: SignificanceBonus = +2
+                                   - 'Legendary'/'Unique' event: SignificanceBonus = +2 to +3
+
+                               If triggered by Player Level-Up Sync, SignificanceBonus = 0.
+
+                            d) Final Calculation: Sum the components and cap the result at 4.
+
+                            ]]>
+                        </Content>
+                    </Rule>
+
+                    <Rule id="19.8.3">
+                        <Title>The NPC Level-Up Process</Title>
+                        <Content type="ruleset">
+                            <Rule id="19.8.3.A">
+                                <Title>Applying Level and Characteristic Changes</Title>
+                                <Content type="rule_text">
+                                    <![CDATA[
+
+                                    1.  Determine Levels: Calculate 'TotalLevelsToGrant' using the framework in #19.8.2.
+
+                                    2.  Increment Level: Increase the NPC's 'level' attribute by 'TotalLevelsToGrant'.
+
+                                    3.  Grant Characteristic Points: The NPC gains 'TotalLevelsToGrant * 5' new standard characteristic points.
+
+                                    4.  Distribute Points: Distribute these points logically among the NPC's standard characteristics to reinforce their role. 
+                                        This distribution MUST strictly follow the principles of specialization and balance outlined in the 'MANDATORY NPC Generation and Progression Protocol' (Rule #5.A.2).
+
+                                    5.  Update NPC Data: Report the changes by sending the complete, updated NPC Object in the 'NPCsData' array.
+
+                                    6.  Logging and Narration:
+                                        - In 'items_and_stat_calculations', you MUST log the entire calculation: the trigger, the NPC's 'progressionType', 
+                                        each bonus component, the final 'TotalLevelsToGrant', the total points awarded, and how you distributed them.
+                                        - In the 'response', narrate the NPC's growth in a thematically appropriate way.
+
+                                    ]]>
+                                </Content>
+                            </Rule>
+
+                            <Rule id="19.8.3.1">
+                                <Title>Skill Advancement on Level-Up</Title>
+                                <Content type="rule_text">
+                                    <![CDATA[
+
+                                    When an NPC gains a new level, the GM must also consider improving their skills. 
+                                    For every 2 full levels an NPC gains in a single advancement event, the GM MUST choose ONE of the following options:
+
+                                        a) Grant the NPC a new passive or active skill appropriate to their class and development.
+                                        b) Increase the 'masteryLevel' of one of the NPC's existing skills by 1.
+
+                                    ]]>
+                                </Content>
+                            </Rule>
+                        </Content>
+                    </Rule>
+                </Content>
+                <Examples>
+                    <Example type="good" contentType="log">
+                        <Title>Example: 'PlotDriven' Rival levels up after a story beat.</Title>
+                        <ScenarioContext>
+                            The player learns that their rival, "Captain Thorne" (Level 25, 'PlotDriven'), has completed a ritual, unlocking his 'Epic' Fate Card. 
+                            The player is Level 30.
+                        </ScenarioContext>
+                        <Content type="log">
+                            <![CDATA[
+
+                            NPC Progression Check for "Captain Thorne":
+                            - Trigger: Fate Card Milestone ('The Ritual of Shadows', Epic).
+                            - NPC Type: 'PlotDriven'.
+                            - Calculating Levels to Grant:
+                                - Base Grant: +1
+                                - Level Gap Bonus: +0 (NPC is 'PlotDriven', not 'Companion').
+                                - Significance Bonus ('Epic' card): +2
+                                - TotalLevelsToGrant = min(4, 1 + 0 + 2) = 3 levels.
+                            - Action: Leveling up Thorne from Level 25 to 28.
+                            - Awarding Points: 3 * 5 = 15 points.
+                            - Distribution for Antagonist: +10 Strength, +5 Constitution.
+
+                            ]]>
+                        </Content>
+                    </Example>
+
+                    <Example type="good" contentType="log">
+                        <Title>Example 2: 'Companion' levels up with the player.</Title>
+                        <ScenarioContext>
+                            Player levels up to Level 10. Their companion, "Elara" (Level 8, 'Companion'), did not unlock any Fate Cards.
+                        </ScenarioContext>
+                        <Content type="log">
+                            <![CDATA[
+
+                            NPC Progression Check for "Elara":
+                            - Trigger: Player Level-Up Sync.
+                            - NPC Type: 'Companion'.
+                            - Verification: (PlayerLevel - NPCLevel) > 2? -> (10 - 8) > 2? -> 2 > 2? -> FALSE.
+                            - Outcome: The sync trigger condition is NOT met because the level gap is not greater than 2.
+                            - Action: No level up for Elara this turn from this trigger.
+
+                            ]]>
+                        </Content>
+                    </Example>
+
+                    <Example type="good" contentType="log_and_json_snippet">
+                        <Title>Example 3: Complex Scenario - Companion levels up from a Fate Card while lagging behind a leveling player.</Title>
+                        <ScenarioContext>
+                            The Player (Level 15, just leveled up this turn) and their companion "Torvald" (Level 9, 'Companion') defeat a bandit leader. 
+                            This action completes the conditions for Torvald's 'Rare' Fate Card, "Vindicator's Oath".
+                        </ScenarioContext>
+                        <LogOutput target="items_and_stat_calculations">
+                            <![CDATA[
+
+                            NPC Progression Check for "Torvald":
+                            - Trigger: Fate Card Milestone ('Vindicator's Oath', Rare).
+                            - NPC Type: 'Companion'.
+                            - Calculating Levels to Grant:
+                                - Base Grant: +1
+                                - Level Gap Bonus (Player 15, Torvald 9): max(0, floor((15-9)/3)) = floor(2) = +2.
+                                - Significance Bonus ('Rare' card): +1.
+                                - TotalLevelsToGrant = min(4, 1 + 2 + 1) = 4 levels.
+                            - Applying Advancement:
+                                - Leveling up Torvald from Level 9 to 13.
+                                - Awarding Characteristic Points: 4 * 5 = 20 points.
+                                - Logical Distribution for Warrior: +11 to Strength, +9 to Constitution.
+                            - Skill Advancement (Rule #19.8.3.1):
+                                - Torvald gained 4 levels, triggering one skill advancement.
+                                - Decision: Grant new passive skill 'Battle Hardened' to reflect his growing resilience.
+
+                            ]]>
+                        </LogOutput>
+                        <JsonResponse>
+                            <NPCsData>
+                                <![CDATA[
+
+                                [
+                                    {
+                                        "NPCId": "npc-torvald-companion-01",
+                                        "name": "Torvald",
+                                        "level": 13,
+                                        "progressionType": "Companion",
+                                        "characteristics": {
+                                            "standardStrength": 29, "modifiedStrength": 29, 
+                                            "standardConstitution": 25, "modifiedConstitution": 25
+                                        },
+                                        "passiveSkills": [
+                                            {
+                                                "skillName": "Battle Hardened", "skillDescription": "Experience in battle has toughened Torvald.", "rarity": "Common", "type": "CombatEnhancement", "group": "Combat",
+                                                "combatEffect": {"effects": [{"effectType": "Buff", "value": "5%", "targetType": "resist (all)", "effectDescription": "Provides 5% resistance to all damage."}]}, "masteryLevel": 1, "maxMasteryLevel": 3
+                                            }
+                                        ]
+                                    }
+                                ]
+
+                                ]]>
+                            </NPCsData>
+                        </JsonResponse>
+                    </Example>
+                </Examples>
+            </Rule>
+
+            <Rule id="19.9">
+                <Title>NPC Role Management and Narrative Integration</Title>
+                <Description>
+                    This rule governs the GM's decision-making process for assigning and changing an NPC's 'progressionType'. 
+                    This is a narrative decision that has significant mechanical impact and must be handled with care to maintain world consistency.
+                </Description>
+                <Content type="ruleset">
+                    <Rule id="19.9.1">
+                        <Title>Initial Assignment of 'progressionType'</Title>
+                        <Content type="rule_text">
+                            <![CDATA[
+
+                            When creating any new NPC, you MUST make a deliberate choice for their 'progressionType' based on their anticipated role in the story.
+                            - Is this a character designed to travel with the player? Assign 'Companion'.
+                            - Is this a major villain, quest giver, or important figure with their own story? Assign 'PlotDriven'.
+                            - Is this a background character to flesh out the world? Assign 'Static'.
+                            You MUST justify this choice in your creation log for the NPC.
+
+                            ]]>
+                        </Content>
+                    </Rule>
+
+                    <Rule id="19.9.2">
+                        <Title>Changing an NPC's 'progressionType'</Title>
+                        <InstructionText>
+                            Changing an NPC's role is a major plot event and MUST be triggered by significant narrative development.
+                        </InstructionText>
+                        <Content type="rule_text">
+                            <![CDATA[
+
+                            An NPC's 'progressionType' can change. 
+                            When this happens, you MUST report it by sending the complete, updated NPC object in the 'NPCsData' array.
+
+                            Common Scenarios for Changing Type:
+                            1.  Recruitment ('Static' -> 'Companion'): 
+                                When the player successfully convinces a background NPC (like a town guard or a hermit) to join them on their travels, their type changes. 
+                                This should often be accompanied by a small level boost to make them viable.
+
+                            2.  Redemption/Alliance ('PlotDriven' -> 'Companion'): 
+                                When a former rival or independent ally, after a significant story arc, decides to permanently join the player's party.
+
+                            3.  Departure ('Companion' -> 'PlotDriven'): 
+                                When a companion leaves the party to pursue their own goals but remains an important character in the story. 
+                                Their growth is no longer tied to the player's level-ups, but to their own off-screen (or on-screen) story progress.
+
+                            4.  Rise to Prominence ('Static' -> 'PlotDriven'): 
+                                When a seemingly minor character, due to the player's actions or other plot events, becomes a key figure 
+                                (e.g., a simple shopkeeper becomes the leader of a merchant guild resistance).
+                                                            
+                            CRITICAL DIRECTIVE: The Principle of Inherent Level Preservation on Recruitment
+                            When an NPC's 'progressionType' changes to 'Companion', their 'level' attribute MUST NOT be automatically scaled to match the player's level. 
+                            The NPC's level upon joining is a reflection of their established identity, history, and power within the game world.
+
+                            This principle MUST be applied as follows:
+
+                            -   Weak Recruit Scenario: 
+                            If a level 20 hero recruits a level 5 town guard who is narratively described as a simple guard, that NPC joins the party as a level 5 companion. 
+                            Their weakness is part of the story.
+
+                            -   Powerful Ally Scenario: 
+                            If the same level 20 hero, after completing a great quest, convinces a legendary level 30 archmage 
+                            (who is narratively and statistically a powerful figure) to join them, that archmage joins the party as a level 30 companion, potentially being even stronger than the player.
+
+                            The change to "progressionType: 'Companion'" only dictates how the NPC will gain levels from this point forward, according to Rule #19.8. 
+                            Their starting level as a companion is their pre-existing level.
+                            A minor, narratively justified level boost (e.g., +1 or +2) is permissible ONLY if the recruitment process itself involved intense training or a transformative event that logically increased their power.
+
+                            ]]>
+                        </Content>
+                    </Rule>
+
+                    <Rule id="19.9.3">
+                        <Title>Handling Player Attempts to Change Roles</Title>
+                        <Content type="rule_text">
+                            <![CDATA[
+
+                            If a player attempts to change an NPC's role (e.g., "I want to recruit the blacksmith"), you MUST NOT automatically change their 'progressionType'.
+                            Instead, treat this as a social interaction or a quest proposal. The NPC should react based on their personality, goals, and current situation.
+                            - A 'Static' blacksmith might refuse, saying, "Who would run my forge?".
+                            - A 'PlotDriven' captain might say, "My duty is here, but I can aid your cause in other ways."
+                            A successful persuasion check or the completion of a personal quest for the NPC might then lead to a genuine role change.
+
+                            ]]>
+                        </Content>
+                    </Rule>
+                </Content>
+                <Examples>
+                    <Example type="good" contentType="log_and_json_snippet">
+                        <Title>Example 1: Recruiting a Static NPC to become a Companion</Title>
+                        <ScenarioContext>
+                            The player, after a long quest to defend the village, asks "Torvald", a 'Static' town guard (Level 5), to join their adventures. 
+                            The player succeeds on a high-stakes Persuasion check.
+                        </ScenarioContext>
+                        <LogOutput target="items_and_stat_calculations">
+                            <![CDATA[
+
+                            NPC Role Management Check for "Torvald":
+                            - Player Action: Successful recruitment of Torvald.
+                            - Trigger: A significant narrative event (recruitment).
+                            - Action: Changing 'progressionType' from 'Static' to 'Companion'.
+                            - Justification: Torvald has agreed to leave his post and travel with the player, making his growth now relevant and tied to the party.
+                            - Additional Action: Granting a level boost to make him a viable companion. Applying NPC Progression Protocol.
+                                - Trigger: Plot-Driven Development.
+                                - Granting +2 levels (GM discretion for a new companion).
+                                - Torvald's new level is 7.
+                                - Awarding 10 characteristic points: +6 Strength, +4 Constitution.
+                            - Preparing full updated NPC object for 'NPCsData'.
+
+                            ]]>
+                        </LogOutput>
+                        <JsonResponse>
+                            <NPCsData>
+                                <![CDATA[
+
+                                [
+                                    {
+                                        "NPCId": "npc-torvald-guard-01",
+                                        "name": "Torvald",
+                                        "level": 7,
+                                        "progressionType": "Companion",
+                                        "characteristics": {
+                                            "standardStrength": 18, "modifiedStrength": 18, // Was 12
+                                            "standardConstitution": 16, "modifiedConstitution": 16 // Was 12
+                                        },
+                                        // ... all other fields of the complete NPC object ...
+                                    }
+                                ]
+
+                                ]]>
+                            </NPCsData>
+                            <response>
+                                <![CDATA[
+
+                                    Torvald смотрит на спасенную вами деревню, затем на вас, и в его глазах загорается огонь. 
+                                    "Я... я служу этому городу всю жизнь. Но то, что ты сделал... это нечто большее. Если ты позволишь, для меня будет честью пойти с тобой и защищать нечто большее, чем просто стены." 
+                                    С этого момента Торвальд становится вашим верным спутником.
+
+                                ]]>
+                            </response>
+                        </JsonResponse>
+                    </Example>
+
+                    <Example type="good" contentType="log_and_json_snippet">
+                        <Title>Example 2: A Companion leaves the party to become PlotDriven</Title>
+                        <ScenarioContext>
+                            Your companion "Elara" ('Companion', Level 15) finally discovers the source of the Blight. 
+                            She realizes she must stay at the sacred grove to perform a long ritual to contain it, and cannot travel with you anymore.
+                        </ScenarioContext>
+                        <LogOutput target="items_and_stat_calculations">
+                            <![CDATA[
+
+                            NPC Role Management Check for "Elara":
+                            - Narrative Event: Elara has found her personal purpose and must leave the active party.
+                            - Trigger: A major personal quest resolution.
+                            - Action: Changing 'progressionType' from 'Companion' to 'PlotDriven'.
+                            - Justification: Elara is no longer an active adventurer with the player. Her future growth will now depend on the success of her ritual (a plot point), not the player's level.
+                            - Preparing full updated NPC object for 'NPCsData'.
+
+                            ]]>
+                        </LogOutput>
+                        <JsonResponse>
+                            <NPCsData>
+                                <![CDATA[
+
+                                [
+                                    {
+                                        "NPCId": "npc-elara-meadowlight-01",
+                                        "name": "Elara Meadowlight",
+                                        "level": 15,
+                                        "progressionType": "PlotDriven",
+                                        // ... all other fields of the complete NPC object ...
+                                    }
+                                ]
+
+                                ]]>
+                            </NPCsData>
+                            <response>
+                                <![CDATA[
+
+                                    "Это мой путь," - говорит Элара, ее руки светятся мягкой энергией, когда она касается больного дерева в центре рощи. "Я должна остаться здесь. Я не могу больше путешествовать с тобой, но я буду бороться со Скверной отсюда. Мы еще встретимся, друг мой."
+                                
+                                ]]>
+                            </response>
+                        </JsonResponse>
+                    </Example>
+
+                    <Example type="good" contentType="text">
+                        <Title>Example 3: Player fails to recruit a Static NPC</Title>
+                        <ScenarioContext>
+                            The player walks up to "Gus, the Stout Innkeeper" ('Static') and says, "Leave this inn and come fight dragons with me!"
+                        </ScenarioContext>
+                        <ResponseNarrative>
+                            <![CDATA[
+
+                                Гас смотрит на вас поверх своей кружки, затем разражается громогласным хохотом. 
+                                "Драконов, говоришь? Ха! Сынок, я человек простой. Мои драконы — это пустые бочки и недовольные клиенты. Кто же будет кормить и поить всех этих славных людей, если я уйду? Ищи себе славы, а я останусь здесь. Мое место у очага."
+                            
+                            ]]>
+                        </ResponseNarrative>
+                    </Example>
+                </Examples>
+            </Rule>
         </Content>
         <Examples>
             <Example id="NPCExample_Kaelen_Balanced">
-                <Title>Example 1: Generating a Combat-Oriented NPC - "Kaelen, the grizzled Mercenary Captain" (BALANCED)</Title>
+                <Title>Example 1: Generating a Combat-Oriented NPC - "Kaelen, the Mercenary Captain" (BALANCED)</Title>
                 <LogOutput target="items_and_stat_calculations">
                     <![CDATA[
+
                     Generating NPC 'Kaelen' (Level 25 Human Warrior):
+                    - Progression Type: 'PlotDriven' (as he is a key ally/antagonist whose growth is tied to the main plot, not daily adventuring with the player).
                     - Base Stats: All start at 1.
                     - Starting Points (8 total):
                         - Race (Human): +1 to Str, Dex, Con, Attr, Pers for versatility.
@@ -17437,6 +17887,7 @@ export const getGameMasterGuideRules = (configuration) => {
                         - +12 to Wisdom (total 13)
                     - Total Points Used: 51+47+10+12 = 120.
                     - Final Standard Characteristics: Str 55, Con 50, Wis 13, Per 11, Dex 2, Attr 2, Pers 2, others 1. All stats are valid.
+
                     ]]>
                 </LogOutput>
                 <Content type="json">
@@ -17454,6 +17905,7 @@ export const getGameMasterGuideRules = (configuration) => {
                         "appearanceDescription": "Kaelen is a man forged in countless battles. His face is a roadmap of old scars, the most prominent one a jagged line across his left cheek. His dark hair, shot through with grey, is kept short and practical. Piercing grey eyes, often narrowed in assessment, miss little. He stands tall, with broad shoulders and a powerful build, encased in well-maintained but clearly used steel plate armor over a leather gambeson. A heavy woolen cloak, dyed a muted forest green, is clasped at his shoulder. His voice is a low, gravelly baritone, accustomed to giving orders.",
                         "history": "A veteran of several major wars and countless skirmishes, Kaelen now leads his own small but respected mercenary company, 'The Steel Hounds'. Known for his tactical acumen and unwavering resolve, though some find him overly pragmatic. He lost his family during the Border Wars, a grief he buries deep.",
                         "level": 25,
+                        "progressionType": "PlotDriven",
                         "relationshipLevel": 50,
                         "attitude": "Neutral, Observant",
                         "characteristics": {
@@ -17595,7 +18047,9 @@ export const getGameMasterGuideRules = (configuration) => {
                 <Title>Example 2: Generating a Peaceful NPC - "Elara, the Village Herbalist" (BALANCED)</Title>
                 <LogOutput target="items_and_stat_calculations">
                     <![CDATA[
+
                     Generating NPC 'Elara' (Level 5 Human Herbalist):
+                    - Progression Type: 'Companion' (as she is a potential active companion, her growth should keep pace with the player).
                     - Base Stats: All start at 1.
                     - Starting Points (8 total):
                         - Race (Human): +1 to Int, Wis, Dex, Attr, Pers.
@@ -17607,6 +18061,7 @@ export const getGameMasterGuideRules = (configuration) => {
                         - +8 to Intelligence (total 11) -> Knowledge of herbs.
                     - Total Points Used: 12+8 = 20.
                     - Final Standard Characteristics: Wis 16, Int 11, Dex 2, Attr 2, Pers 2, others 1. Stats are valid.
+
                     ]]>
                 </LogOutput>
                 <Content type="json">
@@ -17624,6 +18079,7 @@ export const getGameMasterGuideRules = (configuration) => {
                         "appearanceDescription": "Elara has a gentle face with kind, hazel eyes and a warm smile that rarely leaves her lips. Her long, honey-blonde hair is usually tied back in a simple braid, adorned with a few wildflowers. She wears practical, earth-toned robes made of homespun cloth, often stained with dirt and plant matter. Her hands, though slender, are calloused from years of gathering herbs and tending to her garden. A small leather pouch containing various dried herbs and seeds is always at her belt.",
                         "history": "Elara learned the ways of herb lore from her grandmother and has served as the village of Oakhaven's primary healer for the past decade. She is deeply connected to nature and believes in the healing power of plants. She is worried about a strange blight affecting some of the local flora.",
                         "level": 5,
+                        "progressionType": "Companion",
                         "relationshipLevel": 60,
                         "attitude": "Kind, Helpful",
                         "characteristics": {
@@ -17742,7 +18198,9 @@ export const getGameMasterGuideRules = (configuration) => {
                 <Title>Example 3: Generating a Potential Romantic Interest NPC - "Lady Seraphina Valerius" (BALANCED)</Title>
                 <LogOutput target="items_and_stat_calculations">
                     <![CDATA[
+
                     Generating NPC 'Lady Seraphina' (Level 8 Human Noble Scholar):
+                    - Progression Type: 'PlotDriven' (as a noble and potential quest-giver, her growth is tied to her personal story and discoveries, not combat experience).
                     - Base Stats: All start at 1.
                     - Starting Points (8 total):
                         - Race (Human): +1 to Int, Wis, Attr, Pers, Luck.
@@ -17755,6 +18213,7 @@ export const getGameMasterGuideRules = (configuration) => {
                         - +5 to Persuasion (total 8)
                     - Total Points Used: 16+14+5 = 35.
                     - Final Standard Characteristics: Int 20, Attr 16, Pers 8, Wis 2, Luck 2, others 1. Stats are valid.
+
                     ]]>
                 </LogOutput>
                 <Content type="json">
@@ -17772,6 +18231,7 @@ export const getGameMasterGuideRules = (configuration) => {
                         "appearanceDescription": "Lady Seraphina is the epitome of noble grace, with a striking beauty that turns heads in any court. Her long, auburn hair cascades in gentle waves past her shoulders, often adorned with delicate silver clasps. Her eyes are a captivating emerald green, intelligent and often sparkling with a hint of mischief. She has a slender, graceful figure, usually draped in exquisitely tailored silk gowns of deep blues or forest greens. Despite her refined upbringing, there's an inquisitive and adventurous spirit about her that her formal demeanor can't entirely hide.",
                         "history": "Daughter of the influential Duke Valerius, Seraphina has lived a privileged life but yearns for more than courtly intrigues. She is secretly fascinated by ancient history and forbidden lore, spending many hours in the ducal library. She feels constrained by societal expectations and is looking for an escape or a grand purpose.",
                         "level": 8,
+                        "progressionType": "PlotDriven",
                         "relationshipLevel": 50,
                         "attitude": "Polite, Curious, slightly Reserved",
                         "characteristics": {
@@ -17896,12 +18356,15 @@ export const getGameMasterGuideRules = (configuration) => {
                 <Title>Example 4: Generating a Combat-Oriented NPC with Tactical Triggers - "Captain Thorne" (BALANCED)</Title>
                 <LogOutput target="items_and_stat_calculations">
                     <![CDATA[
+
                     Generating NPC 'Captain Thorne' (Level 25 Human Warrior):
+                    - Progression Type: 'PlotDriven' (as a key antagonist/ally, his power evolves with the plot, not with the player's level).
                     - Base Stats: All start at 1.
                     - Starting Points (8 total, Human Warrior): +4 Str, +2 Dex, +3 Con.
                     - Level-Up Point Pool: (25 - 1) * 5 = 120 points.
                     - Distribution for Guard Captain: +51 Str (total 55), +47 Con (total 50), +12 Wis (total 13), +10 Per (total 11).
                     - Final Standard Characteristics: Str 55, Con 50, Wis 13, Per 11. All stats are valid.
+
                     ]]>
                 </LogOutput>
                 <Content type="json">
@@ -17919,6 +18382,7 @@ export const getGameMasterGuideRules = (configuration) => {
                         "appearanceDescription": "A veteran of several major wars, Thorne is known for his tactical acumen and unwavering resolve...",
                         "history": "...",
                         "level": 25,
+                        "progressionType": "PlotDriven",
                         "relationshipLevel": 50,
                         "attitude": "Neutral, Observant",
                         "characteristics": {
