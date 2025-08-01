@@ -21358,7 +21358,18 @@ export const getGameMasterGuideRules = (configuration) => {
                 If you find that you have forgotten to create this mastery entry for a new active skill, you MUST generate it now and add it to 'skillMasteryChanges'.
                 Refer to Rule #7.4.2 for guidelines on setting an appropriate 'maxMasteryLevel' based on the skill's rarity.
 
-            3.  TRANSLATION AUDIT: 
+            3.  NPC PROGRESSION AUDIT (MANDATORY):
+                -   You MUST now perform a final audit of NPC level progression.
+                Iterate through ALL key NPCs in 'Context.encounteredNPCs'.
+                For EACH NPC, you MUST re-verify if any of the level-up triggers from 'InstructionBlock id = "19", Rule id = "19.8.1"' were met THIS TURN:
+                    -   'Companion' NPCs: Did the player level up this turn (compare 'Context.playerCharacter.level' and 'levelOnPreviousTurn') AND is the level gap '(PlayerLevel - NPCLevel)' now greater than 2? Was a Fate Card unlocked for them?
+                    -   'PlotDriven' NPCs: Was a Fate Card unlocked for them?
+                    -   All NPCs: Did a major plot event occur that justifies a level-up outside of normal triggers?
+                If you find that you have forgotten to level up an NPC who met these conditions, you MUST immediately go back and apply the changes. 
+                This involves adding their complete, updated data to the 'NPCsData' array, strictly following the full protocol in 'Rule #19.8.3'. 
+                This is a critical step for world consistency.
+
+            4.  TRANSLATION AUDIT: 
                 -   Reread all strings in 'response', 'items_and_stat_calculations', 'combatLogEntries', and all generated 'name' and 'description' fields. 
                 If you find ANY text that should be translated but is still in English, you MUST correct it now. 
                 This is your final chance to comply with the Golden Rule of Translation.
