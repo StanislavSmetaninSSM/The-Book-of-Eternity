@@ -22,9 +22,9 @@ const RecipeDetails: React.FC<{
             inventoryMap.set(item.name, (inventoryMap.get(item.name) || 0) + item.count);
         });
 
-        const hasSkill = playerCharacter.passiveSkills.some(skill => 
-            skill.skillName === recipe.requiredKnowledgeSkill.skillName &&
-            skill.masteryLevel >= recipe.requiredKnowledgeSkill.requiredMasteryLevel
+        const hasSkill = !recipe.requiredKnowledgeSkill || playerCharacter.passiveSkills.some(skill => 
+            skill.skillName === recipe.requiredKnowledgeSkill!.skillName &&
+            skill.masteryLevel >= recipe.requiredKnowledgeSkill!.requiredMasteryLevel
         );
 
         const materials = recipe.requiredMaterials.map(mat => {
@@ -59,10 +59,12 @@ const RecipeDetails: React.FC<{
                     <div>
                         <h4 className="font-semibold text-gray-300 text-sm mb-1">{t('Requirements')}</h4>
                         <ul className="text-xs space-y-1">
-                            <li className={`flex items-center gap-2 ${checkRequirements.hasSkill ? 'text-green-400' : 'text-red-400'}`}>
-                                {checkRequirements.hasSkill ? <CheckCircleIcon className="w-4 h-4" /> : <XCircleIcon className="w-4 h-4" />}
-                                <span>{recipe.requiredKnowledgeSkill.skillName} ({t('Mastery Level')} {recipe.requiredKnowledgeSkill.requiredMasteryLevel})</span>
-                            </li>
+                            {recipe.requiredKnowledgeSkill && (
+                                <li className={`flex items-center gap-2 ${checkRequirements.hasSkill ? 'text-green-400' : 'text-red-400'}`}>
+                                    {checkRequirements.hasSkill ? <CheckCircleIcon className="w-4 h-4" /> : <XCircleIcon className="w-4 h-4" />}
+                                    <span>{recipe.requiredKnowledgeSkill.skillName} ({t('Mastery Level')} {recipe.requiredKnowledgeSkill.requiredMasteryLevel})</span>
+                                </li>
+                            )}
                             {checkRequirements.materials.map((mat, i) => (
                                 <li key={i} className={`flex items-center gap-2 ${mat.has ? 'text-green-400' : 'text-red-400'}`}>
                                     {mat.has ? <CheckCircleIcon className="w-4 h-4" /> : <XCircleIcon className="w-4 h-4" />}

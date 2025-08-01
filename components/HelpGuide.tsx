@@ -1,5 +1,5 @@
 import React from 'react';
-import { BookOpenIcon, ShieldCheckIcon, BeakerIcon, FingerPrintIcon, CubeIcon } from '@heroicons/react/24/outline';
+import { BookOpenIcon, ShieldCheckIcon, BeakerIcon, FingerPrintIcon, CubeIcon, CpuChipIcon, QuestionMarkCircleIcon, AcademicCapIcon } from '@heroicons/react/24/outline';
 import { useLocalization } from '../context/LocalizationContext';
 import MarkdownRenderer from './MarkdownRenderer';
 
@@ -35,11 +35,23 @@ export default function HelpGuide(): React.ReactNode {
         <div className="space-y-6">
             <h2 className="text-2xl font-bold text-cyan-300 narrative-text">{t('HelpGuideTitle')}</h2>
             
+            <Section title={t('GMMindTitle')} icon={CpuChipIcon}>
+                <MarkdownRenderer content={t('GMMindFullDesc')} />
+            </Section>
+
+            <Section title={t('QuestionModeTitle')} icon={QuestionMarkCircleIcon}>
+                <MarkdownRenderer content={t('QuestionModeFullDesc')} />
+            </Section>
+
             <Section title={t('CharacteristicChecksTitle')} icon={BookOpenIcon}>
                 <MarkdownRenderer content={t('CharacteristicChecksFullDesc')} />
                 <div className="mt-4">
                     <FormulaBlock titleKey="CharacteristicChecksExampleTitle" descKey="CharacteristicChecksExampleScenario" contentKey="CharacteristicChecksExampleContent" />
                 </div>
+            </Section>
+
+            <Section title={t('ProgressionTitle')} icon={AcademicCapIcon}>
+                <MarkdownRenderer content={t('ProgressionFullDesc')} />
             </Section>
 
             <Section title={t('CombatTitle')} icon={ShieldCheckIcon}>

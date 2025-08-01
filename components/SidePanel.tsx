@@ -1,9 +1,8 @@
 
-
 import React, { useState } from 'react';
 import CharacterSheet from './CharacterSheet';
 import QuestLog from './QuestLog';
-import { GameState, Location, WorldState, GameSettings, PlayerCharacter, Faction, PlotOutline, Item } from '../types';
+import { GameState, Location, WorldState, GameSettings, PlayerCharacter, Faction, PlotOutline, Item, DBSaveSlotInfo } from '../types';
 import { UserCircleIcon, BookOpenIcon, CodeBracketIcon, DocumentTextIcon, UsersIcon, ShieldExclamationIcon, Cog6ToothIcon, MapIcon, MapPinIcon, QuestionMarkCircleIcon, UserGroupIcon, GlobeAltIcon, ArchiveBoxXMarkIcon, BeakerIcon } from '@heroicons/react/24/outline';
 import { ChevronDoubleRightIcon } from '@heroicons/react/24/solid';
 import JsonDebugView from './JsonDebugView';
@@ -40,15 +39,22 @@ interface SidePanelProps {
   onToggleSidebar: () => void;
   gameSettings: GameSettings | null;
   updateGameSettings: (newSettings: Partial<GameSettings>) => void;
+  superInstructions: string;
+  updateSuperInstructions: (instructions: string) => void;
   isLoading: boolean;
   setAutoCombatSkill: (skillName: string | null) => void;
   lastUpdatedQuestId?: string | null;
   onSendMessage: (message: string) => void;
   craftItem: (recipeName: string) => void;
-  moveFromStashToInventory: (item: Item) => void;
+  moveFromStashToInventory: (item: Item, quantity: number) => void;
   dropItemFromStash: (item: Item) => void;
   turnNumber: number | null;
   editLocationData: (locationId: string, field: keyof Location, value: any) => void;
+  saveGameToSlot: (slotId: number) => Promise<void>;
+  loadGameFromSlot: (slotId: number) => Promise<void>;
+  deleteGameSlot: (slotId: number) => Promise<void>;
+  dbSaveSlots: DBSaveSlotInfo[];
+  refreshDbSaveSlots: () => Promise<void>;
 }
 
 type Tab = 'Character' | 'Quests' | 'Factions' | 'NPCs' | 'Locations' | 'Map' | 'Combat' | 'Log' | 'Guide' | 'Debug' | 'Game' | 'Stash' | 'Crafting' | 'World';
@@ -123,6 +129,8 @@ export default function SidePanel({
     onToggleSidebar,
     gameSettings,
     updateGameSettings,
+    superInstructions,
+    updateSuperInstructions,
     isLoading,
     setAutoCombatSkill,
     lastUpdatedQuestId,
@@ -132,6 +140,11 @@ export default function SidePanel({
     dropItemFromStash,
     turnNumber,
     editLocationData,
+    saveGameToSlot,
+    loadGameFromSlot,
+    deleteGameSlot,
+    dbSaveSlots,
+    refreshDbSaveSlots,
 }: SidePanelProps): React.ReactNode {
   const [activeTab, setActiveTab] = useState<Tab>('Character');
   const { language, t } = useLocalization();
@@ -259,7 +272,14 @@ export default function SidePanel({
               isGameActive={!!gameState}
               gameSettings={gameSettings}
               updateGameSettings={updateGameSettings}
+              superInstructions={superInstructions}
+              updateSuperInstructions={updateSuperInstructions}
               isLoading={isLoading}
+              onSaveToSlot={saveGameToSlot}
+              onLoadFromSlot={loadGameFromSlot}
+              onDeleteSlot={deleteGameSlot}
+              dbSaveSlots={dbSaveSlots}
+              refreshDbSaveSlots={refreshDbSaveSlots}
             />
           }
         </div>

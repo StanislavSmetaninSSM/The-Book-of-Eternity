@@ -2,6 +2,7 @@ export const fantasyWorld = {
   name: "Fantasy",
   description: "Swords, sorcery, and ancient beasts. A world of high magic and mythical adventures.",
   currencyName: "Gold",
+  currencyOptions: [],
   races: {
     Human: { description: "Versatile and ambitious. +2 Persuasion, +2 Luck, +1 Strength.", bonuses: { persuasion: 2, luck: 2, strength: 1 } },
     Elf: { description: "Graceful and wise, with a deep connection to nature. +3 Dexterity, +2 Intelligence.", bonuses: { dexterity: 3, intelligence: 2 } },
@@ -41,5 +42,6 @@ export const fantasyWorld = {
     'Death Knight': { description: "A fearsome warrior clad in dark armor, who blends martial prowess with unholy power, drawing strength from death itself. Bonus: +2 Strength, +1 Faith.", bonuses: { strength: 2, faith: 1 } },
     Cultivator: { description: "A practitioner of ancient Eastern arts, who refines their internal energy (Qi) through meditation and discipline, seeking immortality and immense power. Bonus: +2 Wisdom, +1 Constitution.", bonuses: { wisdom: 2, constitution: 1 } },
     Shadowblade: { description: "A master of stealth, poison, and the killing blow. Operates from the shadows, a myth whispered in taverns and feared in castles. Bonus: +2 Dexterity, +1 Perception.", bonuses: { dexterity: 2, perception: 1 } },
+    Thief: { description: "A specialist in larceny and infiltration, adept at acquiring what isn't rightfully theirs. Bonus: +2 Dexterity, +1 Trade.", bonuses: { dexterity: 2, trade: 1 } },
   }
 };

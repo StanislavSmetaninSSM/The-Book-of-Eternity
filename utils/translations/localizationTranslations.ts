@@ -21,6 +21,10 @@ export const translations: Record<string, Record<string, string>> = {
     ...ui.en,
     ...help.en,
     ...settings.en,
+    ...fantasyLoc.en,
+    ...sciFiLoc.en,
+    ...postApocalypseLoc.en,
+    ...modernLoc.en,
   },
   ru: {
     ...general.ru,

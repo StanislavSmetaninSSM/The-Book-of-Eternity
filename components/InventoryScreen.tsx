@@ -12,7 +12,8 @@ import {
     TrashIcon,
     MagnifyingGlassPlusIcon,
     ArrowUpIcon,
-    ArrowDownIcon
+    ArrowDownIcon,
+    ExclamationTriangleIcon
 } from '@heroicons/react/24/outline';
 import { ArchiveBoxIcon as ArchiveBoxSolidIcon } from '@heroicons/react/24/solid';
 import ImageRenderer from './ImageRenderer';
@@ -42,6 +43,8 @@ interface InventoryScreenProps {
     onUnequip: (item: Item) => void;
     onDropItem: (item: Item) => void;
     onMoveItem: (item: Item, containerId: string | null) => void;
+    onSplitItem: (item: Item, quantity: number) => void;
+    onMergeItems: (sourceItem: Item, targetItem: Item) => void;
     onOpenDetailModal: (title: string, data: any) => void;
     onOpenImageModal: (prompt: string) => void;
 }
@@ -51,12 +54,24 @@ const qualityOrder: Record<string, number> = {
     'Rare': 4, 'Epic': 5, 'Legendary': 6, 'Unique': 7,
 };
 
-export default function InventoryScreen({ gameState, onClose, onEquip, onUnequip, onDropItem, onMoveItem, onOpenDetailModal, onOpenImageModal }: InventoryScreenProps) {
+export default function InventoryScreen({ gameState, onClose, onEquip, onUnequip, onDropItem, onMoveItem, onSplitItem, onMergeItems, onOpenDetailModal, onOpenImageModal }: InventoryScreenProps) {
     const { playerCharacter } = gameState;
     const [viewingContainer, setViewingContainer] = useState<Item | null>(null);
     const [sortCriteria, setSortCriteria] = useState<'name' | 'quality' | 'weight' | 'price' | 'type'>('name');
     const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
+    const [splitItem, setSplitItem] = useState<Item | null>(null);
+    const [splitAmount, setSplitAmount] = useState('1');
     const { t } = useLocalization();
+
+    const handleSplit = () => {
+        if (!splitItem) return;
+        const amount = parseInt(splitAmount, 10);
+        if (!isNaN(amount) && amount > 0 && amount < splitItem.count) {
+            onSplitItem(splitItem, amount);
+        }
+        setSplitItem(null);
+        setSplitAmount('1');
+    };
 
     // Slot definition
     const EQUIPMENT_SLOTS = [
@@ -67,6 +82,7 @@ export default function InventoryScreen({ gameState, onClose, onEquip, onUnequip
         { id: 'MainHand', label: 'Main Hand', icon: SparklesIcon },
         { id: 'OffHand', label: 'Off Hand', icon: ShieldCheckIcon },
         { id: 'Hands', label: 'Hands', icon: ArchiveBoxSolidIcon },
+        { id: 'Wrists', label: 'Wrists', icon: ArchiveBoxSolidIcon },
         { id: 'Waist', label: 'Waist', icon: ArchiveBoxSolidIcon },
         { id: 'Legs', label: 'Legs', icon: ArchiveBoxSolidIcon },
         { id: 'Feet', label: 'Feet', icon: ArchiveBoxSolidIcon },
@@ -75,7 +91,13 @@ export default function InventoryScreen({ gameState, onClose, onEquip, onUnequip
     ];
 
     const DraggableItem = ({ item, isEquipped = false, isFromContainer = false }: { item: Item; isEquipped?: boolean; isFromContainer?: boolean }) => {
+        const isBroken = item.durability === '0%';
+
         const handleDragStart = (e: React.DragEvent<HTMLDivElement>) => {
+            if (isBroken) {
+                e.preventDefault();
+                return;
+            }
             const dragData: DragData = { item, isEquipped, isFromContainer };
             e.dataTransfer.setData('application/json', JSON.stringify(dragData));
             e.currentTarget.style.opacity = '0.4';
@@ -85,6 +107,7 @@ export default function InventoryScreen({ gameState, onClose, onEquip, onUnequip
         };
 
         const handleClick = () => {
+            if (isBroken) return;
             onOpenDetailModal(t("Item: {name}", { name: item.name }), item);
         };
         
@@ -94,17 +117,58 @@ export default function InventoryScreen({ gameState, onClose, onEquip, onUnequip
             e.stopPropagation();
             onOpenImageModal(imagePrompt);
         };
+        
+        const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+            if (isBroken) return;
+            e.preventDefault();
+        };
+
+        const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
+            if (isBroken) return;
+            e.preventDefault();
+            e.stopPropagation();
+            try {
+                const data: DragData = JSON.parse(e.dataTransfer.getData('application/json'));
+                const droppedItem = data.item;
+                
+                const canMerge = droppedItem.name === item.name &&
+                    !droppedItem.equipmentSlot && !item.equipmentSlot &&
+                    (droppedItem.resource === undefined || 
+                        (droppedItem.resource === droppedItem.maximumResource && item.resource === item.maximumResource)
+                    );
+                
+                if (canMerge && droppedItem.existedId !== item.existedId) {
+                    onMergeItems(droppedItem, item);
+                }
+            } catch(err) {}
+        };
+
+        const handleContextMenu = (e: React.MouseEvent<HTMLDivElement>) => {
+            e.preventDefault();
+            if (item.count > 1 && !isBroken) {
+                setSplitItem(item);
+                setSplitAmount('1');
+            }
+        };
     
         return (
             <div
                 onClick={handleClick}
-                draggable
+                onDrop={handleDrop}
+                onDragOver={handleDragOver}
+                onContextMenu={handleContextMenu}
+                draggable={!isBroken}
                 onDragStart={handleDragStart}
                 onDragEnd={handleDragEnd}
-                className={`w-20 h-20 bg-gray-900/50 rounded-md flex flex-col justify-center items-center cursor-pointer border-2 ${qualityColorMap[item.quality] || 'border-gray-600'} shadow-lg hover:shadow-cyan-500/20 hover:scale-105 transition-all relative group overflow-hidden`}
-                title={item.name}
+                className={`w-20 h-20 bg-gray-900/50 rounded-md flex flex-col justify-center items-center border-2 ${qualityColorMap[item.quality] || 'border-gray-600'} shadow-lg transition-all relative group overflow-hidden ${isBroken ? 'cursor-not-allowed' : 'cursor-pointer hover:shadow-cyan-500/20 hover:scale-105'}`}
+                title={isBroken ? t("This item is broken and cannot be equipped.") : item.name}
             >
-                <ImageRenderer prompt={imagePrompt} alt={item.name} className="absolute inset-0 w-full h-full object-cover" />
+                <ImageRenderer prompt={imagePrompt} alt={item.name} className={`absolute inset-0 w-full h-full object-cover ${isBroken ? 'filter grayscale brightness-50' : ''}`} />
+                 {isBroken && (
+                    <div className="absolute inset-0 bg-red-900/50 flex items-center justify-center pointer-events-none">
+                        <ExclamationTriangleIcon className="w-8 h-8 text-red-400" />
+                    </div>
+                )}
                 <div className="absolute inset-x-0 bottom-0 bg-black/70 p-1 text-center">
                     <p className="text-xs text-white line-clamp-1 font-semibold">{item.name}</p>
                 </div>
@@ -129,7 +193,7 @@ export default function InventoryScreen({ gameState, onClose, onEquip, onUnequip
             e.preventDefault();
             try {
                 const data: DragData = JSON.parse(e.dataTransfer.getData('application/json'));
-                if (data.isEquipped) return;
+                if (data.isEquipped || data.item.durability === '0%') return;
                 const validSlots = Array.isArray(data.item.equipmentSlot) ? data.item.equipmentSlot : [data.item.equipmentSlot];
                 if (validSlots.includes(slot.id)) {
                   setIsOver(true);
@@ -143,7 +207,7 @@ export default function InventoryScreen({ gameState, onClose, onEquip, onUnequip
             setIsOver(false);
             try {
                 const data: DragData = JSON.parse(e.dataTransfer.getData('application/json'));
-                if (!data.isEquipped) {
+                if (!data.isEquipped && data.item.durability !== '0%') {
                     const validSlots = Array.isArray(data.item.equipmentSlot) ? data.item.equipmentSlot : [data.item.equipmentSlot];
                     if (validSlots.includes(slot.id)) {
                         onDrop(data.item, slot.id);
@@ -167,6 +231,76 @@ export default function InventoryScreen({ gameState, onClose, onEquip, onUnequip
                         <div className="text-xs font-semibold">{t(slot.label)}</div>
                     </div>
                 )}
+            </div>
+        );
+    };
+
+    const ContainerItem = ({ item, onClick, onDrop, onOpenImageModal }: { item: Item, onClick: () => void, onDrop: (droppedItem: Item) => void, onOpenImageModal: (prompt: string) => void }) => {
+        const [isOver, setIsOver] = useState(false);
+        const imagePrompt = item.image_prompt || `game asset, inventory icon, ${item.quality} ${item.name}, fantasy art, plain background`;
+
+        const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+            e.preventDefault();
+            setIsOver(true);
+        };
+        const handleDragLeave = () => setIsOver(false);
+        
+        const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
+            e.preventDefault();
+            setIsOver(false);
+            try {
+                const data: DragData = JSON.parse(e.dataTransfer.getData('application/json'));
+                if (data.item.existedId !== item.existedId) { // Can't drop a container in itself
+                    onDrop(data.item);
+                }
+            } catch (err) {}
+        };
+        
+        const handleImageClick = (e: React.MouseEvent) => {
+            e.stopPropagation();
+            onOpenImageModal(imagePrompt);
+        };
+
+        const handleDragStart = (e: React.DragEvent<HTMLDivElement>) => {
+            const dragData: DragData = { item, isEquipped: false, isFromContainer: !!viewingContainer };
+            e.dataTransfer.setData('application/json', JSON.stringify(dragData));
+            e.currentTarget.style.opacity = '0.4';
+        };
+
+        const handleDragEnd = (e: React.DragEvent<HTMLDivElement>) => {
+            e.currentTarget.style.opacity = '1';
+        };
+
+        const isDraggable = !!item.equipmentSlot;
+
+        return (
+            <div onDrop={handleDrop} onDragOver={handleDragOver} onDragLeave={handleDragLeave}>
+                <div 
+                    onClick={onClick}
+                    draggable={isDraggable}
+                    onDragStart={isDraggable ? handleDragStart : undefined}
+                    onDragEnd={isDraggable ? handleDragEnd : undefined}
+                    className={`w-20 h-20 rounded-md flex flex-col justify-center items-center ${isDraggable ? 'cursor-grab' : 'cursor-pointer'} border-2 shadow-lg hover:shadow-cyan-500/20 hover:scale-105 transition-all relative group overflow-hidden
+                    ${isOver ? 'border-cyan-400 bg-cyan-500/10' : qualityColorMap[item.quality] || 'border-gray-600'}
+                    `}
+                    title={t('Open {name}', { name: item.name })}
+                >
+                    <ImageRenderer prompt={imagePrompt} alt={item.name} className="absolute inset-0 w-full h-full object-cover" />
+                    <div className="absolute inset-0 bg-cyan-900/30 flex items-center justify-center pointer-events-none">
+                        <ArchiveBoxSolidIcon className="w-8 h-8 text-cyan-200/80" />
+                    </div>
+                    <div className="absolute inset-x-0 bottom-0 bg-black/70 p-1 text-center">
+                        <p className="text-xs text-white line-clamp-1 font-semibold">{item.name}</p>
+                    </div>
+                    {item.resource !== undefined && item.maximumResource !== undefined && (
+                        <div className="absolute bottom-1 left-1 text-xs bg-cyan-700/90 px-1.5 py-0.5 rounded-full font-mono text-white border border-cyan-400/50">
+                            {item.resource}/{item.maximumResource}
+                        </div>
+                    )}
+                     <div onClick={handleImageClick} className="absolute top-1 left-1 bg-gray-900/50 p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-cyan-500/50">
+                        <MagnifyingGlassPlusIcon className="w-4 h-4 text-white" />
+                    </div>
+                </div>
             </div>
         );
     };
@@ -233,7 +367,7 @@ export default function InventoryScreen({ gameState, onClose, onEquip, onUnequip
                     break;
                 case 'price':
                     valA = a.price * a.count;
-                    valB = b.price * b.count;
+                    valB = b.price * a.count;
                     break;
                 case 'type':
                     valA = a.type || 'zzzz'; // Push undefined types to the end
@@ -325,7 +459,7 @@ export default function InventoryScreen({ gameState, onClose, onEquip, onUnequip
                        <div className="flex-1">
                             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 gap-4">
                                 {sortedContainersInView.map(item => (
-                                    item.existedId ? <ContainerItem key={item.existedId} item={item} onClick={() => setViewingContainer(item)} onDrop={(droppedItem) => onMoveItem(droppedItem, item.existedId)} onOpenImageModal={onOpenImageModal} /> : null
+                                    item.existedId ? <ContainerItem key={item.existedId} item={item} onClick={() => setViewingContainer(item)} onDrop={(droppedItem) => onMoveItem(droppedItem, item.existedId!)} onOpenImageModal={onOpenImageModal} /> : null
                                 ))}
                                 {sortedNormalItemsInView.map(item => (
                                     item.existedId ? <DraggableItem key={item.existedId} item={item} isFromContainer={!!viewingContainer} /> : null
@@ -344,62 +478,28 @@ export default function InventoryScreen({ gameState, onClose, onEquip, onUnequip
                     </div>
                 </div>
             </div>
+            {splitItem && (
+                <Modal isOpen={!!splitItem} onClose={() => setSplitItem(null)} title={`${t('Split Stack')}: ${splitItem.name}`}>
+                    <div className="space-y-4">
+                        <label htmlFor="split-amount" className="block text-sm font-medium text-gray-300">
+                            {t('Amount to split off (1 - {max})', { max: splitItem.count - 1 })}
+                        </label>
+                        <input
+                            id="split-amount"
+                            type="number"
+                            value={splitAmount}
+                            onChange={(e) => setSplitAmount(e.target.value)}
+                            min="1"
+                            max={splitItem.count - 1}
+                            className="w-full bg-gray-700/50 border border-gray-600 rounded-md p-3 text-gray-200 focus:ring-2 focus:ring-cyan-500 transition"
+                            autoFocus
+                        />
+                        <button onClick={handleSplit} className="w-full bg-cyan-600 hover:bg-cyan-500 text-white font-bold py-2 px-4 rounded-md transition-all">
+                            {t('Split')}
+                        </button>
+                    </div>
+                </Modal>
+            )}
         </Modal>
     );
 }
-
-const ContainerItem = ({ item, onClick, onDrop, onOpenImageModal }: { item: Item, onClick: () => void, onDrop: (droppedItem: Item) => void, onOpenImageModal: (prompt: string) => void }) => {
-    const [isOver, setIsOver] = useState(false);
-    const { t } = useLocalization();
-    const imagePrompt = item.image_prompt || `game asset, inventory icon, ${item.quality} ${item.name}, fantasy art, plain background`;
-
-    const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
-        e.preventDefault();
-        setIsOver(true);
-    };
-    const handleDragLeave = () => setIsOver(false);
-    
-    const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
-        e.preventDefault();
-        setIsOver(false);
-        try {
-            const data: DragData = JSON.parse(e.dataTransfer.getData('application/json'));
-            if (data.item.existedId !== item.existedId) { // Can't drop a container in itself
-                onDrop(data.item);
-            }
-        } catch (err) {}
-    };
-    
-    const handleImageClick = (e: React.MouseEvent) => {
-        e.stopPropagation();
-        onOpenImageModal(imagePrompt);
-    };
-
-    return (
-        <div onDrop={handleDrop} onDragOver={handleDragOver} onDragLeave={handleDragLeave}>
-            <div 
-                onClick={onClick}
-                className={`w-20 h-20 rounded-md flex flex-col justify-center items-center cursor-pointer border-2 shadow-lg hover:shadow-cyan-500/20 hover:scale-105 transition-all relative group overflow-hidden
-                ${isOver ? 'border-cyan-400 bg-cyan-500/10' : qualityColorMap[item.quality] || 'border-gray-600'}
-                `}
-                title={t('Open {name}', { name: item.name })}
-            >
-                <ImageRenderer prompt={imagePrompt} alt={item.name} className="absolute inset-0 w-full h-full object-cover" />
-                <div className="absolute inset-0 bg-cyan-900/30 flex items-center justify-center pointer-events-none">
-                    <ArchiveBoxSolidIcon className="w-8 h-8 text-cyan-200/80" />
-                </div>
-                <div className="absolute inset-x-0 bottom-0 bg-black/70 p-1 text-center">
-                    <p className="text-xs text-white line-clamp-1 font-semibold">{item.name}</p>
-                </div>
-                {item.resource !== undefined && item.maximumResource !== undefined && (
-                    <div className="absolute bottom-1 left-1 text-xs bg-cyan-700/90 px-1.5 py-0.5 rounded-full font-mono text-white border border-cyan-400/50">
-                        {item.resource}/{item.maximumResource}
-                    </div>
-                )}
-                 <div onClick={handleImageClick} className="absolute top-1 left-1 bg-gray-900/50 p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-cyan-500/50">
-                    <MagnifyingGlassPlusIcon className="w-4 h-4 text-white" />
-                </div>
-            </div>
-        </div>
-    );
-};

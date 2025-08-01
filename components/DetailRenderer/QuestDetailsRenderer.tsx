@@ -1,5 +1,5 @@
 import React from 'react';
-import { Quest } from '../../types';
+import { Quest, GameSettings } from '../../types';
 import { DetailRendererProps } from './types';
 import Section from './Shared/Section';
 import DetailRow from './Shared/DetailRow';
@@ -13,10 +13,13 @@ import {
 interface QuestDetailsProps extends Omit<DetailRendererProps, 'data'> {
   quest: Quest;
   onOpenForgetConfirm: () => void;
+  gameSettings: GameSettings | null;
 }
 
-const QuestDetailsRenderer: React.FC<QuestDetailsProps> = ({ quest, onOpenForgetConfirm, allowHistoryManipulation, onEditQuestData }) => {
+const QuestDetailsRenderer: React.FC<QuestDetailsProps> = ({ quest, onOpenForgetConfirm, allowHistoryManipulation, onEditQuestData, gameSettings }) => {
     const { t } = useLocalization();
+    const currencyName = gameSettings?.gameWorldInformation?.currencyName || 'Gold';
+    
     return (
     <div className="space-y-4">
         <div className="text-xl font-bold">
@@ -93,7 +96,7 @@ const QuestDetailsRenderer: React.FC<QuestDetailsProps> = ({ quest, onOpenForget
         {quest.rewards && (
             <Section title={t("Rewards")} icon={StarIcon}>
                 {quest.rewards.experience && <DetailRow label={t("Experience")} value={quest.rewards.experience} />}
-                {quest.rewards.money && <DetailRow label={t("Money")} value={`${quest.rewards.money} ${t('Gold')}`} />}
+                {quest.rewards.money && <DetailRow label={t("Money")} value={`${quest.rewards.money} ${t(currencyName as any)}`} />}
                 {quest.rewards.items && quest.rewards.items.length > 0 && <DetailRow label={t("Items")} value={quest.rewards.items.join(', ')} />}
                 {quest.rewards.other && <MarkdownRenderer content={quest.rewards.other} />}
             </Section>

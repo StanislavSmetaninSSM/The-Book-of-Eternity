@@ -1,5 +1,6 @@
+
 import React, { useState, useMemo } from 'react';
-import { PlayerCharacter, Item, ActiveSkill, PassiveSkill, Effect, Wound, GameSettings } from '../types';
+import { PlayerCharacter, Item, ActiveSkill, PassiveSkill, Effect, Wound, GameSettings, StructuredBonus } from '../types';
 import {
     HeartIcon, ShieldCheckIcon, StarIcon, ArchiveBoxIcon, // Main Stats
     BoltIcon, // Energy
@@ -27,6 +28,7 @@ import {
     HandRaisedIcon as HandRaisedSolidIcon,
 } from '@heroicons/react/24/solid';
 import { useLocalization } from '../context/LocalizationContext';
+import MarkdownRenderer from './MarkdownRenderer';
 
 interface CharacterSheetProps {
   character: PlayerCharacter;
@@ -35,6 +37,8 @@ interface CharacterSheetProps {
   onOpenInventory: () => void;
   onSpendAttributePoint: (characteristic: string) => void;
 }
+
+const CHARACTERISTICS_LIST = ['strength', 'dexterity', 'constitution', 'intelligence', 'wisdom', 'faith', 'attractiveness', 'trade', 'persuasion', 'perception', 'luck', 'speed'];
 
 const StatBar: React.FC<{ 
     value: number; 
@@ -75,6 +79,7 @@ const TABS = [
     { name: 'Combat', icon: ShieldCheckSolidIcon },
     { name: 'Inventory', icon: RectangleStackIcon },
     { name: 'Skills', icon: SparklesIcon },
+    { name: 'Bonuses', icon: SparklesSolidIcon },
     { name: 'Conditions', icon: ExclamationTriangleIcon },
 ];
 
@@ -83,6 +88,43 @@ export default function CharacterSheet({ character, gameSettings, onOpenModal, o
   const { t } = useLocalization();
 
   const currencyName = gameSettings?.gameWorldInformation?.currencyName || 'Gold';
+
+  const equipmentBonuses = useMemo(() => {
+    if (!character) return {};
+    const bonuses: Record<string, number> = {};
+    CHARACTERISTICS_LIST.forEach(char => bonuses[char] = 0); // Initialize
+
+    const equippedItemIds = new Set(Object.values(character.equippedItems));
+
+    character.inventory.forEach((item: Item) => {
+        if (!item.existedId || !equippedItemIds.has(item.existedId)) return;
+
+        if (item.structuredBonuses && item.structuredBonuses.length > 0) {
+            item.structuredBonuses.forEach((bonus: StructuredBonus) => {
+                if (
+                    bonus.bonusType === 'Characteristic' &&
+                    bonus.application === 'Permanent' &&
+                    bonus.valueType === 'Flat' &&
+                    typeof bonus.value === 'number' &&
+                    CHARACTERISTICS_LIST.includes(bonus.target.toLowerCase())
+                ) {
+                    bonuses[bonus.target.toLowerCase()] += bonus.value;
+                }
+            });
+        } 
+        else if (item.bonuses) {
+            item.bonuses.forEach((bonus: string) => {
+                const match = bonus.match(/^([+-]?\d+)\s+(.+)$/);
+                const charName = match?.[2]?.toLowerCase();
+                if (match && charName && CHARACTERISTICS_LIST.includes(charName)) {
+                    bonuses[charName] += parseInt(match[1]);
+                }
+            });
+        }
+    });
+
+    return bonuses;
+  }, [character.equippedItems, character.inventory]);
 
   const derivedStats = useMemo(() => {
     if (!character) return null;
@@ -140,6 +182,19 @@ export default function CharacterSheet({ character, gameSettings, onOpenModal, o
         totalGeneralResistance
     };
   }, [character]);
+  
+  const situationalBonuses = useMemo(() => {
+    if (!character) return [];
+    const equippedItemIds = new Set(Object.values(character.equippedItems));
+    const itemsWithBonuses = character.inventory
+        .filter(item => item.existedId && equippedItemIds.has(item.existedId) && item.structuredBonuses && item.structuredBonuses.length > 0)
+        .map(item => {
+            const relevantBonuses = item.structuredBonuses!.filter(bonus => bonus.application === 'Conditional' || bonus.bonusType !== 'Characteristic');
+            return { item, bonuses: relevantBonuses };
+        })
+        .filter(entry => entry.bonuses.length > 0);
+    return itemsWithBonuses;
+  }, [character]);
 
   if (!character) {
       return null;
@@ -168,21 +223,25 @@ export default function CharacterSheet({ character, gameSettings, onOpenModal, o
                 const modifiedKey = `modified${charNameRaw}` as keyof typeof character.characteristics;
                 const baseValue = character.characteristics[standardKey];
                 const modifiedValue = character.characteristics[modifiedKey];
-                const difference = modifiedValue - baseValue;
+                const equipmentBonus = equipmentBonuses[charName] || 0;
                 const canUpgrade = character.attributePoints > 0;
                 const isCapped = baseValue >= 100;
 
                 return (
-                     <div key={key} className="bg-gray-700/40 p-3 rounded-lg flex items-center justify-between shadow-inner group relative">
-                        <button onClick={() => onOpenModal(t("Characteristic: {name}", { name: t(charName) }), {type: 'characteristic', name: charName, value: modifiedValue})} className="w-full text-left flex items-center justify-between group-hover:text-cyan-300">
+                    <div key={key} className="bg-gray-700/40 p-3 rounded-lg flex items-center justify-between shadow-inner group relative">
+                        <button onClick={() => onOpenModal(t("Characteristic: {name}", { name: t(charName) }), {type: 'characteristic', name: charName, value: modifiedValue})} className="w-full text-left flex items-center justify-between group-hover:bg-gray-700/50 -m-3 p-3 rounded-lg transition-colors">
                             <span className="text-gray-300 capitalize text-sm font-semibold">{t(charName)}</span>
-                            <div className="flex items-baseline gap-2">
-                                <span className="font-bold text-2xl text-cyan-400 font-mono">{modifiedValue}</span>
-                                {difference !== 0 && (
-                                    <span className={`text-xs font-mono ${difference > 0 ? 'text-green-400' : 'text-red-400'}`}>
-                                        ({baseValue}{difference > 0 ? '+' : ''}{difference})
+                            <div className="flex flex-col items-end">
+                                {equipmentBonus !== 0 && (
+                                    <span 
+                                      className={`text-xs font-mono px-1.5 py-0.5 rounded-full mb-1 ${equipmentBonus > 0 ? 'bg-green-500/20 text-green-300' : 'bg-red-500/20 text-red-300'}`}
+                                      title={t('equipmentBonusTooltip')}
+                                    >
+                                        {equipmentBonus > 0 ? '+' : ''}{equipmentBonus} {t('EQ')}
                                     </span>
                                 )}
+                                <span className="font-bold text-2xl text-cyan-400 font-mono">{modifiedValue}</span>
+                                <span className="text-xs font-mono text-gray-400">({t('Base')}: {baseValue})</span>
                             </div>
                         </button>
                          {canUpgrade && (
@@ -257,8 +316,8 @@ export default function CharacterSheet({ character, gameSettings, onOpenModal, o
                         {masteryData && (
                              <span className="font-semibold whitespace-nowrap flex items-center gap-1.5">{t('Mastery Level')}: <span className="text-cyan-300 font-bold text-sm">{masteryData.currentMasteryLevel ?? '?'}/{masteryData.maxMasteryLevel ?? '?'}</span></span>
                         )}
-                        {skill.energyCost && <span className="flex items-center gap-1"><BoltIcon className="w-3 h-3 text-blue-400"/>{skill.energyCost} E</span>}
-                        {skill.cooldownTurns != null && <span className="flex items-center gap-1"><ClockIcon className="w-3 h-3 text-purple-400"/>CD: {skill.cooldownTurns}T</span>}
+                        {skill.energyCost && <span className="flex items-center gap-1"><BoltIcon className="w-3 h-3 text-blue-400"/>{skill.energyCost} {t('EnergyUnit')}</span>}
+                        {skill.cooldownTurns != null && <span className="flex items-center gap-1"><ClockIcon className="w-3 h-3 text-purple-400"/>{t('CooldownAbbr')}: {skill.cooldownTurns}{t('TurnUnit')}</span>}
                     </div>
                 </div>
                 <p className="text-sm text-gray-400 italic mt-2 line-clamp-2">{skill.skillDescription}</p>
@@ -430,6 +489,30 @@ export default function CharacterSheet({ character, gameSettings, onOpenModal, o
         </div>
     );
   };
+  
+  const renderBonuses = () => (
+    <div className="space-y-4">
+        {situationalBonuses.length > 0 ? (
+            situationalBonuses.map(({ item, bonuses }) => (
+                <div key={item.existedId} className="bg-gray-700/40 p-3 rounded-lg shadow-inner">
+                    <h4 className="font-semibold text-cyan-400 border-b border-cyan-500/20 pb-2 mb-2">{item.name}</h4>
+                    <ul className="space-y-2 list-disc list-inside">
+                        {bonuses.map((bonus, index) => (
+                            <li key={index} className="text-gray-300 text-sm">
+                                <MarkdownRenderer content={bonus.description} inline />
+                            </li>
+                        ))}
+                    </ul>
+                </div>
+            ))
+        ) : (
+            <div className="text-center text-gray-500 p-6 bg-gray-900/20 rounded-lg">
+                <SparklesSolidIcon className="w-8 h-8 mx-auto mb-2 text-gray-600" />
+                <p>{t('No conditional bonuses from equipped items.')}</p>
+            </div>
+        )}
+    </div>
+  );
 
 
   return (
@@ -441,7 +524,7 @@ export default function CharacterSheet({ character, gameSettings, onOpenModal, o
                 <InformationCircleIcon className="w-5 h-5" />
             </button>
         </div>
-        <p className="text-gray-400">{t("Level {level} {race} {charClass}", { level: character.level, race: t(character.race), charClass: t(character.class) })}</p>
+        <p className="text-gray-400">{t("Level {level} {race} {charClass}", { level: character.level, race: t(character.race as any), charClass: t(character.class as any) })}</p>
       </div>
 
       <div className="space-y-3">
@@ -483,6 +566,7 @@ export default function CharacterSheet({ character, gameSettings, onOpenModal, o
           {activeTab === 'Combat' && renderCombat()}
           {activeTab === 'Inventory' && renderInventory(character.inventory)}
           {activeTab === 'Skills' && renderSkills(character.activeSkills, character.passiveSkills)}
+          {activeTab === 'Bonuses' && renderBonuses()}
           {activeTab === 'Conditions' && renderConditions(character.activePlayerEffects, character.playerWounds, character.playerCustomStates)}
       </div>
     </div>

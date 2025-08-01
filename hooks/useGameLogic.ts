@@ -1,17 +1,14 @@
 
-
-import { useState, useCallback, useRef } from 'react';
-import { GameState, GameContext, ChatMessage, GameResponse, LocationData, Item, NPC, SaveFile, Location, PlayerCharacter, WorldState, GameSettings, Quest, Faction, PlotOutline, Language } from '../types';
-import { executeTurn, askGmQuestion } from '../utils/gameApi';
+import { useState, useCallback, useRef, useEffect } from 'react';
+import { GameState, GameContext, ChatMessage, GameResponse, LocationData, Item, NPC, SaveFile, Location, PlayerCharacter, WorldState, GameSettings, Quest, Faction, PlotOutline, Language, DBSaveSlotInfo } from '../types';
+import { executeTurn, askGmQuestion, getMusicSuggestionFromAi } from '../utils/gameApi';
 import { createInitialContext, buildNextContext, updateWorldMap, recalculateDerivedStats } from '../utils/gameContext';
 import { processAndApplyResponse } from '../utils/responseProcessor';
-import { equipItem as equipItemUtil, unequipItem as unequipItemUtil, dropItem as dropItemUtil, moveItem as moveItemUtil, recalculateAllWeights } from '../utils/inventoryManager';
+import { equipItem as equipItemUtil, unequipItem as unequipItemUtil, dropItem as dropItemUtil, moveItem as moveItemUtil, recalculateAllWeights, splitItemStack as splitItemUtil, mergeItemStacks as mergeItemUtil } from '../utils/inventoryManager';
 import { deleteMessage as deleteMessageUtil, clearHalfHistory as clearHalfHistoryUtil, deleteLogs as deleteLogsUtil, forgetNpc as forgetNpcUtil } from '../utils/uiManager';
-import { saveGameToFile, loadGameFromFile } from '../utils/fileManager';
+import { saveGameToFile, loadGameFromFile, saveToDB, loadFromDB, getAutosaveTimestampFromDB, saveToDBSlot, loadFromDBSlot, listDBSlots, deleteDBSlot } from '../utils/fileManager';
 import { useLocalization } from '../context/LocalizationContext';
 import { formatError } from '../utils/errorUtils';
-
-const AUTOSAVE_KEY = 'gemini-rpg-autosave';
 
 const asArray = <T>(value: T | T[] | null | undefined): T[] => {
     if (value === null || value === undefined) {
@@ -31,6 +28,7 @@ export function useGameLogic({ language, setLanguage }: UseGameLogicProps) {
   const [gameState, setGameState] = useState<GameState | null>(null);
   const [worldState, setWorldState] = useState<WorldState | null>(null);
   const [gameSettings, setGameSettings] = useState<GameSettings | null>(null);
+  const [superInstructions, setSuperInstructions] = useState<string>('');
   const [gameHistory, setGameHistory] = useState<ChatMessage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -43,16 +41,31 @@ export function useGameLogic({ language, setLanguage }: UseGameLogicProps) {
   const [worldMap, setWorldMap] = useState<Record<string, Location>>({});
   const [visitedLocations, setVisitedLocations] = useState<Location[]>([]);
   const [turnNumber, setTurnNumber] = useState<number | null>(null);
-  const [autosaveTimestamp, setAutosaveTimestamp] = useState<string | null>(() => {
-    const saved = localStorage.getItem(AUTOSAVE_KEY);
-    if (!saved) return null;
-    try {
-      const data: SaveFile = JSON.parse(saved);
-      return data.timestamp;
-    } catch {
-      return null;
-    }
-  });
+  const [autosaveTimestamp, setAutosaveTimestamp] = useState<string | null>(null);
+  const [dbSaveSlots, setDbSaveSlots] = useState<DBSaveSlotInfo[]>([]);
+  const lastSavedTurnRef = useRef<number | null>(null);
+  const [musicVideoIds, setMusicVideoIds] = useState<string[] | null>(null);
+  const [isMusicLoading, setIsMusicLoading] = useState(false);
+  const [isMusicPlayerVisible, setIsMusicPlayerVisible] = useState(false);
+  const previousMusicQueries = useRef<string[]>([]);
+
+  const refreshDbSaveSlots = useCallback(async () => {
+    const slots = await listDBSlots();
+    setDbSaveSlots(slots);
+  }, []);
+
+  useEffect(() => {
+    const fetchInitialData = async () => {
+        try {
+            const ts = await getAutosaveTimestampFromDB();
+            setAutosaveTimestamp(ts);
+            await refreshDbSaveSlots();
+        } catch (e) {
+            console.error("Failed to fetch initial save data from DB", e);
+        }
+    };
+    fetchInitialData();
+  }, [refreshDbSaveSlots]);
 
   const { t } = useLocalization();
 
@@ -75,12 +88,36 @@ export function useGameLogic({ language, setLanguage }: UseGameLogicProps) {
     };
   }, [gameState, gameHistory, gameLog, lastJsonResponse, sceneImagePrompt, combatLog]);
 
+  const autosave = useCallback(async () => {
+    const saveData = packageSaveData();
+    if (saveData) {
+      try {
+        await saveToDB(saveData);
+        setAutosaveTimestamp(saveData.timestamp);
+      } catch (e) {
+        console.error("Autosave to DB failed", e);
+      }
+    }
+  }, [packageSaveData]);
+
+  useEffect(() => {
+    // This effect triggers after any state update that causes a re-render.
+    // We only want to save if the turn number has advanced since the last save.
+    // This prevents re-saving during streaming partial updates within the same turn.
+    if (turnNumber && turnNumber > 0 && gameState && lastSavedTurnRef.current !== turnNumber) {
+        console.log(`Autosaving for turn ${turnNumber}`);
+        autosave();
+        lastSavedTurnRef.current = turnNumber;
+    }
+  }, [turnNumber, gameState, autosave]);
+
   const restoreFromSaveData = useCallback((data: SaveFile) => {
       gameContextRef.current = data.gameContext;
       setGameState(data.gameState);
       setWorldState(data.gameContext.worldState);
       const loadedSettings = data.gameContext.gameSettings;
       setGameSettings(loadedSettings);
+      setSuperInstructions(data.gameContext.superInstructions || '');
       setLanguage(loadedSettings.language || 'en');
       setGameHistory(data.gameHistory as ChatMessage[]);
       setGameLog(data.gameLog);
@@ -91,14 +128,6 @@ export function useGameLogic({ language, setLanguage }: UseGameLogicProps) {
       setVisitedLocations(data.gameContext.visitedLocations ?? []);
       setTurnNumber(data.gameContext.currentTurnNumber);
   }, [setLanguage]);
-
-  const autosave = useCallback(() => {
-    const saveData = packageSaveData();
-    if (saveData) {
-      localStorage.setItem(AUTOSAVE_KEY, JSON.stringify(saveData));
-      setAutosaveTimestamp(saveData.timestamp);
-    }
-  }, [packageSaveData]);
 
   const clearStashForNewTurn = () => {
     setGameState(prev => {
@@ -200,9 +229,55 @@ export function useGameLogic({ language, setLanguage }: UseGameLogicProps) {
       }
     } finally {
       setIsLoading(false);
-      autosave();
     }
-  }, [gameState, autosave, t]);
+  }, [gameState, t]);
+
+  const fetchMusicSuggestion = useCallback(async () => {
+    if (!gameContextRef.current) return;
+
+    const youtubeApiKey = gameContextRef.current.gameSettings.youtubeApiKey;
+    if (!youtubeApiKey) {
+        setError(t("youtube_api_key_missing_error"));
+        return;
+    }
+
+    setIsMusicLoading(true);
+    setError(null);
+    try {
+      const suggestion = await getMusicSuggestionFromAi(gameContextRef.current, youtubeApiKey, previousMusicQueries.current);
+      if (suggestion && suggestion.videoIds && suggestion.videoIds.length > 0) {
+        setMusicVideoIds(suggestion.videoIds);
+        previousMusicQueries.current.push(suggestion.searchQuery);
+        if (previousMusicQueries.current.length > 10) {
+            previousMusicQueries.current.shift();
+        }
+        setGameLog(prev => [t("music_suggestion_reasoning", {reasoning: suggestion.reasoning}), ...prev]);
+        setIsMusicPlayerVisible(true);
+      } else {
+        setGameLog(prev => [t("music_suggestion_failed"), ...prev]);
+      }
+    } catch (e: any) {
+      console.error("Failed to get music suggestion:", e);
+      const formattedError = formatError(e);
+      setError(t("music_suggestion_error", { error: formattedError }));
+    } finally {
+      setIsMusicLoading(false);
+    }
+  }, [t]);
+
+  const clearMusic = useCallback(() => {
+    setMusicVideoIds(null);
+    setIsMusicPlayerVisible(false);
+    previousMusicQueries.current = [];
+  }, []);
+
+  const handlePrimaryMusicClick = useCallback(() => {
+    if (musicVideoIds && musicVideoIds.length > 0 && !isMusicPlayerVisible) {
+        setIsMusicPlayerVisible(true);
+    } else {
+        fetchMusicSuggestion();
+    }
+  }, [musicVideoIds, isMusicPlayerVisible, fetchMusicSuggestion]);
 
   const sendMessage = useCallback((message: string) => {
     if (isLoading || !gameContextRef.current) return;
@@ -223,6 +298,7 @@ export function useGameLogic({ language, setLanguage }: UseGameLogicProps) {
   const startGame = useCallback((creationData: any) => {
     const initialContext = createInitialContext(creationData, language);
     gameContextRef.current = initialContext;
+    setSuperInstructions(initialContext.superInstructions || '');
     setWorldMap(initialContext.worldMap);
     setVisitedLocations(initialContext.visitedLocations);
     setWorldState(initialContext.worldState);
@@ -331,9 +407,8 @@ export function useGameLogic({ language, setLanguage }: UseGameLogicProps) {
         }
     } finally {
       setIsLoading(false);
-      autosave();
     }
-  }, [isLoading, gameState, autosave, gameHistory, t]);
+  }, [isLoading, gameState, gameHistory, t]);
   
   const updateGameSettings = useCallback((newSettings: Partial<GameSettings>) => {
     setGameSettings(prevSettings => {
@@ -346,6 +421,14 @@ export function useGameLogic({ language, setLanguage }: UseGameLogicProps) {
 
         return updatedSettings;
     });
+  }, [autosave]);
+
+  const updateSuperInstructions = useCallback((newInstructions: string) => {
+    setSuperInstructions(newInstructions);
+    if (gameContextRef.current) {
+        gameContextRef.current.superInstructions = newInstructions;
+        autosave();
+    }
   }, [autosave]);
 
   const cancelRequest = useCallback(() => {
@@ -378,20 +461,47 @@ export function useGameLogic({ language, setLanguage }: UseGameLogicProps) {
   const equipItem = useCallback((itemToEquip: Item, slot: string) => {
     setGameState(prevState => {
         if (!prevState) return null;
-        let newGameState = equipItemUtil(itemToEquip, slot, prevState);
-        newGameState.playerCharacter = recalculateAllWeights(newGameState.playerCharacter);
-        if (gameContextRef.current) {
-            gameContextRef.current.playerCharacter = newGameState.playerCharacter;
+        
+        const potentialNewState = equipItemUtil(itemToEquip, slot, prevState);
+        const newPc = potentialNewState.playerCharacter;
+        const inventory = newPc.inventory;
+
+        const mainHandId = newPc.equippedItems.MainHand;
+        const offHandId = newPc.equippedItems.OffHand;
+
+        const mainHandItem = mainHandId ? inventory.find(i => i.existedId === mainHandId) : null;
+        const offHandItem = offHandId ? inventory.find(i => i.existedId === offHandId) : null;
+
+        const mainHandIsTwoHander = mainHandItem && mainHandItem.requiresTwoHands;
+        const offHandIsTwoHander = offHandItem && offHandItem.requiresTwoHands;
+
+        // Penalty if main hand has a two-hander but off-hand doesn't match,
+        // OR if off-hand has a two-hander but main-hand doesn't match.
+        const isPenalty = (mainHandIsTwoHander && mainHandId !== offHandId) || (offHandIsTwoHander && mainHandId !== offHandId);
+
+        if (isPenalty) {
+            alert(t('two_handed_penalty_warning'));
         }
-        return newGameState;
+        
+        let pc = recalculateAllWeights(newPc);
+        pc = recalculateDerivedStats(pc);
+        potentialNewState.playerCharacter = pc;
+
+        if (gameContextRef.current) {
+            gameContextRef.current.playerCharacter = pc;
+        }
+        
+        return potentialNewState;
     });
-  }, []);
+  }, [t]);
 
   const unequipItem = useCallback((itemToUnequip: Item) => {
     setGameState(prevState => {
       if (!prevState) return null;
       let newGameState = unequipItemUtil(itemToUnequip, prevState);
-      newGameState.playerCharacter = recalculateAllWeights(newGameState.playerCharacter);
+      let pc = recalculateAllWeights(newGameState.playerCharacter);
+      pc = recalculateDerivedStats(pc);
+      newGameState.playerCharacter = pc;
       if (gameContextRef.current) {
           gameContextRef.current.playerCharacter = newGameState.playerCharacter;
       }
@@ -403,7 +513,9 @@ export function useGameLogic({ language, setLanguage }: UseGameLogicProps) {
     setGameState(prevState => {
       if (!prevState) return null;
       let newGameState = dropItemUtil(itemToDrop, prevState);
-      newGameState.playerCharacter = recalculateAllWeights(newGameState.playerCharacter);
+      let pc = recalculateAllWeights(newGameState.playerCharacter);
+      pc = recalculateDerivedStats(pc);
+      newGameState.playerCharacter = pc;
       if (gameContextRef.current) {
           gameContextRef.current.playerCharacter = newGameState.playerCharacter;
       }
@@ -415,11 +527,41 @@ export function useGameLogic({ language, setLanguage }: UseGameLogicProps) {
     setGameState(prevState => {
       if (!prevState) return null;
       let newGameState = moveItemUtil(itemToMove, destinationContainerId, prevState);
-      newGameState.playerCharacter = recalculateAllWeights(newGameState.playerCharacter);
+      let pc = recalculateAllWeights(newGameState.playerCharacter);
+      pc = recalculateDerivedStats(pc);
+      newGameState.playerCharacter = pc;
       if (gameContextRef.current) {
           gameContextRef.current.playerCharacter = newGameState.playerCharacter;
       }
       return newGameState;
+    });
+  }, []);
+
+  const splitItemStack = useCallback((itemToSplit: Item, splitAmount: number) => {
+    setGameState(prevState => {
+        if (!prevState) return null;
+        let newGameState = splitItemUtil(itemToSplit, splitAmount, prevState);
+        let pc = recalculateAllWeights(newGameState.playerCharacter);
+        pc = recalculateDerivedStats(pc);
+        newGameState.playerCharacter = pc;
+        if (gameContextRef.current) {
+            gameContextRef.current.playerCharacter = newGameState.playerCharacter;
+        }
+        return newGameState;
+    });
+  }, []);
+
+  const mergeItemStacks = useCallback((sourceItem: Item, targetItem: Item) => {
+    setGameState(prevState => {
+        if (!prevState) return null;
+        let newGameState = mergeItemUtil(sourceItem, targetItem, prevState);
+        let pc = recalculateAllWeights(newGameState.playerCharacter);
+        pc = recalculateDerivedStats(pc);
+        newGameState.playerCharacter = pc;
+        if (gameContextRef.current) {
+            gameContextRef.current.playerCharacter = newGameState.playerCharacter;
+        }
+        return newGameState;
     });
   }, []);
 
@@ -489,6 +631,7 @@ export function useGameLogic({ language, setLanguage }: UseGameLogicProps) {
 
         pc.inventory = inventory;
         pc = recalculateAllWeights(pc);
+        pc = recalculateDerivedStats(pc);
 
         if (gameContextRef.current) {
             gameContextRef.current.playerCharacter = pc;
@@ -623,21 +766,47 @@ export function useGameLogic({ language, setLanguage }: UseGameLogicProps) {
     return false;
   }, [restoreFromSaveData, t]);
 
-  const loadAutosave = useCallback((): boolean => {
-    const savedJson = localStorage.getItem(AUTOSAVE_KEY);
-    if (savedJson) {
+  const loadAutosave = useCallback(async (): Promise<boolean> => {
+    try {
+        const loadedData = await loadFromDB();
+        if (loadedData) {
+            restoreFromSaveData(loadedData);
+            return true;
+        }
+        return false;
+    } catch (e) {
+      console.error("Error restoring autosave from DB:", e);
+      return false;
+    }
+  }, [restoreFromSaveData]);
+  
+  const saveGameToSlot = useCallback(async (slotId: number) => {
+    const saveData = packageSaveData();
+    if (saveData) {
+      await saveToDBSlot(slotId, saveData);
+      await refreshDbSaveSlots();
+    }
+  }, [packageSaveData, refreshDbSaveSlots]);
+
+  const loadGameFromSlot = useCallback(async (slotId: number): Promise<boolean> => {
+    const loadedData = await loadFromDBSlot(slotId);
+    if (loadedData) {
       try {
-        const loadedData: SaveFile = JSON.parse(savedJson);
         restoreFromSaveData(loadedData);
         return true;
       } catch (e) {
-        console.error("Error restoring autosave:", e);
+        console.error("Error restoring game state from DB slot:", e);
         return false;
       }
     }
     return false;
   }, [restoreFromSaveData]);
-  
+
+  const deleteGameSlot = useCallback(async (slotId: number) => {
+    await deleteDBSlot(slotId);
+    await refreshDbSaveSlots();
+  }, [refreshDbSaveSlots]);
+
   // --- History Manipulation Functions ---
 
   const editChatMessage = useCallback((indexToEdit: number, newContent: string) => {
@@ -715,21 +884,44 @@ export function useGameLogic({ language, setLanguage }: UseGameLogicProps) {
   }, [gameSettings]);
 
   // --- Temporary Stash Management ---
-  const moveFromStashToInventory = useCallback((itemToMove: Item) => {
+  const moveFromStashToInventory = useCallback((itemToMove: Item, quantity: number) => {
     setGameState(prevState => {
         if (!prevState || !prevState.temporaryStash) return prevState;
 
-        const prospectiveWeight = prevState.playerCharacter.totalWeight + (itemToMove.weight * itemToMove.count);
+        const itemInStash = prevState.temporaryStash.find(i => i.existedId === itemToMove.existedId);
+        if (!itemInStash) return prevState;
+
+        const validQuantity = Math.max(0, Math.min(quantity, itemInStash.count));
+        if (validQuantity === 0) return prevState;
+
+        const weightOfItemsToTake = itemToMove.weight * validQuantity;
+        const prospectiveWeight = prevState.playerCharacter.totalWeight + weightOfItemsToTake;
         if (prospectiveWeight > prevState.playerCharacter.maxWeight + prevState.playerCharacter.criticalExcessWeight) {
             alert(t('You still cannot carry this item. Drop something else first.'));
             return prevState;
         }
-
-        const newStash = prevState.temporaryStash.filter(i => i.existedId !== itemToMove.existedId);
-        const newInventory = [...prevState.playerCharacter.inventory, itemToMove];
         
-        let newPc = { ...prevState.playerCharacter, inventory: newInventory };
+        const newStash = [...prevState.temporaryStash];
+        const stashItemIndex = newStash.findIndex(i => i.existedId === itemToMove.existedId);
+        
+        newStash[stashItemIndex].count -= validQuantity;
+        if (newStash[stashItemIndex].count <= 0) {
+            newStash.splice(stashItemIndex, 1);
+        }
+
+        let inventory = [...prevState.playerCharacter.inventory];
+        const existingStackIndex = inventory.findIndex(i => i.name === itemToMove.name && !i.equipmentSlot && i.resource === undefined);
+        
+        if (existingStackIndex > -1) {
+            inventory[existingStackIndex].count += validQuantity;
+        } else {
+            const newItemForInventory = { ...itemToMove, count: validQuantity };
+            inventory.push(newItemForInventory);
+        }
+        
+        let newPc = { ...prevState.playerCharacter, inventory: inventory };
         newPc = recalculateAllWeights(newPc); 
+        newPc = recalculateDerivedStats(newPc);
 
         if (gameContextRef.current) {
             gameContextRef.current.playerCharacter = newPc;
@@ -765,6 +957,8 @@ export function useGameLogic({ language, setLanguage }: UseGameLogicProps) {
     unequipItem,
     dropItem,
     moveItem,
+    splitItemStack,
+    mergeItemStacks,
     disassembleItem,
     craftItem,
     moveFromStashToInventory,
@@ -787,13 +981,26 @@ export function useGameLogic({ language, setLanguage }: UseGameLogicProps) {
     visitedLocations,
     worldState,
     gameSettings,
-    turnNumber,
     updateGameSettings,
+    superInstructions,
+    updateSuperInstructions,
+    turnNumber,
     editChatMessage,
     editNpcData,
     editQuestData,
     editItemData,
     editLocationData,
     editPlayerData,
+    saveGameToSlot,
+    loadGameFromSlot,
+    deleteGameSlot,
+    dbSaveSlots,
+    refreshDbSaveSlots,
+    musicVideoIds,
+    isMusicLoading,
+    isMusicPlayerVisible,
+    handlePrimaryMusicClick,
+    fetchMusicSuggestion,
+    clearMusic,
   };
 }

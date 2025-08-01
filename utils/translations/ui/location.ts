@@ -2,6 +2,7 @@
 export const location = {
   en: {
     // Location Details & Map
+    "World Map": "World Map",
     "Current Location": "Current Location",
     "Known Locations": "Known Locations",
     "Coordinates": "Coordinates",
@@ -65,6 +66,7 @@ export const location = {
   },
   ru: {
     // Location Details & Map
+    "World Map": "Карта мира",
     "Current Location": "Текущая локация",
     "Known Locations": "Известные локации",
     "Coordinates": "Координаты",

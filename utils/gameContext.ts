@@ -1,8 +1,5 @@
 
-
-
-
-import { GameState, GameContext, ChatMessage, GameResponse, PlayerCharacter, LocationData, Characteristics, Location, Faction, Language, LootTemplate, UnlockedMemory, Recipe } from '../types';
+import { GameState, GameContext, ChatMessage, GameResponse, PlayerCharacter, LocationData, Characteristics, Location, Faction, Language, LootTemplate, UnlockedMemory, Recipe, Item } from '../types';
 import { gameData } from './localizationGameData';
 import { generateLootTemplates } from './lootGenerator';
 
@@ -53,8 +50,25 @@ export function recalculateDerivedStats(pc: PlayerCharacter): PlayerCharacter {
     // 1. Bonuses from equipped items (flat)
     Object.values(newPc.equippedItems).forEach((itemId: string | null) => {
         if (!itemId) return;
-        const item = newPc.inventory.find((i: any) => i.existedId === itemId);
-        if (item && item.bonuses) {
+        const item = newPc.inventory.find((i: Item) => i.existedId === itemId);
+        if (!item) return;
+
+        // Prioritize new structuredBonuses for mechanics
+        if (item.structuredBonuses && item.structuredBonuses.length > 0) {
+            item.structuredBonuses.forEach(bonus => {
+                if (
+                    bonus.bonusType === 'Characteristic' &&
+                    bonus.target.toLowerCase() === char.toLowerCase() &&
+                    bonus.application === 'Permanent' && // 'Permanent' here means 'while equipped'
+                    bonus.valueType === 'Flat' &&
+                    typeof bonus.value === 'number'
+                ) {
+                    flatBonusTotal += bonus.value;
+                }
+            });
+        } 
+        // Fallback to old `bonuses` array for backward compatibility
+        else if (item.bonuses) {
             item.bonuses.forEach((bonus: string) => {
                 const match = bonus.match(/^([+-]?\d+)\s+(.+)$/);
                 if (match && match[2].toLowerCase() === char) {
@@ -158,12 +172,17 @@ export const createInitialContext = (creationData: any, language: Language): Gam
       adultMode,
       geminiApiKey,
       openRouterApiKey,
+      youtubeApiKey,
       allowHistoryManipulation,
+      currencyName: customCurrencyName,
+      hardMode,
   } = creationData;
 
   const standardCharacteristics: any = {};
   const currentWorld = gameData[universe as keyof typeof gameData];
-  const { currencyName, ...baseInfo } = currentWorld;
+  const { currencyName: defaultCurrencyName, currencyOptions, ...baseInfo } = currentWorld;
+  const finalCurrencyName = (customCurrencyName && customCurrencyName.trim() !== '') ? customCurrencyName.trim() : defaultCurrencyName;
+
   const raceBonuses = isCustomRace ? {} : currentWorld.races[race]!.bonuses;
   const classBonuses = isCustomClass ? customClassAttributes : currentWorld.classes[charClass]!.bonuses;
 
@@ -286,7 +305,7 @@ export const createInitialContext = (creationData: any, language: Language): Gam
       nonMagicMode: nonMagicMode ?? false,
       language: language,
       gameWorldInformation: {
-        currencyName: currencyName,
+        currencyName: finalCurrencyName,
         baseInfo: baseInfo,
         customInfo: worldInformation || "No additional world information provided by the player.",
       },
@@ -297,8 +316,10 @@ export const createInitialContext = (creationData: any, language: Language): Gam
       adultMode: adultMode ?? false,
       geminiApiKey: geminiApiKey || '',
       openRouterApiKey: openRouterApiKey || '',
+      youtubeApiKey: youtubeApiKey || '',
       allowHistoryManipulation: allowHistoryManipulation ?? false,
       correctionModelName: correctionModelName || '',
+      hardMode: hardMode ?? false,
     },
     playerCharacter: initialPlayerCharacter,
     currentLocation: initialLocationPlaceholder,
@@ -430,7 +451,6 @@ export const buildNextContext = (
   return {
       ...prevContext,
       message: '',
-      superInstructions: '',
       currentTurnNumber: prevContext.currentTurnNumber + (incrementTurn ? 1 : 0),
       playerCharacter: newState.playerCharacter,
       currentLocation: newState.currentLocationData,
@@ -439,7 +459,7 @@ export const buildNextContext = (
       completedQuests: newState.completedQuests,
       encounteredNPCs: newState.encounteredNPCs,
       previousTurnResponse: response,
-      responseHistory: chatHistory.slice(-10),
+      responseHistory: chatHistory.slice(-15),
       lootForCurrentTurn: lootForNextTurn,
       preGeneratedDices1d20: Array.from({ length: 50 }, () => Math.floor(Math.random() * 20) + 1),
       enemiesDataForCurrentTurn: response.enemiesData,
@@ -451,4 +471,4 @@ export const buildNextContext = (
       worldMap: newWorldMap,
       playerCustomStates: newState.playerCustomStates,
   };
-};
+}

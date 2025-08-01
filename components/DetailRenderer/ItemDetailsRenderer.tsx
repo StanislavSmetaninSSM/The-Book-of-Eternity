@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Item } from '../../types';
+import { Item, GameSettings } from '../../types';
 import { DetailRendererProps } from './types';
 import Section from './Shared/Section';
 import DetailRow from './Shared/DetailRow';
@@ -15,18 +15,19 @@ import {
     InformationCircleIcon, TagIcon, PuzzlePieceIcon, CurrencyDollarIcon, HashtagIcon, ScaleIcon, CubeIcon,
     ShieldCheckIcon, CogIcon, FireIcon, PaperClipIcon, HandRaisedIcon, BoltIcon, BeakerIcon, ArchiveBoxIcon,
     CheckCircleIcon, MinusCircleIcon, MapPinIcon, SparklesIcon, StarIcon, Cog6ToothIcon, BookOpenIcon, UserPlusIcon, WrenchIcon,
-    Squares2X2Icon, WrenchScrewdriverIcon, TrashIcon
+    Squares2X2Icon, WrenchScrewdriverIcon, TrashIcon, AcademicCapIcon
 } from '@heroicons/react/24/outline';
 
 interface ItemDetailsProps extends Omit<DetailRendererProps, 'data'> {
   item: Item;
 }
 
-const ItemDetailsRenderer: React.FC<ItemDetailsProps> = ({ item, onOpenImageModal, allowHistoryManipulation, onEditItemData, playerCharacter, disassembleItem, onCloseModal }) => {
+const ItemDetailsRenderer: React.FC<ItemDetailsProps> = ({ item, onOpenImageModal, allowHistoryManipulation, onEditItemData, playerCharacter, disassembleItem, onCloseModal, gameSettings }) => {
     const { t } = useLocalization();
     const [isDisassembleConfirmOpen, setIsDisassembleConfirmOpen] = useState(false);
     const canHaveBond = ['Rare', 'Epic', 'Legendary', 'Unique'].includes(item.quality);
     const imagePrompt = item.image_prompt || `A detailed, photorealistic fantasy art image of a single ${item.quality} ${item.name}. ${item.description.split('. ')[0]}`;
+    const currencyName = gameSettings?.gameWorldInformation?.currencyName || 'Gold';
 
     const isEquipped = useMemo(() => {
         if (!playerCharacter || !item.existedId) return false;
@@ -73,7 +74,7 @@ const ItemDetailsRenderer: React.FC<ItemDetailsProps> = ({ item, onOpenImageModa
             <DetailRow label={t("Quality")} value={<span className={qualityColorMap[item.quality] || 'text-gray-300'}>{t(item.quality)}</span>} icon={TagIcon} />
             {item.type && <DetailRow label={t("Type")} value={t(item.type as any)} icon={PuzzlePieceIcon} />}
             {item.group && <DetailRow label={t("Group")} value={t(item.group as any)} icon={Squares2X2Icon} />}
-            <DetailRow label={t("Price")} value={`${item.price} ${t('Gold')}`} icon={CurrencyDollarIcon} />
+            <DetailRow label={t("Price")} value={`${item.price} ${t(currencyName as any)}`} icon={CurrencyDollarIcon} />
             <DetailRow label={t("Count")} value={item.count} icon={HashtagIcon} />
             <DetailRow label={t("Weight")} value={`${item.weight} ${t('kg')}`} icon={ScaleIcon} />
             <DetailRow label={t("Volume")} value={`${item.volume} dm³`} icon={CubeIcon} />
@@ -113,14 +114,46 @@ const ItemDetailsRenderer: React.FC<ItemDetailsProps> = ({ item, onOpenImageModa
              </Section>
         )}
         
-        {(item.bonuses && item.bonuses.length > 0 || item.combatEffect && item.combatEffect.length > 0 || item.customProperties && item.customProperties.length > 0) && (
+        {(item.bonuses && item.bonuses.length > 0 || item.combatEffect && item.combatEffect.length > 0 || item.customProperties && item.customProperties.length > 0 || item.structuredBonuses && item.structuredBonuses.length > 0) && (
              <Section title={t("Special Properties")} icon={SparklesIcon}>
-                {item.bonuses && item.bonuses.length > 0 && (
+                {item.structuredBonuses && item.structuredBonuses.length > 0 && (
                     <div className="mt-4">
-                        <h5 className="font-semibold text-gray-400 flex items-center gap-2"><StarIcon className="w-4 h-4" />{t("Bonuses")}</h5>
+                        <h5 className="font-semibold text-gray-400 flex items-center gap-2"><Cog6ToothIcon className="w-4 h-4" />{t("Mechanical Bonuses")}</h5>
+                        <div className="space-y-3 mt-2">
+                            {item.structuredBonuses.map((bonus, i) => {
+                                const { icon: Icon, colorClass, titleKey } = (() => {
+                                    switch(bonus.bonusType) {
+                                        case 'Characteristic': return { icon: AcademicCapIcon, colorClass: 'border-cyan-500', titleKey: 'Characteristic Bonus' };
+                                        case 'ActionCheck': return { icon: ShieldCheckIcon, colorClass: 'border-green-500', titleKey: 'Action Check Bonus' };
+                                        case 'Utility': return { icon: WrenchScrewdriverIcon, colorClass: 'border-blue-500', titleKey: 'Utility Effect' };
+                                        default: return { icon: SparklesIcon, colorClass: 'border-indigo-500', titleKey: 'Other Bonus' };
+                                    }
+                                })();
+                                
+                                return (
+                                    <div key={i} className={`bg-gray-800/60 p-3 rounded-md border-l-4 ${colorClass}`}>
+                                        <div className="flex items-center gap-2 mb-2">
+                                            <Icon className={`w-5 h-5 flex-shrink-0 ${colorClass.replace('border-', 'text-')}`} />
+                                            <h5 className="font-semibold text-gray-200">{t(titleKey as any)}</h5>
+                                        </div>
+                                        <p className="text-gray-300 font-bold text-lg mb-2 pl-7">{bonus.description}</p>
+                                        <div className="text-xs text-gray-400 pl-7 grid grid-cols-2 gap-x-4 gap-y-1">
+                                            <span><strong>{t("Target")}:</strong> {bonus.bonusType === 'Characteristic' ? t(bonus.target as any) : bonus.target}</span>
+                                            <span><strong>{t("Value")}:</strong> {String(bonus.value)} ({t(bonus.valueType as any)})</span>
+                                            <span><strong>{t("Application")}:</strong> {t(bonus.application as any)}</span>
+                                            {bonus.condition && <span><strong>{t("Condition")}:</strong> {t(bonus.condition as any)}</span>}
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </div>
+                )}
+                 {item.bonuses && item.bonuses.length > 0 && (
+                    <div className="mt-4">
+                        <h5 className="font-semibold text-gray-400 flex items-center gap-2"><StarIcon className="w-4 h-4" />{t("All Bonuses")}</h5>
                         <ul className="list-disc list-inside space-y-1 text-cyan-300/90 pl-2 mt-2">
                             {item.bonuses.map((bonus, i) => {
-                                // Strip leading list markers to prevent nested lists from markdown renderer
                                 const cleanBonus = bonus.replace(/^[\s*\-\u2022]+\s*/, '');
                                 return <li key={i}><MarkdownRenderer content={cleanBonus} inline /></li>;
                             })}

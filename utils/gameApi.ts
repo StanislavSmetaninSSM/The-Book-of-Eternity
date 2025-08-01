@@ -1,3 +1,4 @@
+
 import { GameContext, GameResponse } from '../types';
 // @ts-ignore
 import * as mainPromptModule from '../prompts/mainPromptModule.js';
@@ -5,7 +6,10 @@ import * as mainPromptModule from '../prompts/mainPromptModule.js';
 import narrativeStyleGuide from '../prompts/narrativeStyleGuide.js';
 // @ts-ignore
 import worldLogicGuide from '../prompts/worldLogicGuide.js';
+// @ts-ignore
+import { getMusicPrompt } from '../prompts/musicPrompt.js';
 import { callGenerativeApi, RegenerationRequiredError } from './gemini';
+import { GoogleGenAI, Type } from "@google/genai";
 
 interface InternalFlags {
     isCombatActive: boolean;
@@ -218,4 +222,114 @@ export async function askGmQuestion(
     }
 
     return response;
+}
+
+export async function getMusicSuggestionFromAi(
+    context: GameContext,
+    youtubeApiKey: string,
+    previousQueries: string[]
+): Promise<{ videoIds: string[]; reasoning: string; searchQuery: string } | null> {
+    
+    // Step 1: Get search query and reasoning from Gemini
+    const summarizedContext = {
+        last_messages: context.responseHistory.slice(-6).map(m => `${m.sender}: ${m.content}`).join('\n'),
+        location_description: context.currentLocation.description,
+        player_status: context.previousTurnResponse?.playerStatus,
+        plot_summary: context.plotOutline?.mainArc.summary,
+        game_world: context.gameSettings.gameWorldInformation.baseInfo.name,
+        previous_queries: previousQueries,
+        user_language: context.gameSettings.language,
+    };
+    const prompt = getMusicPrompt(summarizedContext);
+
+    const responseSchema = {
+        type: Type.OBJECT,
+        properties: {
+            searchQuery: {
+                type: Type.STRING,
+                description: 'A few concise keywords for a YouTube search for ambient, instrumental music that fits the mood.',
+            },
+            reasoning: {
+                type: Type.STRING,
+                description: 'A brief, one-sentence justification for the music choice.',
+            },
+        },
+        required: ["searchQuery", "reasoning"],
+    };
+
+    let suggestion: { searchQuery: string; reasoning: string } | null = null;
+    try {
+        const apiKey = context.gameSettings.geminiApiKey || process.env.API_KEY;
+        if (!apiKey) {
+            throw new Error("Gemini API Key not found.");
+        }
+        const ai = new GoogleGenAI({ apiKey });
+        
+        const response = await ai.models.generateContent({
+            model: 'gemini-2.5-flash',
+            contents: prompt,
+            config: {
+                responseMimeType: "application/json",
+                responseSchema: responseSchema,
+            }
+        });
+        
+        const textResponse = response.text;
+        let jsonStr = textResponse.trim();
+        if (jsonStr.startsWith('```json')) {
+            jsonStr = jsonStr.substring(7);
+        }
+        if (jsonStr.endsWith('```')) {
+            jsonStr = jsonStr.substring(0, jsonStr.length - 3);
+        }
+        
+        let parsed = JSON.parse(jsonStr);
+        
+        if (parsed && parsed.searchQuery && parsed.reasoning) {
+            suggestion = parsed;
+        } else {
+            console.error("AI music suggestion response was not in the expected format:", textResponse);
+            throw new Error(`The AI returned an invalid music suggestion format: ${textResponse}`);
+        }
+
+    } catch (err: any) {
+        console.error("Error getting music suggestion from AI:", err);
+        throw new Error(`The AI failed to generate a music suggestion. Error: ${err.message}`);
+    }
+
+    if (!suggestion) {
+        // This case should be rare if the above try/catch is improved
+        throw new Error("The AI returned an empty suggestion.");
+    }
+
+    // Step 2: Use the search query to find a video on YouTube
+    const refinedSearchQuery = `${suggestion.searchQuery} ambient instrumental music long`;
+    const apiUrl = `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent(refinedSearchQuery)}&type=video&videoEmbeddable=true&maxResults=5&key=${youtubeApiKey}`;
+
+    try {
+        const youtubeResponse = await fetch(apiUrl);
+        if (!youtubeResponse.ok) {
+            const errorBody = await youtubeResponse.text();
+            throw new Error(`YouTube API error: ${youtubeResponse.status} - ${errorBody}`);
+        }
+        const data = await youtubeResponse.json();
+
+        if (data.items && data.items.length > 0) {
+            const videoIds = data.items.map((item: any) => item.id.videoId).filter(Boolean);
+            if (videoIds.length > 0) {
+                return {
+                    videoIds: videoIds,
+                    reasoning: suggestion.reasoning,
+                    searchQuery: suggestion.searchQuery,
+                };
+            }
+        }
+        
+        console.warn("No embeddable YouTube video found for query:", refinedSearchQuery);
+        throw new Error(`No YouTube results found for the AI-suggested query: "${suggestion.searchQuery}"`);
+
+    } catch (error) {
+        console.error("Error fetching from YouTube API:", error);
+        throw error;
+    }
 }

@@ -3,6 +3,7 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
 import { LocalizationProvider } from './context/LocalizationContext';
+import { SpeechProvider } from './context/SpeechContext';
 
 const rootElement = document.getElementById('root');
 if (!rootElement) {
@@ -13,7 +14,9 @@ const root = ReactDOM.createRoot(rootElement);
 root.render(
   <React.StrictMode>
     <LocalizationProvider>
-      <App />
+      <SpeechProvider>
+        <App />
+      </SpeechProvider>
     </LocalizationProvider>
   </React.StrictMode>
 );

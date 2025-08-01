@@ -2,6 +2,7 @@ export const postApocalypseWorld = {
   name: "Post-Apocalypse",
   description: "A desolate wasteland, remnants of a forgotten world, and the fight for survival.",
   currencyName: "Wasteland Coins",
+  currencyOptions: [],
   races: {
     Survivor: { description: "Tough and resourceful humans who endured the fall. +2 Constitution, +2 Luck, +1 Perception.", bonuses: { constitution: 2, luck: 2, perception: 1 } },
     Mutant: { description: "Twisted by radiation, unnaturally strong and resilient. +4 Strength, +1 Constitution.", bonuses: { strength: 4, constitution: 1 } },

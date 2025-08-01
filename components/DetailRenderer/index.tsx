@@ -1,5 +1,7 @@
 
 
+
+
 import React, { useState } from 'react';
 import { Item, Quest, ActiveSkill, PassiveSkill, Effect, Wound, NPC, Location, PlayerCharacter, CombatAction, Faction, CustomState } from '../../types';
 import { DetailRendererProps } from './types';
@@ -31,12 +33,16 @@ const CustomStateDetailsRenderer: React.FC<{ state: CustomState }> = ({ state })
     const { t } = useLocalization();
     return (
         <div className="space-y-4">
-            <div className="italic text-gray-400">
-                <MarkdownRenderer content={state.description} />
-            </div>
+            {state.description && (
+                <div className="italic text-gray-400">
+                    <MarkdownRenderer content={state.description} />
+                </div>
+            )}
             <Section title={t("Rules")} icon={CheckCircleIcon}>
                 <DetailRow label={t("Current Value")} value={`${state.currentValue} / ${state.maxValue}`} />
-                <DetailRow label={t("Progression")} value={state.progressionRule.description} />
+                {state.progressionRule && (
+                    <DetailRow label={t("Progression")} value={state.progressionRule.description} />
+                )}
             </Section>
             {state.thresholds && state.thresholds.length > 0 && (
                 <Section title={t("Thresholds")} icon={ExclamationTriangleIcon}>
@@ -68,11 +74,11 @@ const isPlayerCharacter = (data: any): data is PlayerCharacter & { type: 'player
 const isDerivedStat = (data: any): data is { type: 'derivedStat', name: string, value: string, breakdown: { label: string, value: string }[], description: string } => data && data.type === 'derivedStat';
 const isCombatAction = (data: any): data is CombatAction => data && Array.isArray(data.effects) && data.actionName !== undefined && data.quality === undefined && data.skillName === undefined;
 const isFaction = (data: any): data is Faction & { type: 'faction', perspectiveFor?: { name: string; rank: string } } => data && data.type === 'faction' && data.reputation !== undefined;
-const isCustomState = (data: any): data is CustomState & { type: 'customState' } => data && data.stateName !== undefined;
+const isCustomState = (data: any): data is CustomState & { type: 'customState' } => data && data.type === 'customState' && data.stateName !== undefined;
 
 
 export default function DetailRenderer(props: DetailRendererProps) {
-    const { data, onForgetNpc, onClearNpcJournal, onCloseModal, onForgetQuest, onForgetLocation, currentLocationId, disassembleItem } = props;
+    const { data, onForgetNpc, onClearNpcJournal, onCloseModal, onForgetQuest, onForgetLocation, currentLocationId, disassembleItem, gameSettings } = props;
     const [confirmation, setConfirmation] = useState<{ type: string | null; data: any }>({ type: null, data: null });
     const { t } = useLocalization();
 

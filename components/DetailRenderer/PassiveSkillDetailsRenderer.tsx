@@ -31,6 +31,7 @@ const PassiveSkillDetailsRenderer: React.FC<PassiveSkillDetailsProps> = ({ skill
         </Section>
         <Section title={t("Mastery")} icon={AcademicCapIcon}>
             <DetailRow label={t("Level")} value={`${skill.masteryLevel} / ${skill.maxMasteryLevel}`} icon={AcademicCapIcon} />
+            <p className="text-xs text-gray-400 italic mt-2">{t("PassiveMasteryNote")}</p>
         </Section>
         {skill.playerStatBonus && (
             <Section title={t("Bonus")} icon={StarIcon}>

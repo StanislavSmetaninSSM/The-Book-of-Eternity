@@ -1,5 +1,5 @@
 
-import { SaveFile } from "../types";
+import { SaveFile, DBSaveSlotInfo } from "../types";
 
 type TFunction = (key: string, replacements?: Record<string, string | number>) => string;
 
@@ -186,5 +186,179 @@ export function loadConfigurationFromFile(t: TFunction): Promise<any | null> {
     input.style.display = 'none';
     document.body.appendChild(input);
     input.click();
+  });
+}
+
+// --- IndexedDB ---
+
+const DB_NAME = 'gemini-rpg-db';
+const DB_VERSION = 2;
+const AUTOSAVE_STORE_NAME = 'autosaves';
+const SLOTS_STORE_NAME = 'save_slots';
+const AUTOSAVE_ID = 'current_autosave';
+
+let dbPromise: Promise<IDBDatabase> | null = null;
+
+function openDB(): Promise<IDBDatabase> {
+  if (!dbPromise) {
+    dbPromise = new Promise((resolve, reject) => {
+      const request = indexedDB.open(DB_NAME, DB_VERSION);
+
+      request.onerror = () => {
+        console.error('IndexedDB error:', request.error);
+        reject(request.error);
+      };
+
+      request.onupgradeneeded = (event) => {
+        const db = (event.target as IDBOpenDBRequest).result;
+        if (!db.objectStoreNames.contains(AUTOSAVE_STORE_NAME)) {
+          db.createObjectStore(AUTOSAVE_STORE_NAME, { keyPath: 'id' });
+        }
+        if (!db.objectStoreNames.contains(SLOTS_STORE_NAME)) {
+          db.createObjectStore(SLOTS_STORE_NAME, { keyPath: 'slotId' });
+        }
+      };
+
+      request.onsuccess = (event) => {
+        const db = (event.target as IDBOpenDBRequest).result;
+        resolve(db);
+      };
+    });
+  }
+  return dbPromise;
+}
+
+// --- Autosave Functions ---
+
+export async function saveToDB(saveData: SaveFile): Promise<void> {
+  try {
+    const db = await openDB();
+    const transaction = db.transaction(AUTOSAVE_STORE_NAME, 'readwrite');
+    const store = transaction.objectStore(AUTOSAVE_STORE_NAME);
+    const dataToStore = { id: AUTOSAVE_ID, saveData };
+    store.put(dataToStore);
+
+    return new Promise((resolve, reject) => {
+      transaction.oncomplete = () => resolve();
+      transaction.onerror = () => {
+        console.error('IndexedDB save transaction error:', transaction.error);
+        reject(transaction.error);
+      };
+    });
+  } catch (error) {
+    console.error('Failed to save to IndexedDB:', error);
+    throw error;
+  }
+}
+
+export async function loadFromDB(): Promise<SaveFile | null> {
+  try {
+    const db = await openDB();
+    const transaction = db.transaction(AUTOSAVE_STORE_NAME, 'readonly');
+    const store = transaction.objectStore(AUTOSAVE_STORE_NAME);
+    const request = store.get(AUTOSAVE_ID);
+
+    return new Promise((resolve, reject) => {
+      request.onsuccess = () => {
+        if (request.result) {
+          resolve(request.result.saveData);
+        } else {
+          resolve(null);
+        }
+      };
+      request.onerror = () => {
+        console.error('Failed to load from IndexedDB:', request.error);
+        reject(request.error);
+      };
+    });
+  } catch (error) {
+    console.error('Failed to load from IndexedDB:', error);
+    return null;
+  }
+}
+
+export async function getAutosaveTimestampFromDB(): Promise<string | null> {
+  try {
+    const db = await openDB();
+    const transaction = db.transaction(AUTOSAVE_STORE_NAME, 'readonly');
+    const store = transaction.objectStore(AUTOSAVE_STORE_NAME);
+    const request = store.get(AUTOSAVE_ID);
+
+    return new Promise((resolve, reject) => {
+      request.onsuccess = () => {
+        if (request.result && request.result.saveData) {
+          resolve(request.result.saveData.timestamp);
+        } else {
+          resolve(null);
+        }
+      };
+      request.onerror = () => {
+        console.error('Failed to get timestamp from IndexedDB:', request.error);
+        reject(request.error);
+      };
+    });
+  } catch (error) {
+    console.error('Failed to get timestamp from IndexedDB:', error);
+    return null;
+  }
+}
+
+// --- Save Slot Functions ---
+
+export async function saveToDBSlot(slotId: number, saveData: SaveFile): Promise<void> {
+  const db = await openDB();
+  const transaction = db.transaction(SLOTS_STORE_NAME, 'readwrite');
+  const store = transaction.objectStore(SLOTS_STORE_NAME);
+  store.put({ slotId, saveData });
+
+  return new Promise((resolve, reject) => {
+    transaction.oncomplete = () => resolve();
+    transaction.onerror = () => reject(transaction.error);
+  });
+}
+
+export async function loadFromDBSlot(slotId: number): Promise<SaveFile | null> {
+  const db = await openDB();
+  const transaction = db.transaction(SLOTS_STORE_NAME, 'readonly');
+  const store = transaction.objectStore(SLOTS_STORE_NAME);
+  const request = store.get(slotId);
+
+  return new Promise((resolve, reject) => {
+    request.onsuccess = () => resolve(request.result?.saveData || null);
+    request.onerror = () => reject(request.error);
+  });
+}
+
+export async function deleteDBSlot(slotId: number): Promise<void> {
+  const db = await openDB();
+  const transaction = db.transaction(SLOTS_STORE_NAME, 'readwrite');
+  const store = transaction.objectStore(SLOTS_STORE_NAME);
+  store.delete(slotId);
+
+  return new Promise((resolve, reject) => {
+    transaction.oncomplete = () => resolve();
+    transaction.onerror = () => reject(transaction.error);
+  });
+}
+
+export async function listDBSlots(): Promise<DBSaveSlotInfo[]> {
+  const db = await openDB();
+  const transaction = db.transaction(SLOTS_STORE_NAME, 'readonly');
+  const store = transaction.objectStore(SLOTS_STORE_NAME);
+  const request = store.getAll();
+
+  return new Promise((resolve, reject) => {
+    request.onsuccess = () => {
+      const slots: DBSaveSlotInfo[] = request.result.map(item => ({
+        slotId: item.slotId,
+        timestamp: item.saveData.timestamp,
+        playerName: item.saveData.gameState.playerCharacter.name,
+        playerLevel: item.saveData.gameState.playerCharacter.level,
+        locationName: item.saveData.gameState.currentLocationData.name,
+        turnNumber: item.saveData.gameContext.currentTurnNumber,
+      }));
+      resolve(slots.sort((a, b) => b.timestamp.localeCompare(a.timestamp)));
+    };
+    request.onerror = () => reject(request.error);
   });
 }

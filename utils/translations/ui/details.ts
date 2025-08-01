@@ -1,5 +1,4 @@
 
-
 export const details = {
   en: {
     // Common Detail View Titles
@@ -39,6 +38,19 @@ export const details = {
     "Information": "Information",
     "No details available for this selection.": "No details available for this selection.",
     "Name": "Name",
+    "Health": "Health",
+    "Energy": "Energy",
+    "Experience": "Experience",
+    "Weight": "Weight",
+    "Money": "Money",
+    "Stats": "Stats",
+    "Inventory": "Inventory",
+    "Skills": "Skills",
+    "Conditions": "Conditions",
+    "Auto-Crit Threshold": "Auto-Crit Threshold",
+    "Base": "Base",
+    "kg": "kg",
+    "empty": "empty",
 
     // Combat Effect Labels
     "Value": "Value",
@@ -124,7 +136,11 @@ export const details = {
     "Rules": "Rules",
     "Current Value": "Current Value",
     "Progression": "Progression",
-    "Thresholds": "Thresholds"
+    "Thresholds": "Thresholds",
+    "Level {level} {race} {charClass}": "Level {level} {race} {charClass}",
+    "Mastery Level": "Mastery Level",
+    "Progress": "Progress",
+    "Reputation": "Reputation",
   },
   ru: {
     // Common Detail View Titles
@@ -146,7 +162,6 @@ export const details = {
     "Faction: {name}": "Фракция: {name}",
     "CustomState: {name}": "Состояние: {name}",
 
-
     // Common Detail View Labels
     "Core Properties": "Основные свойства",
     "Properties": "Свойства",
@@ -165,6 +180,19 @@ export const details = {
     "Information": "Информация",
     "No details available for this selection.": "Нет доступных деталей для этого выбора.",
     "Name": "Имя",
+    "Health": "Здоровье",
+    "Energy": "Энергия",
+    "Experience": "Опыт",
+    "Weight": "Вес",
+    "Money": "Деньги",
+    "Stats": "Характеристики",
+    "Inventory": "Инвентарь",
+    "Skills": "Навыки",
+    "Conditions": "Состояния",
+    "Auto-Crit Threshold": "Порог авто-крита",
+    "Base": "База",
+    "kg": "кг",
+    "empty": "пусто",
 
     // Combat Effect Labels
     "Value": "Значение",
@@ -250,6 +278,10 @@ export const details = {
     "Rules": "Правила",
     "Current Value": "Текущее значение",
     "Progression": "Прогрессия",
-    "Thresholds": "Пороги"
+    "Thresholds": "Пороги",
+    "Level {level} {race} {charClass}": "Уровень {level} {race} {charClass}",
+    "Mastery Level": "Уровень мастерства",
+    "Progress": "Прогресс",
+    "Reputation": "Репутация",
   }
 };

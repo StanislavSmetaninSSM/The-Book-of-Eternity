@@ -75,6 +75,8 @@ export const fantasyLoc = {
     "A practitioner of ancient Eastern arts, who refines their internal energy (Qi) through meditation and discipline, seeking immortality and immense power. Bonus: +2 Wisdom, +1 Constitution.": "A practitioner of ancient Eastern arts, who refines their internal energy (Qi) through meditation and discipline, seeking immortality and immense power. Bonus: +2 Wisdom, +1 Constitution.",
     "Shadowblade": "Shadowblade",
     "A master of stealth, poison, and the killing blow. Operates from the shadows, a myth whispered in taverns and feared in castles. Bonus: +2 Dexterity, +1 Perception.": "A master of stealth, poison, and the killing blow. Operates from the shadows, a myth whispered in taverns and feared in castles. Bonus: +2 Dexterity, +1 Perception.",
+    "Thief": "Thief",
+    "A specialist in larceny and infiltration, adept at acquiring what isn't rightfully theirs. Bonus: +2 Dexterity, +1 Trade.": "A specialist in larceny and infiltration, adept at acquiring what isn't rightfully theirs. Bonus: +2 Dexterity, +1 Trade.",
   },
   ru: {
     // Fantasy Races
@@ -152,5 +154,7 @@ export const fantasyLoc = {
     "A practitioner of ancient Eastern arts, who refines their internal energy (Qi) through meditation and discipline, seeking immortality and immense power. Bonus: +2 Wisdom, +1 Constitution.": "Практик древних восточных искусств, который совершенствует свою внутреннюю энергию (Ци) через медитацию и дисциплину, стремясь к бессмертию и огромной силе. Бонус: +2 к Мудрости, +1 к Телосложению.",
     "Shadowblade": "Клинок тени",
     "A master of stealth, poison, and the killing blow. Operates from the shadows, a myth whispered in taverns and feared in castles. Bonus: +2 Dexterity, +1 Perception.": "Мастер скрытности, ядов и смертельного удара. Действует из тени, миф, который шепчут в тавернах и боятся в замках. Бонус: +2 к Ловкости, +1 к Восприятию.",
+    "Thief": "Вор",
+    "A specialist in larceny and infiltration, adept at acquiring what isn't rightfully theirs. Bonus: +2 Dexterity, +1 Trade.": "Специалист по кражам и проникновению, искусный в приобретении того, что по праву ему не принадлежит. Бонус: +2 к Ловкости, +1 к Торговле.",
   }
 };

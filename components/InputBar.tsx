@@ -9,12 +9,14 @@ import {
     CodeBracketIcon,
     ChatBubbleLeftEllipsisIcon,
     EyeIcon,
-    EyeSlashIcon
+    EyeSlashIcon,
+    MusicalNoteIcon
 } from '@heroicons/react/24/solid';
 import { ArchiveBoxXMarkIcon } from '@heroicons/react/24/outline';
-import { ChatMessage, PlayerCharacter } from '../types';
+import { ChatMessage, GameSettings, PlayerCharacter } from '../types';
 import { useLocalization } from '../context/LocalizationContext';
 import MarkdownRenderer from './MarkdownRenderer';
+import LoadingSpinner from './LoadingSpinner';
 
 interface InputBarProps {
   onSendMessage: (message: string) => void;
@@ -25,6 +27,10 @@ interface InputBarProps {
   history: ChatMessage[];
   suggestedActions: string[];
   playerCharacter: PlayerCharacter | null;
+  gameSettings: GameSettings | null;
+  onGetMusicSuggestion: () => void;
+  isMusicLoading: boolean;
+  isMusicPlayerVisible: boolean;
 }
 
 const ToolbarButton: React.FC<{
@@ -123,7 +129,7 @@ const MarkdownToolbar: React.FC<{
     );
 }
 
-export default function InputBar({ onSendMessage, onAskQuestion, onCancelRequest, onClearHalfHistory, isLoading, history, suggestedActions, playerCharacter }: InputBarProps): React.ReactNode {
+export default function InputBar({ onSendMessage, onAskQuestion, onCancelRequest, onClearHalfHistory, isLoading, history, suggestedActions, playerCharacter, gameSettings, onGetMusicSuggestion, isMusicLoading, isMusicPlayerVisible }: InputBarProps): React.ReactNode {
   const [content, setContent] = useState('');
   const [isQuestionMode, setIsQuestionMode] = useState(false);
   const [activeView, setActiveView] = useState<'write' | 'preview'>('write');
@@ -293,6 +299,18 @@ export default function InputBar({ onSendMessage, onAskQuestion, onCancelRequest
             >
                 <ArrowPathIcon className="h-5 w-5" />
             </button>
+            {gameSettings?.youtubeApiKey && (
+                <button
+                    type="button"
+                    onClick={onGetMusicSuggestion}
+                    disabled={isLoading || isMusicLoading}
+                    aria-label={isMusicPlayerVisible ? t("Show Music Player") : t("Get Music Suggestion")}
+                    className="p-2 rounded-md bg-gray-700/60 text-gray-300 hover:bg-gray-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    title={isMusicPlayerVisible ? t("Show Music Player") : t("Get Music Suggestion")}
+                >
+                    {isMusicLoading ? <LoadingSpinner /> : <MusicalNoteIcon className="h-5 w-5" />}
+                </button>
+            )}
              <button
                 type="button"
                 onClick={onClearHalfHistory}

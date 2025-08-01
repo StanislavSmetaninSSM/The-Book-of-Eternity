@@ -1,6 +1,8 @@
+
 import { GameState, GameResponse, PlayerCharacter, Item, ActiveSkill, PassiveSkill, NPC, LocationData, Quest, EnemyCombatObject, AllyCombatObject, CustomState, Wound, Faction, SkillMastery, Effect, Recipe, UnlockedMemory } from '../types';
 import { recalculateDerivedStats } from './gameContext';
 import { recalculateAllWeights } from './inventoryManager';
+import { characteristics as charTranslations } from './translations/characteristics';
 
 /**
  * A helper function to ensure that a given value is always an array.
@@ -114,6 +116,19 @@ function upsertEntities<T extends { [key: string]: any }>(
 
 
     entityChanges.forEach(change => {
+        // Specific fix for NPC Fate Card IDs to ensure uniqueness before merging.
+        // This prevents React key conflicts and rendering bugs.
+        if (idKey === 'NPCId' && change.fateCards && Array.isArray(change.fateCards)) {
+            const seenIds = new Set();
+            (change.fateCards as any[]).forEach((card: any) => {
+                if (!card.cardId || seenIds.has(card.cardId)) {
+                    // If cardId is missing, duplicated, or invalid, generate a new unique one.
+                    card.cardId = generateId(`fatecard-${(change as any).name || 'npc'}`);
+                }
+                seenIds.add(card.cardId);
+            });
+        }
+
         let existingIndex = -1;
 
         const changeId = change[idKey];
@@ -217,28 +232,58 @@ export const processAndApplyResponse = (response: GameResponse, baseState: GameS
         pc.stealthState = response.playerStealthStateChange;
     }
     
-    asArray(response.statsIncreased).forEach(stat => {
-        const statKey = stat.charAt(0).toLowerCase() + stat.slice(1);
-        const standardKey = `standard${stat.charAt(0).toUpperCase() + stat.slice(1)}` as keyof PlayerCharacter['characteristics'];
-        
-        if(standardKey in pc.characteristics) {
-            const trainingCap = pc.level * 2;
-            const absoluteCap = 100;
-            const effectiveCap = Math.min(trainingCap, absoluteCap);
+    const ruToEnCharMap: Record<string, string> = {};
+    const enCharKeys = Object.keys(charTranslations.en);
+    for (const enKey of enCharKeys) {
+        const ruValue = charTranslations.ru[enKey];
+        if (ruValue) {
+            ruToEnCharMap[ruValue.toLowerCase()] = enKey;
+        }
+    }
 
-            if (pc.characteristics[standardKey] < effectiveCap) {
-                pc.characteristics[standardKey] += 1;
-            } else {
-                pc.experience += 25;
-                logsToAdd.push(t("stat_at_training_cap", { statName: t(statKey), cap: effectiveCap }));
+    const findEnglishCharKey = (statNameFromGm: string): string | undefined => {
+        const lowerCaseStat = statNameFromGm.toLowerCase();
+        // Check if it's already a valid english key (e.g., 'strength')
+        if (enCharKeys.includes(lowerCaseStat)) {
+            return lowerCaseStat;
+        }
+        // If not, check if it's a russian value in our reverse map (e.g., 'сила')
+        return ruToEnCharMap[lowerCaseStat];
+    };
+
+    asArray(response.statsIncreased).forEach(statNameFromGm => {
+        const englishKey = findEnglishCharKey(statNameFromGm);
+        
+        if (englishKey) {
+            const standardKey = `standard${englishKey.charAt(0).toUpperCase() + englishKey.slice(1)}` as keyof PlayerCharacter['characteristics'];
+            
+            if(standardKey in pc.characteristics) {
+                const trainingCap = pc.level * 2;
+                const absoluteCap = 100;
+                const effectiveCap = Math.min(trainingCap, absoluteCap);
+
+                if (pc.characteristics[standardKey] < effectiveCap) {
+                    pc.characteristics[standardKey] += 1;
+                } else {
+                    pc.experience += 25;
+                    logsToAdd.push(t("stat_at_training_cap", { statName: t(englishKey), cap: effectiveCap }));
+                }
             }
+        } else {
+            console.warn(`Unrecognized characteristic name in statsIncreased: "${statNameFromGm}"`);
         }
     });
 
-    asArray(response.statsDecreased).forEach(stat => {
-        const standardKey = `standard${stat.charAt(0).toUpperCase() + stat.slice(1)}` as keyof PlayerCharacter['characteristics'];
-        if(standardKey in pc.characteristics && pc.characteristics[standardKey] > 1) {
-            pc.characteristics[standardKey] -= 1;
+    asArray(response.statsDecreased).forEach(statNameFromGm => {
+        const englishKey = findEnglishCharKey(statNameFromGm);
+
+        if (englishKey) {
+            const standardKey = `standard${englishKey.charAt(0).toUpperCase() + englishKey.slice(1)}` as keyof PlayerCharacter['characteristics'];
+            if(standardKey in pc.characteristics && pc.characteristics[standardKey] > 1) {
+                pc.characteristics[standardKey] -= 1;
+            }
+        } else {
+            console.warn(`Unrecognized characteristic name in statsDecreased: "${statNameFromGm}"`);
         }
     });
 
@@ -290,6 +335,21 @@ export const processAndApplyResponse = (response: GameResponse, baseState: GameS
             }
         });
 
+    // Auto-unequip broken items
+    asArray(response.inventoryItemsData)
+        .filter(itemData => itemData.existedId && itemData.durability === '0%')
+        .forEach(brokenItemUpdate => {
+            const item = inventoryMap.get(brokenItemUpdate.existedId!);
+            if (item) {
+                Object.keys(pc.equippedItems).forEach(slot => {
+                    if (pc.equippedItems[slot] === item.existedId) {
+                        pc.equippedItems[slot] = null;
+                        logsToAdd.push(t("item_broke_unequipped", { itemName: item.name }));
+                    }
+                });
+            }
+        });
+
     pc.inventory.push(...potentialNewItems);
 
     asArray(response.inventoryItemsResources).forEach(resourceUpdate => {
@@ -298,9 +358,48 @@ export const processAndApplyResponse = (response: GameResponse, baseState: GameS
         if (!itemToUpdate && resourceUpdate.name) itemToUpdate = pc.inventory.find(i => i.name === resourceUpdate.name);
 
         if (itemToUpdate) {
+            const oldResource = itemToUpdate.resource;
+
             itemToUpdate.resource = resourceUpdate.resource;
-            itemToUpdate.maximumResource = resourceUpdate.maximumResource;
-            itemToUpdate.resourceType = resourceUpdate.resourceType;
+            if (resourceUpdate.maximumResource !== undefined) {
+                itemToUpdate.maximumResource = resourceUpdate.maximumResource;
+            }
+            if (resourceUpdate.resourceType !== undefined) {
+                itemToUpdate.resourceType = resourceUpdate.resourceType;
+            }
+
+            // If a resource was just depleted (went from >0 to <=0)
+            if (oldResource !== undefined && oldResource > 0 && itemToUpdate.resource !== undefined && itemToUpdate.resource <= 0) {
+                if (itemToUpdate.count > 0) {
+                    // One item from the stack is depleted.
+                    itemToUpdate.count -= 1;
+                    logsToAdd.push(t("item_resource_depleted", { itemName: itemToUpdate.name }));
+
+                    // Create the empty container item
+                    const emptyItem: Item = {
+                        ...JSON.parse(JSON.stringify(itemToUpdate)), // Deep copy to avoid reference issues
+                        existedId: generateId('item'),
+                        name: `${t('empty_item_prefix')} ${itemToUpdate.name}`,
+                        description: t('empty_item_description', { originalName: itemToUpdate.name }),
+                        count: 1,
+                        resource: 0,
+                        bonuses: [],
+                        customProperties: [],
+                        combatEffect: [],
+                        isConsumption: false, // It's no longer a consumable in the same way
+                        price: Math.max(1, Math.floor(itemToUpdate.price / 10)), // Drastically reduced price
+                        contentsPath: null, // Empty items shouldn't be inside containers by default
+                    };
+
+                    // Add the new empty item to the inventory.
+                    pc.inventory.push(emptyItem);
+
+                    // If items remain in the original stack, reset its resource for the next use.
+                    if (itemToUpdate.count > 0 && itemToUpdate.maximumResource !== undefined) {
+                        itemToUpdate.resource = itemToUpdate.maximumResource;
+                    }
+                }
+            }
         }
     });
 
@@ -312,12 +411,29 @@ export const processAndApplyResponse = (response: GameResponse, baseState: GameS
     });
 
     asArray(response.removeInventoryItems).forEach(itemToRemove => {
-        pc.inventory = pc.inventory.filter(i => i.existedId !== itemToRemove.removedItemId);
+        // First, check if the item is equipped and unequip it.
         Object.keys(pc.equippedItems).forEach(slot => {
-            if (pc.equippedItems[slot] === itemToRemove.removedItemId) pc.equippedItems[slot] = null;
+            if (pc.equippedItems[slot] === itemToRemove.removedItemId) {
+                pc.equippedItems[slot] = null;
+            }
         });
+        // Then, remove it from the master inventory list.
+        pc.inventory = pc.inventory.filter(i => i.existedId !== itemToRemove.removedItemId);
     });
     
+    // Filter out items with count 0 and unequip them if they were equipped
+    pc.inventory = pc.inventory.filter(item => {
+        if (item.count <= 0) {
+            Object.keys(pc.equippedItems).forEach(slot => {
+                if (pc.equippedItems[slot] === item.existedId) {
+                    pc.equippedItems[slot] = null;
+                }
+            });
+            return false; // Remove from inventory
+        }
+        return true; // Keep in inventory
+    });
+
     asArray(response.equipmentChanges).forEach(change => {
         if (change.action === 'equip') {
             let { itemId, itemName, targetSlots } = change;
@@ -422,6 +538,7 @@ export const processAndApplyResponse = (response: GameResponse, baseState: GameS
         currentMasteryLevel: c.newMasteryLevel,
         currentMasteryProgress: c.newCurrentMasteryProgress,
         masteryProgressNeeded: c.newMasteryProgressNeeded,
+        maxMasteryLevel: c.newMaxMasteryLevel
     })), 'skillName', 'skillName');
 
     // --- Effects & Wounds (Player) ---
@@ -661,7 +778,7 @@ export const processAndApplyResponse = (response: GameResponse, baseState: GameS
         const npc = findNpc(change);
         if (npc) {
             if (!npc.wounds) npc.wounds = [];
-            npc.wounds = upsertEntities(npc.wounds, [change], 'woundId', 'woundName');
+            npc.wounds = upsertEntities(npc.wounds, asArray((change as any).woundChanges), 'woundId', 'woundName');
         }
     });
 
@@ -683,6 +800,7 @@ export const processAndApplyResponse = (response: GameResponse, baseState: GameS
     newState.enemiesData = response.enemiesData || [];
     newState.alliesData = response.alliesData || [];
     newState.playerCustomStates = response.customStateChanges || newState.playerCustomStates;
+    newState.playerCharacter.playerCustomStates = newState.playerCustomStates; // SYNC THE TWO
     newState.plotOutline = response.plotOutline || newState.plotOutline;
     if (response.playerStatus) {
         newState.playerStatus = response.playerStatus;

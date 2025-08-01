@@ -1,3 +1,4 @@
+
 export const general = {
   en: {
     // General
@@ -13,6 +14,7 @@ export const general = {
     "Credits": "Credits",
     "Wasteland Coins": "Wasteland Coins",
     "Dollars": "Dollars",
+    "Rubles": "Rubles",
     "DEFEATED": "DEFEATED",
     "The Book of Eternity": "The Book of Eternity",
     "Invalid save file format.": "Invalid save file format.",
@@ -28,7 +30,12 @@ export const general = {
     "history_manipulation_rejection": "System: The Game Master has detected a significant attempt to manipulate or contradict the established game history and has rejected the last action to preserve game integrity.",
     "Random": "Random",
     "serverTooBusy": "The server is too busy. 5 attempts were made unsuccessfully. Please try again later.",
-
+    "Clear": "Clear",
+    "Cloudy": "Cloudy",
+    "Rain": "Rain",
+    "Storm": "Storm",
+    "Snow": "Snow",
+    "Foggy": "Foggy",
 
     // New Weather States
     "Overcast": "Overcast",
@@ -45,6 +52,14 @@ export const general = {
     "Misty": "Misty",
     "Drizzle": "Drizzle",
     "Downpour": "Downpour",
+    "Turn": "Turn",
+    "Day": "Day",
+    "Time": "Time",
+    "Weather": "Weather",
+    "Morning": "Morning",
+    "Afternoon": "Afternoon",
+    "Evening": "Evening",
+    "Night": "Night",
   },
   ru: {
     // General
@@ -60,6 +75,7 @@ export const general = {
     "Credits": "Кредиты",
     "Wasteland Coins": "Монеты пустоши",
     "Dollars": "Доллары",
+    "Rubles": "Рубли",
     "DEFEATED": "ПОВЕРЖЕН",
     "The Book of Eternity": "Книга Вечности",
     "Invalid save file format.": "Неверный формат файла сохранения.",
@@ -75,7 +91,12 @@ export const general = {
     "history_manipulation_rejection": "Система: Мастер Игры обнаружил значительную попытку манипулировать или противоречить установленной истории игры и отклонил последнее действие для сохранения целостности игры.",
     "Random": "Случайная",
     "serverTooBusy": "Сервер слишком занят. Было сделано 5 безуспешных попыток. Пожалуйста, попробуйте позже.",
-
+    "Clear": "Ясно",
+    "Cloudy": "Облачно",
+    "Rain": "Дождь",
+    "Storm": "Шторм",
+    "Snow": "Снег",
+    "Foggy": "Туманно",
 
     // New Weather States
     "Overcast": "Пасмурно",
@@ -92,5 +113,13 @@ export const general = {
     "Misty": "Дымка",
     "Drizzle": "Морось",
     "Downpour": "Ливень",
+    "Turn": "Ход",
+    "Day": "День",
+    "Time": "Время",
+    "Weather": "Погода",
+    "Morning": "Утро",
+    "Afternoon": "День",
+    "Evening": "Вечер",
+    "Night": "Ночь",
   }
 };

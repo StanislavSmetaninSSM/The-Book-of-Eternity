@@ -1,5 +1,6 @@
 
 
+
 import { common } from './ui/common';
 import { details } from './ui/details';
 import { item } from './ui/item';
@@ -10,6 +11,7 @@ import { npc } from './ui/npc';
 import { location } from './ui/location';
 import { status } from './ui/status';
 import { about } from './ui/about';
+import { help } from './ui/help';
 
 export const ui = {
   en: {
@@ -23,6 +25,7 @@ export const ui = {
     ...location.en,
     ...status.en,
     ...about.en,
+    ...help.en,
   },
   ru: {
     ...common.ru,
@@ -35,5 +38,6 @@ export const ui = {
     ...location.ru,
     ...status.ru,
     ...about.ru,
+    ...help.ru,
   }
 };

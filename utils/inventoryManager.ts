@@ -1,43 +1,59 @@
-
 import { GameState, Item, PlayerCharacter } from '../types';
 
+const generateId = (prefix: string) => `${prefix}-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+
 export const equipItem = (itemToEquip: Item, slot: string, currentState: GameState): GameState => {
+    if (itemToEquip.durability === '0%') {
+        console.warn("Attempted to equip a broken item.");
+        return currentState;
+    }
+
     const newState = JSON.parse(JSON.stringify(currentState));
     const pc = newState.playerCharacter as PlayerCharacter;
     const inventory = pc.inventory as Item[];
 
-    const slotsToClear = new Set<string>();
-
-    if (itemToEquip.requiresTwoHands) {
-        slotsToClear.add('MainHand');
-        slotsToClear.add('OffHand');
+    // --- UNEQUIP LOGIC ---
+    // If equipping a two-hander, clear both hand slots regardless of target slot.
+    if (itemToEquip.requiresTwoHands && (slot === 'MainHand' || slot === 'OffHand')) {
+        pc.equippedItems.MainHand = null;
+        pc.equippedItems.OffHand = null;
     } else {
-        slotsToClear.add(slot);
-        const mainHandId = pc.equippedItems['MainHand'];
-        if (['MainHand', 'OffHand'].includes(slot) && mainHandId && mainHandId === pc.equippedItems['OffHand']) {
-            slotsToClear.add('MainHand');
-            slotsToClear.add('OffHand');
+        // For one-handed items or other slots, only clear the target slot and handle displacing a two-hander.
+        const displacedItemId = pc.equippedItems[slot];
+        if (displacedItemId) {
+            const displacedItem = inventory.find(i => i.existedId === displacedItemId);
+            if (displacedItem && displacedItem.requiresTwoHands) {
+                pc.equippedItems.MainHand = null;
+                pc.equippedItems.OffHand = null;
+            } else {
+                pc.equippedItems[slot] = null;
+            }
+        }
+
+        if ((slot === 'MainHand' || slot === 'OffHand')) {
+            const otherHand = slot === 'MainHand' ? 'OffHand' : 'MainHand';
+            const otherHandItemId = pc.equippedItems[otherHand];
+            if (otherHandItemId) { // Check if other hand is occupied
+                const otherHandItem = inventory.find(i => i.existedId === otherHandItemId);
+                // If the other hand has a two-hander, we must unequip it to make room for this new item.
+                if (otherHandItem && otherHandItem.requiresTwoHands) {
+                    pc.equippedItems.MainHand = null;
+                    pc.equippedItems.OffHand = null;
+                }
+            }
         }
     }
 
-    slotsToClear.forEach(slotToClear => {
-        const currentlyEquippedId = pc.equippedItems[slotToClear];
-        if (currentlyEquippedId) {
-            const unequippedItem = inventory.find(i => i.existedId === currentlyEquippedId);
-            if (unequippedItem) {
-                unequippedItem.contentsPath = null;
-            }
-            pc.equippedItems[slotToClear] = null;
-        }
-    });
 
-    if (itemToEquip.requiresTwoHands) {
-        pc.equippedItems['MainHand'] = itemToEquip.existedId;
-        pc.equippedItems['OffHand'] = itemToEquip.existedId;
+    // --- EQUIP LOGIC ---
+    if (itemToEquip.requiresTwoHands && (slot === 'MainHand' || slot === 'OffHand')) {
+        pc.equippedItems.MainHand = itemToEquip.existedId;
+        pc.equippedItems.OffHand = itemToEquip.existedId;
     } else {
         pc.equippedItems[slot] = itemToEquip.existedId;
     }
 
+    // --- POST-EQUIP CLEANUP ---
     const equippedItemInInventory = inventory.find(i => i.existedId === itemToEquip.existedId);
     if (equippedItemInInventory) {
         equippedItemInInventory.contentsPath = null;
@@ -177,3 +193,58 @@ export function recalculateAllWeights(pc: PlayerCharacter): PlayerCharacter {
     
     return newPc;
 }
+
+export const splitItemStack = (itemToSplit: Item, splitAmount: number, currentState: GameState): GameState => {
+    const newState = JSON.parse(JSON.stringify(currentState));
+    const pc = newState.playerCharacter as PlayerCharacter;
+
+    const originalItem = pc.inventory.find(i => i.existedId === itemToSplit.existedId);
+    if (!originalItem || originalItem.count <= splitAmount || splitAmount <= 0) {
+        return currentState; // Invalid split
+    }
+
+    // Create the new stack
+    const newItem: Item = JSON.parse(JSON.stringify(originalItem));
+    newItem.existedId = generateId('item');
+    newItem.count = splitAmount;
+    newItem.contentsPath = null; // New stacks appear at the root
+
+    // If the item has resources, the new stack is assumed to be of "full" items.
+    if (newItem.resource !== undefined && newItem.maximumResource !== undefined) {
+        newItem.resource = newItem.maximumResource;
+    }
+    pc.inventory.push(newItem);
+
+    // Update the original stack
+    originalItem.count -= splitAmount;
+
+    return newState;
+};
+
+export const mergeItemStacks = (sourceItem: Item, targetItem: Item, currentState: GameState): GameState => {
+    const newState = JSON.parse(JSON.stringify(currentState));
+    const pc = newState.playerCharacter as PlayerCharacter;
+
+    const sourceInInventory = pc.inventory.find(i => i.existedId === sourceItem.existedId);
+    const targetInInventory = pc.inventory.find(i => i.existedId === targetItem.existedId);
+
+    if (!sourceInInventory || !targetInInventory || sourceInInventory.existedId === targetInInventory.existedId) {
+        return currentState;
+    }
+
+    // Merge condition check
+    const canMerge = sourceInInventory.name === targetInInventory.name &&
+        (sourceInInventory.resource === undefined || 
+            (sourceInInventory.resource === sourceInInventory.maximumResource && targetInInventory.resource === targetInInventory.maximumResource)
+        );
+
+    if (!canMerge) {
+        return currentState; // Cannot merge
+    }
+
+    // Perform merge
+    targetInInventory.count += sourceInInventory.count;
+    pc.inventory = pc.inventory.filter(i => i.existedId !== sourceInInventory.existedId);
+
+    return newState;
+};

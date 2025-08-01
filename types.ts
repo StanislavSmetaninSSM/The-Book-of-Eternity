@@ -80,8 +80,10 @@ export interface GameSettings {
   adultMode: boolean;
   geminiApiKey?: string;
   openRouterApiKey?: string;
+  youtubeApiKey?: string;
   allowHistoryManipulation: boolean;
   correctionModelName?: string;
+  hardMode?: boolean;
 }
 
 export interface RecipeMaterial {
@@ -94,7 +96,7 @@ export interface Recipe {
     recipeName: string;
     description: string;
     craftedItemName: string;
-    requiredKnowledgeSkill: {
+    requiredKnowledgeSkill?: {
         skillName: string;
         requiredMasteryLevel: number;
     };
@@ -195,6 +197,16 @@ export interface SkillMastery {
   maxMasteryLevel: number;
 }
 
+export interface StructuredBonus {
+  description: string;
+  bonusType: 'Characteristic' | 'ActionCheck' | 'Utility' | 'Other';
+  target: string;
+  valueType: 'Flat' | 'Percentage' | 'String' | 'Boolean';
+  value: number | string | boolean;
+  application: 'Permanent' | 'Conditional';
+  condition: string | null;
+}
+
 export interface Item {
   existedId: string | null;
   name: string;
@@ -208,6 +220,7 @@ export interface Item {
   weight: number;
   volume: number;
   bonuses: string[];
+  structuredBonuses?: StructuredBonus[];
   customProperties?: CustomProperty[];
   contentsPath: string[] | null;
   isContainer: boolean;
@@ -333,6 +346,7 @@ export interface NPC {
   appearanceDescription?: string;
   history?: string;
   level?: number;
+  progressionType?: 'Companion' | 'PlotDriven' | 'Static';
   relationshipLevel?: number;
   attitude?: string;
   characteristics?: Characteristics;
@@ -476,8 +490,8 @@ export interface CustomState {
     currentValue: number;
     minValue: number;
     maxValue: number;
-    description: string;
-    progressionRule: {
+    description?: string;
+    progressionRule?: {
         changePerTurn: number;
         description: string;
     };
@@ -506,7 +520,7 @@ export interface GameResponse {
   passiveSkillChanges: Partial<PassiveSkill>[] | null;
   removePassiveSkills: string[] | null;
   NPCActiveSkillChanges: any[] | null;
-  NPCPassiveSkillChanges: any[] | null;
+  NPCPassiveSkillChanges?: any[] | null;
   NPCSkillMasteryChanges?: any[] | null;
   NPCPassiveSkillMasteryChanges?: any[] | null;
   enemiesData: EnemyCombatObject[] | null;
@@ -570,6 +584,15 @@ export interface PlayerStatus {
     healthPercentage: string;
     energyPercentage: string;
     activeConditions: string[];
+}
+
+export interface DBSaveSlotInfo {
+  slotId: number;
+  timestamp: string;
+  playerName: string;
+  playerLevel: number;
+  locationName: string;
+  turnNumber: number;
 }
 
 export interface SaveFile {

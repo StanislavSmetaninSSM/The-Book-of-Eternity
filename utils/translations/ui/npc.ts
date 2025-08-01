@@ -32,6 +32,10 @@ export const npc = {
     "Read Full Journal": "Read Full Journal",
     "Full Journal: {name}": "Full Journal: {name}",
     "Entry": "Entry",
+    "Progression Type": "Progression Type",
+    "Companion": "Companion",
+    "PlotDriven": "Plot-Driven",
+    "Static": "Static",
 
 
     // NPC Log
@@ -46,6 +50,17 @@ export const npc = {
     "Friendly": "Friendly",
     "Loyal": "Loyal",
     "Devoted": "Devoted",
+
+    // Alignments
+    "Lawful Good": "Lawful Good",
+    "Neutral Good": "Neutral Good",
+    "Chaotic Good": "Chaotic Good",
+    "Lawful Neutral": "Lawful Neutral",
+    "True Neutral": "True Neutral",
+    "Chaotic Neutral": "Chaotic Neutral",
+    "Lawful Evil": "Lawful Evil",
+    "Neutral Evil": "Neutral Evil",
+    "Chaotic Evil": "Chaotic Evil",
   },
   ru: {
     // NPC Details
@@ -79,6 +94,10 @@ export const npc = {
     "Read Full Journal": "Читать полный журнал",
     "Full Journal: {name}": "Полный журнал: {name}",
     "Entry": "Запись",
+    "Progression Type": "Тип прогрессии",
+    "Companion": "Компаньон",
+    "PlotDriven": "Сюжетный",
+    "Static": "Статичный",
 
     // NPC Log
     "Encountered NPCs": "Встреченные NPC",
@@ -92,5 +111,16 @@ export const npc = {
     "Friendly": "Дружелюбное",
     "Loyal": "Верное",
     "Devoted": "Преданное",
+    
+    // Alignments
+    "Lawful Good": "Законопослушно-добрый",
+    "Neutral Good": "Нейтрально-добрый",
+    "Chaotic Good": "Хаотично-добрый",
+    "Lawful Neutral": "Законопослушно-нейтральный",
+    "True Neutral": "Истинно-нейтральный",
+    "Chaotic Neutral": "Хаотично-нейтральный",
+    "Lawful Evil": "Законопослушно-злой",
+    "Neutral Evil": "Нейтрально-злой",
+    "Chaotic Evil": "Хаотично-злой",
   }
 };

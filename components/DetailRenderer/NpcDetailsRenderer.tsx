@@ -14,7 +14,7 @@ import {
     UserIcon, IdentificationIcon, TagIcon, CalendarIcon, GlobeAltIcon, UsersIcon, HeartIcon,
     StarIcon, BookOpenIcon, SparklesIcon, ShieldCheckIcon, ArchiveBoxIcon, DocumentTextIcon,
     CogIcon, TrashIcon, ArchiveBoxXMarkIcon, BoltIcon, SunIcon, CloudIcon, ShieldExclamationIcon, KeyIcon,
-    ClockIcon
+    ClockIcon, ArrowPathIcon
 } from '@heroicons/react/24/outline';
 
 interface NpcDetailsProps extends Omit<DetailRendererProps, 'data'> {
@@ -69,6 +69,7 @@ const NpcDetailsRenderer: React.FC<NpcDetailsProps> = ({ npc, onOpenImageModal, 
                 {npc.race && npc.class && <DetailRow label={t("Race & Class")} value={`${t(npc.race as any)} ${t(npc.class as any)}`} icon={TagIcon} />}
                 {npc.age && <DetailRow label={t("Age")} value={npc.age} icon={CalendarIcon} />}
                 {npc.level && <DetailRow label={t("Level")} value={npc.level} icon={StarIcon} />}
+                {npc.progressionType && <DetailRow label={t("Progression Type")} value={t(npc.progressionType)} icon={ArrowPathIcon} />}
                 {npc.rarity && <DetailRow label={t("Rarity")} value={t(npc.rarity as any)} icon={TagIcon} />}
                 {npc.worldview && <DetailRow label={t("Worldview")} value={t(npc.worldview as any)} icon={GlobeAltIcon} />}
                 {npc.attitude && <DetailRow label={t("Attitude")} value={t(npc.attitude as any)} icon={UsersIcon} />}

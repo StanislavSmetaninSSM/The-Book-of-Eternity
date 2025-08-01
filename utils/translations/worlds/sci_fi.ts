@@ -2,6 +2,7 @@ export const sciFiWorld = {
   name: "Sci-Fi",
   description: "Galactic empires, cybernetics, and alien worlds. The future is now.",
   currencyName: "Credits",
+  currencyOptions: [],
   races: {
     Human: { description: "Adaptable colonists, skilled in diplomacy. +2 Trade, +2 Persuasion, +1 Intelligence.", bonuses: { trade: 2, persuasion: 2, intelligence: 1 } },
     Cyborg: { description: "Enhanced by technology, a blend of flesh and steel. +3 Strength, +2 Intelligence.", bonuses: { strength: 3, intelligence: 2 } },

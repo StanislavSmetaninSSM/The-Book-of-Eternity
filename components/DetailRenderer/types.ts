@@ -1,5 +1,4 @@
-
-import { Item, Quest, NPC, Location, PlayerCharacter, Faction } from '../../types';
+import { Item, Quest, NPC, Location, PlayerCharacter, Faction, GameSettings } from '../../types';
 
 export interface DetailRendererProps {
     data: any;
@@ -21,4 +20,5 @@ export interface DetailRendererProps {
     onEditLocationData: (locationId: string, field: keyof Location, value: any) => void;
     onEditPlayerData: (field: keyof PlayerCharacter, value: any) => void;
     encounteredFactions?: Faction[];
+    gameSettings: GameSettings | null;
 }

@@ -1,7 +1,4 @@
 
-
-
-
 import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import ChatWindow from './components/ChatWindow';
 import InputBar from './components/InputBar';
@@ -20,6 +17,7 @@ import ConfirmationModal from './components/ConfirmationModal';
 import { useLocalization } from './context/LocalizationContext';
 import { gameData } from './utils/localizationGameData';
 import AboutContent from './components/AboutContent';
+import MusicPlayer from './components/MusicPlayer';
 
 const CHARACTERISTICS_LIST = ['strength', 'dexterity', 'constitution', 'intelligence', 'wisdom', 'faith', 'attractiveness', 'trade', 'persuasion', 'perception', 'luck', 'speed'];
 
@@ -43,6 +41,8 @@ export default function App(): React.ReactNode {
     unequipItem, 
     dropItem, 
     moveItem,
+    splitItemStack,
+    mergeItemStacks,
     disassembleItem,
     craftItem,
     moveFromStashToInventory,
@@ -66,6 +66,8 @@ export default function App(): React.ReactNode {
     worldState,
     gameSettings,
     updateGameSettings,
+    superInstructions,
+    updateSuperInstructions,
     turnNumber,
     editChatMessage,
     editNpcData,
@@ -73,6 +75,17 @@ export default function App(): React.ReactNode {
     editItemData,
     editLocationData,
     editPlayerData,
+    saveGameToSlot,
+    loadGameFromSlot,
+    deleteGameSlot,
+    dbSaveSlots,
+    refreshDbSaveSlots,
+    musicVideoIds,
+    isMusicLoading,
+    isMusicPlayerVisible,
+    handlePrimaryMusicClick,
+    fetchMusicSuggestion,
+    clearMusic,
   } = useGameLogic({ language, setLanguage });
   const [hasStarted, setHasStarted] = useState(false);
   const [isInventoryOpen, setIsInventoryOpen] = useState(false);
@@ -145,12 +158,21 @@ export default function App(): React.ReactNode {
     }
   };
 
-  const handleLoadAutosave = () => {
-    const success = loadAutosave();
+  const handleLoadAutosave = async () => {
+    const success = await loadAutosave();
     if (success) {
       setHasStarted(true);
     } else {
       alert(t("Failed to load autosave data. It may be corrupted."));
+    }
+  };
+
+  const handleLoadGameFromSlot = async (slotId: number) => {
+    const success = await loadGameFromSlot(slotId);
+    if (success) {
+        setHasStarted(true);
+    } else {
+        alert(t("Failed to load game from slot. It might be corrupted."));
     }
   };
 
@@ -209,6 +231,8 @@ export default function App(): React.ReactNode {
       onLoadGame={handleLoadGame}
       onLoadAutosave={handleLoadAutosave}
       autosaveTimestamp={autosaveTimestamp}
+      onLoadFromSlot={handleLoadGameFromSlot}
+      dbSaveSlots={dbSaveSlots}
     />;
   }
   
@@ -249,6 +273,10 @@ export default function App(): React.ReactNode {
               history={gameHistory}
               suggestedActions={suggestedActions}
               playerCharacter={gameState?.playerCharacter}
+              gameSettings={gameSettings}
+              onGetMusicSuggestion={handlePrimaryMusicClick}
+              isMusicLoading={isMusicLoading}
+              isMusicPlayerVisible={isMusicPlayerVisible}
             />
           </main>
         </div>
@@ -286,6 +314,8 @@ export default function App(): React.ReactNode {
               onToggleSidebar={toggleSidebar}
               gameSettings={gameSettings}
               updateGameSettings={updateGameSettings}
+              superInstructions={superInstructions}
+              updateSuperInstructions={updateSuperInstructions}
               isLoading={isLoading}
               setAutoCombatSkill={setAutoCombatSkill}
               lastUpdatedQuestId={gameState?.lastUpdatedQuestId}
@@ -295,6 +325,11 @@ export default function App(): React.ReactNode {
               dropItemFromStash={dropItemFromStash}
               turnNumber={turnNumber}
               editLocationData={editLocationData}
+              saveGameToSlot={saveGameToSlot}
+              loadGameFromSlot={handleLoadGameFromSlot}
+              deleteGameSlot={deleteGameSlot}
+              dbSaveSlots={dbSaveSlots}
+              refreshDbSaveSlots={refreshDbSaveSlots}
             />
           )}
         </aside>
@@ -316,6 +351,8 @@ export default function App(): React.ReactNode {
           onUnequip={unequipItem}
           onDropItem={dropItem}
           onMoveItem={moveItem}
+          onSplitItem={splitItemStack}
+          onMergeItems={mergeItemStacks}
           onOpenDetailModal={handleOpenDetailModal}
           onOpenImageModal={handleShowImageModal}
         />
@@ -359,6 +396,7 @@ export default function App(): React.ReactNode {
             onEditLocationData={editLocationData}
             onEditPlayerData={editPlayerData}
             encounteredFactions={gameState?.encounteredFactions}
+            gameSettings={gameSettings}
             />}
       </Modal>
 
@@ -383,6 +421,13 @@ export default function App(): React.ReactNode {
           </div>
         </Modal>
       )}
+       {isMusicPlayerVisible && musicVideoIds && musicVideoIds.length > 0 && (
+        <MusicPlayer 
+          videoIds={musicVideoIds} 
+          onClear={clearMusic}
+          onRegenerate={fetchMusicSuggestion}
+        />
+      )}
     </>
   );
 }
@@ -390,8 +435,10 @@ export default function App(): React.ReactNode {
 interface StartScreenProps {
   onStart: (creationData: any) => void;
   onLoadGame: () => Promise<void>;
-  onLoadAutosave: () => void;
+  onLoadAutosave: () => Promise<void>;
   autosaveTimestamp: string | null;
+  onLoadFromSlot: (slotId: number) => Promise<void>;
+  dbSaveSlots: any[];
 }
 
 const initialFormData = {
@@ -417,7 +464,7 @@ const initialFormData = {
   startTime: '08:00',
   weather: 'Random',
   aiProvider: 'gemini',
-  modelName: 'gemini-2.5-flash',
+  modelName: 'gemini-2.5-pro',
   correctionModelName: '',
   isCustomModel: false,
   customModelName: '',
@@ -429,6 +476,9 @@ const initialFormData = {
   geminiApiKey: '',
   openRouterApiKey: '',
   allowHistoryManipulation: false,
+  currencyName: 'Gold',
+  customCurrencyValue: '',
+  hardMode: false,
 };
 
 const formatTimestamp = (timestamp: string | null): string => {
@@ -444,7 +494,16 @@ const formatTimestamp = (timestamp: string | null): string => {
     }
 };
 
-function StartScreen({ onStart, onLoadGame, onLoadAutosave, autosaveTimestamp }: StartScreenProps) {
+interface WorldData {
+  name: string;
+  description: string;
+  currencyName: string;
+  currencyOptions?: string[];
+  races: Record<string, { description: string; bonuses: Record<string, number> }>;
+  classes: Record<string, { description: string; bonuses: Record<string, number> }>;
+}
+
+function StartScreen({ onStart, onLoadGame, onLoadAutosave, autosaveTimestamp, onLoadFromSlot, dbSaveSlots }: StartScreenProps) {
   const [formData, setFormData] = useState(initialFormData);
   const [isAdultConfirmOpen, setIsAdultConfirmOpen] = useState(false);
   const [isNonMagicConfirmOpen, setIsNonMagicConfirmOpen] = useState(false);
@@ -513,7 +572,7 @@ function StartScreen({ onStart, onLoadGame, onLoadAutosave, autosaveTimestamp }:
     });
   };
 
-  const currentWorld = gameData[universe as keyof typeof gameData];
+  const currentWorld = gameData[universe as keyof typeof gameData] as WorldData;
   const raceOptions = useMemo(() => Object.keys(currentWorld.races), [universe]);
   const classOptions = useMemo(() => Object.keys(currentWorld.classes), [universe]);
 
@@ -526,13 +585,19 @@ function StartScreen({ onStart, onLoadGame, onLoadAutosave, autosaveTimestamp }:
       const newState: typeof initialFormData = { ...prev, [name]: finalValue as any };
 
       if (name === 'universe') {
-          const newWorld = gameData[value as keyof typeof gameData];
+          const newWorld = gameData[value as keyof typeof gameData] as WorldData;
           newState.race = Object.keys(newWorld.races)[0];
           newState.charClass = Object.keys(newWorld.classes)[0];
           newState.isCustomRace = false;
           newState.isCustomClass = false;
           newState.customClassAttributes = CHARACTERISTICS_LIST.reduce((acc, char) => ({ ...acc, [char]: 0 }), {}),
           newState.customClassAttributePoints = 3;
+          if (newWorld.currencyOptions && newWorld.currencyOptions.length > 0) {
+              newState.currencyName = newWorld.currencyOptions[0];
+          } else {
+              newState.currencyName = newWorld.currencyName || 'Gold';
+          }
+          newState.customCurrencyValue = '';
       }
 
       if (name === 'race' && value === 'CUSTOM') {
@@ -565,7 +630,7 @@ function StartScreen({ onStart, onLoadGame, onLoadAutosave, autosaveTimestamp }:
     setFormData(prev => ({
         ...prev,
         aiProvider: provider,
-        modelName: provider === 'gemini' ? 'gemini-2.5-flash' : prev.openRouterModelName,
+        modelName: provider === 'gemini' ? 'gemini-2.5-pro' : prev.openRouterModelName,
         isCustomModel: provider === 'gemini' ? prev.isCustomModel : false,
     }));
   };
@@ -671,6 +736,15 @@ function StartScreen({ onStart, onLoadGame, onLoadAutosave, autosaveTimestamp }:
             return;
         }
 
+        if (finalData.currencyName === 'CUSTOM') {
+          if (!finalData.customCurrencyValue.trim()) {
+              alert(t("Enter currency name..."));
+              return;
+          }
+          finalData.currencyName = finalData.customCurrencyValue.trim();
+        }
+        delete (finalData as any).customCurrencyValue;
+
         if (finalData.aiProvider === 'gemini') {
             if (finalData.isCustomModel && !finalData.customModelName.trim()) {
                 alert(t("Please enter a custom model name."));
@@ -740,6 +814,41 @@ function StartScreen({ onStart, onLoadGame, onLoadAutosave, autosaveTimestamp }:
             </div>
           </div>
           
+           <div>
+              <label htmlFor="currencyName" className="block text-sm font-medium text-gray-300 mb-2">{t("Currency Name")}</label>
+              <div className="flex gap-2">
+                <select 
+                  id="currencyName" 
+                  name="currencyName" 
+                  onChange={handleInputChange} 
+                  value={formData.currencyName}
+                  className="bg-gray-700/50 border border-gray-600 rounded-md p-3 text-gray-200 focus:ring-2 focus:ring-cyan-500 transition flex-grow"
+                >
+                  {currentWorld.currencyOptions && currentWorld.currencyOptions.length > 0 ? (
+                    currentWorld.currencyOptions.map(currency => (
+                      <option key={currency} value={currency}>{t(currency)}</option>
+                    ))
+                  ) : (
+                    <option value={currentWorld.currencyName || 'Gold'}>{t(currentWorld.currencyName || 'Gold')}</option>
+                  )}
+                  <option value="CUSTOM">{t("Custom...")}</option>
+                </select>
+                {formData.currencyName === 'CUSTOM' && (
+                  <input 
+                    id="customCurrencyValue" 
+                    name="customCurrencyValue" 
+                    type="text" 
+                    onChange={handleInputChange} 
+                    value={formData.customCurrencyValue}
+                    className="bg-gray-700/50 border border-gray-600 rounded-md p-3 text-gray-200 focus:ring-2 focus:ring-cyan-500 transition flex-grow"
+                    placeholder={t("Enter currency name...")}
+                    required 
+                    autoFocus
+                  />
+                )}
+              </div>
+           </div>
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
               <label htmlFor="race" className="block text-sm font-medium text-gray-300 mb-2">{t("Race")}</label>
@@ -845,40 +954,61 @@ function StartScreen({ onStart, onLoadGame, onLoadAutosave, autosaveTimestamp }:
             <label htmlFor="superInstructions" className="block text-sm font-medium text-gray-300 mb-2">{t("Your own rules")}</label>
             <textarea id="superInstructions" name="superInstructions" onChange={handleInputChange} value={formData.superInstructions} className="w-full bg-gray-700/50 border border-gray-600 rounded-md p-3 text-gray-200 focus:ring-2 focus:ring-cyan-500 transition" placeholder={t("Add any special rules or 'super-instructions' for the Game Master to follow. This is optional.")} rows={3} />
           </div>
-            <div className="flex items-center justify-between p-3 bg-gray-900/30 rounded-lg border border-cyan-500/20">
-              <div>
-                <label className="font-medium text-gray-300">{t("Allow History Manipulation")}</label>
-                <p className="text-xs text-gray-400">{t("Enables god mode, allowing editing of history and game state.")}</p>
-              </div>
-               <label htmlFor="allowHistoryManipulation" className="relative inline-flex items-center cursor-pointer">
-                <input
-                  type="checkbox"
-                  id="allowHistoryManipulation"
-                  name="allowHistoryManipulation"
-                  className="sr-only peer"
-                  checked={formData.allowHistoryManipulation}
-                  onChange={handleInputChange}
-                />
-                <div className="w-11 h-6 bg-gray-600 rounded-full peer peer-focus-within:ring-2 peer-focus-within:ring-cyan-500 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-cyan-600"></div>
-              </label>
-            </div>
-           <div className="flex items-center justify-between p-3 bg-gray-900/30 rounded-lg border border-cyan-500/20">
-              <div>
-                <label className="font-medium text-gray-300">{t("Non-Magic Mode")}</label>
-                <p className="text-xs text-gray-400">{t("Disables all magical elements for a realistic playthrough.")}</p>
-              </div>
-              <div onClick={handleNonMagicModeClick} className="relative inline-flex items-center cursor-pointer">
-                <input
-                  type="checkbox"
-                  id="nonMagicMode"
-                  name="nonMagicMode"
-                  className="sr-only peer"
-                  checked={formData.nonMagicMode}
-                  readOnly
-                  tabIndex={-1}
-                />
-                <div className="w-11 h-6 bg-gray-600 rounded-full peer peer-focus-within:ring-2 peer-focus-within:ring-cyan-500 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-cyan-600"></div>
-              </div>
+            
+            <div className="p-4 bg-gray-900/40 rounded-lg border border-cyan-500/20 space-y-4">
+               <h3 className="text-lg font-semibold text-cyan-400">{t("Game Rules")}</h3>
+                <div className="flex items-center justify-between p-3 bg-gray-900/30 rounded-lg border border-cyan-500/20">
+                  <div>
+                    <label className="font-medium text-gray-300">{t("Hard Mode")}</label>
+                    <p className="text-xs text-gray-400">{t("Increases enemy health and action difficulty for a greater challenge and enhanced rewards.")}</p>
+                  </div>
+                   <label htmlFor="hardMode" className="relative inline-flex items-center cursor-pointer">
+                    <input
+                      type="checkbox"
+                      id="hardMode"
+                      name="hardMode"
+                      className="sr-only peer"
+                      checked={formData.hardMode}
+                      onChange={handleInputChange}
+                    />
+                    <div className="w-11 h-6 bg-gray-600 rounded-full peer peer-focus-within:ring-2 peer-focus-within:ring-cyan-500 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-cyan-600"></div>
+                  </label>
+                </div>
+                <div className="flex items-center justify-between p-3 bg-gray-900/30 rounded-lg border border-cyan-500/20">
+                  <div>
+                    <label className="font-medium text-gray-300">{t("Allow History Manipulation")}</label>
+                    <p className="text-xs text-gray-400">{t("Enables god mode, allowing editing of history and game state.")}</p>
+                  </div>
+                   <label htmlFor="allowHistoryManipulation" className="relative inline-flex items-center cursor-pointer">
+                    <input
+                      type="checkbox"
+                      id="allowHistoryManipulation"
+                      name="allowHistoryManipulation"
+                      className="sr-only peer"
+                      checked={formData.allowHistoryManipulation}
+                      onChange={handleInputChange}
+                    />
+                    <div className="w-11 h-6 bg-gray-600 rounded-full peer peer-focus-within:ring-2 peer-focus-within:ring-cyan-500 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-cyan-600"></div>
+                  </label>
+                </div>
+               <div className="flex items-center justify-between p-3 bg-gray-900/30 rounded-lg border border-cyan-500/20">
+                  <div>
+                    <label className="font-medium text-gray-300">{t("Non-Magic Mode")}</label>
+                    <p className="text-xs text-gray-400">{t("Disables all magical elements for a realistic playthrough.")}</p>
+                  </div>
+                  <div onClick={handleNonMagicModeClick} className="relative inline-flex items-center cursor-pointer">
+                    <input
+                      type="checkbox"
+                      id="nonMagicMode"
+                      name="nonMagicMode"
+                      className="sr-only peer"
+                      checked={formData.nonMagicMode}
+                      readOnly
+                      tabIndex={-1}
+                    />
+                    <div className="w-11 h-6 bg-gray-600 rounded-full peer peer-focus-within:ring-2 peer-focus-within:ring-cyan-500 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-cyan-600"></div>
+                  </div>
+                </div>
             </div>
           
             <div className="p-4 bg-gray-900/40 rounded-lg border border-cyan-500/20 space-y-4">
@@ -1057,7 +1187,7 @@ function StartScreen({ onStart, onLoadGame, onLoadAutosave, autosaveTimestamp }:
                          <div>
                             <label className="font-medium text-gray-300 flex items-center gap-2">
                                 {t("Use Flash for Corrections")}
-                                <span className="text-gray-400 hover:text-white cursor-pointer" title={t("Use Flash for Corrections Tooltip")}>
+                                <span className="text-gray-400 hover:text-white cursor-pointer" title={t("Correction Model Tooltip")}>
                                     <InformationCircleIcon className="w-4 h-4" />
                                 </span>
                             </label>
@@ -1135,6 +1265,36 @@ function StartScreen({ onStart, onLoadGame, onLoadAutosave, autosaveTimestamp }:
             >
               {t("Load Configuration")}
             </button>
+          </div>
+        </div>
+
+        <div className="mt-6 border-t border-gray-700/50 pt-6">
+          <p className="text-gray-400 text-sm mb-4 text-center">{t("Load from Database")}</p>
+          <div className="space-y-3 max-h-64 overflow-y-auto pr-2">
+            {dbSaveSlots && dbSaveSlots.length > 0 ? (
+              dbSaveSlots.map(slot => (
+                <button
+                  key={slot.slotId}
+                  type="button"
+                  onClick={() => onLoadFromSlot(slot.slotId)}
+                  className="w-full text-left bg-gray-700/50 hover:bg-gray-700 text-gray-200 p-3 rounded-md transition-all border border-gray-600 flex items-center gap-4 group"
+                >
+                  <div className="flex-shrink-0 bg-cyan-900/50 group-hover:bg-cyan-800/70 text-cyan-300 font-bold rounded-md w-12 h-12 flex flex-col items-center justify-center text-center transition-colors">
+                    <span className="text-xs">{t("Slot")}</span>
+                    <span className="text-lg">{slot.slotId}</span>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-semibold text-white truncate group-hover:text-cyan-300 transition-colors">{slot.playerName}</p>
+                    <p className="text-sm text-gray-400 truncate">{t("Lvl {level}", { level: slot.playerLevel })} - {slot.locationName}</p>
+                    <p className="text-xs text-gray-500 mt-1">{t("Turn")} {slot.turnNumber} - {new Date(slot.timestamp).toLocaleString()}</p>
+                  </div>
+                </button>
+              ))
+            ) : (
+              <div className="text-center text-gray-500 p-4 bg-gray-900/20 rounded-lg">
+                {t("No saved games in the database yet.")}
+              </div>
+            )}
           </div>
         </div>
 

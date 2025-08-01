@@ -21,6 +21,18 @@ export const skill = {
     "Shots Per Turn": "Shots Per Turn",
     "Ammo Type": "Ammo Type",
     "{duration} turns": "{duration} turns",
+    "Combat Effect": "Combat Effect",
+
+    "Effect Scaling": "Effect Scaling",
+    "Base Value/Duration": "Base Value / Duration",
+    "Bonus from {char}": "Bonus from {char}",
+    "Bonus from Level": "Bonus from Level",
+    "Bonus from Mastery": "Bonus from Mastery",
+    "Total Multiplier": "Total Multiplier",
+    "Final Scaled Value": "Final Scaled Value",
+    "Final Scaled Duration": "Final Scaled Duration",
+    "Final Scaled Chance": "Final Scaled Chance",
+    "PassiveMasteryNote": "Note: For passive skills, the bonus from the current mastery level is already included in the skill's description and its effects.",
 
     // Character Sheet - Skills
     "Active Skills": "Active Skills",
@@ -43,6 +55,11 @@ export const skill = {
     "Leadership": "Leadership",
     "Scholarship": "Scholarship",
     "Healing": "Healing",
+
+    // Units and Abbreviations
+    "EnergyUnit": "E",
+    "TurnUnit": "T",
+    "CooldownAbbr": "CD",
   },
   ru: {
     // Skill Details
@@ -65,6 +82,18 @@ export const skill = {
     "Shots Per Turn": "Выстрелов за ход",
     "Ammo Type": "Тип боеприпасов",
     "{duration} turns": "{duration} ходов",
+    "Combat Effect": "Боевой эффект",
+
+    "Effect Scaling": "Масштабирование эффекта",
+    "Base Value/Duration": "Базовое значение / Длительность",
+    "Bonus from {char}": "Бонус от {char}",
+    "Bonus from Level": "Бонус от уровня",
+    "Bonus from Mastery": "Бонус от мастерства",
+    "Total Multiplier": "Общий множитель",
+    "Final Scaled Value": "Итоговое значение",
+    "Final Scaled Duration": "Итоговая длительность",
+    "Final Scaled Chance": "Итоговый шанс",
+    "PassiveMasteryNote": "Примечание: для пассивных навыков бонус от текущего уровня мастерства уже включен в описание навыка и его эффекты.",
 
     // Character Sheet - Skills
     "Active Skills": "Активные навыки",
@@ -87,5 +116,10 @@ export const skill = {
     "Leadership": "Лидерство",
     "Scholarship": "Ученость",
     "Healing": "Исцеление",
+    
+    // Units and Abbreviations
+    "EnergyUnit": "Э",
+    "TurnUnit": "Х",
+    "CooldownAbbr": "КД",
   }
 };

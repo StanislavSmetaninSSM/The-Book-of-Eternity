@@ -4,7 +4,6 @@ import { damageTypes } from './translations/damageTypes';
 import { characteristics } from './translations/characteristics';
 import { startScreen } from './translations/startScreen';
 import { ui } from './translations/ui';
-import { help } from './translations/help';
 import { settings } from './translations/settings';
 import { fantasyLoc } from './translations/worlds/fantasy_loc';
 import { sciFiLoc } from './translations/worlds/sci_fi_loc';
@@ -19,12 +18,7 @@ export const translations: Record<string, Record<string, string>> = {
     ...characteristics.en,
     ...startScreen.en,
     ...ui.en,
-    ...help.en,
     ...settings.en,
-    ...fantasyLoc.en,
-    ...sciFiLoc.en,
-    ...postApocalypseLoc.en,
-    ...modernLoc.en,
   },
   ru: {
     ...general.ru,
@@ -33,7 +27,6 @@ export const translations: Record<string, Record<string, string>> = {
     ...characteristics.ru,
     ...startScreen.ru,
     ...ui.ru,
-    ...help.ru,
     ...settings.ru,
     ...fantasyLoc.ru,
     ...sciFiLoc.ru,
