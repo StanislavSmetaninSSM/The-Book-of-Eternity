@@ -675,8 +675,17 @@ export const getGameMasterGuideRules = (configuration) => {
                     "timeOfDay": "${worldState.timeOfDay}", // String: Current time of day. Can be 'Morning', 'Afternoon', 'Evening', 'Night'.
                     "weather": "${worldState.weather}" // String: Current weather conditions. e.g., 'Clear', 'Cloudy', 'Rain', 'Storm', 'Snow', 'Foggy'.
                 },
-                "worldStateFlags": // Object: Key-value pairs for important global plot flags or states
-                    // Example: "ancientEvilAwakened": true, "cityIsInLockdown": false
+                "worldStateFlags": // Array of Flag Objects representing the current global state of the world.
+                    /* Example:
+                    [
+                        {
+                            "flagId": "ancient_evil_awakened",
+                            "displayName": "Древнее Зло Пробудилось",
+                            "value": true,
+                            "description": "Темный властелин вернулся, угрожая всему миру."
+                        }
+                    ]
+                    */
                     ${JSON.stringify(worldStateFlags)}
                 ,
                 "gameSettings": { // Object: General game settings
@@ -793,7 +802,7 @@ export const getGameMasterGuideRules = (configuration) => {
                     ${JSON.stringify(completedQuests)}
                 ,
                 "encounteredNPCs": // Array of full NPC Objects for all NPCs met so far (structure from #19.1.2)
-                                     // Includes their stats, skills, inventory, relationshipLevel, fateCards, etc.
+                                     // Includes their stats, skills, inventory, relationshipLevel, fateCards, experience, progressionTrackers, etc.
                     ${JSON.stringify(encounteredNPCs)}
                 ,
                 "npcSkillMasteryData": // Array of objects tracking mastery for NPC active skills
@@ -1058,6 +1067,11 @@ export const getGameMasterGuideRules = (configuration) => {
                 ...
                 */
                 },
+
+                "worldStateFlags": "(array of world_state_flag_objects or null)
+                Used to report the creation of NEW global plot flags or CHANGES to existing ones. 
+                Each object in the array follows the structure defined in InstructionBlock '21.5'. 
+                If no flags were created or changed this turn, this is null or an empty array.",
 
                 "worldMapUpdates": { 
                     // (object or null) Reports additions or changes to the world map. 
@@ -3567,6 +3581,52 @@ export const getGameMasterGuideRules = (configuration) => {
                 </Content>
             </Rule>
 
+            <Rule id="5.10.A">
+                <Title>Experience and Level Progression (Unified System)</Title>
+                <Description>
+                    This section defines the unified experience point (XP) system that governs level advancement for BOTH the Player Character and all non-static NPCs.
+                </Description>
+                <Content type="ruleset">
+                    <Rule id="5.10.A.1">
+                        <Title>Core Progression Formula</Title>
+                        <Content type="rule_text">
+                            <![CDATA[
+
+                            1.  Starting Point: To advance from Level 1 to Level 2, a character must earn 100 experience points.
+
+                            2.  Scaling Requirement: The XP required to gain the next level increases by a multiplier of 1.5 from the previous requirement. 
+                            The result is always rounded down (floor).
+                                -   Formula: 'XP_for_Next_Level = floor(XP_for_Previous_Level * 1.5)'
+
+                            3.  Progression Table (Example):
+                                -   Level 1 -> 2: 100 XP
+                                -   Level 2 -> 3: floor(100 * 1.5) = 150 XP
+                                -   Level 3 -> 4: floor(150 * 1.5) = 225 XP
+                                -   Level 4 -> 5: floor(225 * 1.5) = 337 XP
+                                -   Level 5 -> 6: floor(337 * 1.5) = 505 XP
+                                ...and so on.
+
+                            ]]>
+                        </Content>
+                    </Rule>
+
+                    <Rule id="5.10.A.2">
+                        <Title>The Level-Up Process</Title>
+                        <Content type="rule_text">
+                            <![CDATA[
+
+                            When a character's 'experience' becomes equal to or greater than their 'experienceForNextLevel':
+                            1.  The character's 'level' increases by 1.
+                            2.  Their 'experience' is reduced by the 'experienceForNextLevel' value (the remainder is kept).
+                            3.  A new, higher 'experienceForNextLevel' value is calculated based on the formula in #5.10.A.1.
+                            4.  The character receives characteristic points and potential skill advancements as per their progression rules (Player: #5.10.3, NPC: #19.8.3).
+
+                            ]]>
+                        </Content>
+                    </Rule>
+                </Content>
+            </Rule>
+
             <Rule id="5.11">
                 <Title>Item Bonus Types Overview</Title>
                 <Description>
@@ -5626,6 +5686,7 @@ export const getGameMasterGuideRules = (configuration) => {
                     When you generate an NPC, you are creating a character with a history. 
                     Their statistics MUST reflect that history and their given level. 
                     It is a CRITICAL FAILURE to generate an NPC whose statistics are illogical or exceed the possible limits for their level.
+                    This protocol is used to INITIALIZE an NPC's baseline stats; their future growth is handled by the experience point system defined in Rule #19.8.
                 </InstructionText>
                 <Content type="ruleset">
                     <Rule id="5.A.2.1">
@@ -16581,8 +16642,13 @@ export const getGameMasterGuideRules = (configuration) => {
                                 "class": "class_name_string",
                                 "appearanceDescription": "detailed_appearance_description_string",
                                 "history": "key_moments_of_history_string",
-                                "level": "integer_npc_level_optional",
+                                "level": "integer_npc_level",
+                                "experience": "integer_current_xp",
+                                "experienceForNextLevel": "integer_xp_needed_for_next_level",
                                 "progressionType": "'Companion' | 'PlotDriven' | 'Static'",
+                                "progressionTrackers": {
+                                    "lastPlayerXPValueOnSync": "integer_optional"                                    
+                                },
                                 "relationshipLevel": "integer_0_to_200",
                                 "attitude": "attitude_towards_player_string",
                                 "characteristics": {
@@ -16692,6 +16758,14 @@ export const getGameMasterGuideRules = (configuration) => {
                                 
                                 - 'Static': For minor, ambient NPCs (e.g., most shopkeepers, guards, citizens) whose progression is not relevant to the story. 
                                 They generally do not level up unless a major plot event directly transforms them.
+
+                            11.2. "experience": (integer) The NPC's current experience points within their current level. 
+                            For a newly generated NPC, this is always initialized to 0.
+
+                            11.3. "experienceForNextLevel": (integer) The total XP needed for the NPC to advance to the next level, calculated based on the formula in Rule #5.10.A.1.
+
+                            11.4. "progressionTrackers": (object) A memory-safe object used to track NPC growth without relying on long-term history.
+                                - "lastPlayerXPValueOnSync": Stores the player's total cumulative XP at the last point of interaction. Used to calculate relative XP gain for the NPC.
 
                             12. "relationshipLevel": (integer) Current relationship level with the player, from 0 (Hate) to 200 (Total Trust). 
                             Initial value is typically 50 (Neutral) unless plot dictates otherwise. 
@@ -17432,233 +17506,236 @@ export const getGameMasterGuideRules = (configuration) => {
             </Rule>
 
             <Rule id="19.8">
-                <Title>CRITICAL DIRECTIVE: NPC Progression and Leveling Protocol</Title>
+                <Title>CRITICAL DIRECTIVE: NPC Experience and Progression Protocol</Title>
                 <Description>
-                    This protocol defines the mandatory, role-based system for NPC level advancement. 
-                    The method of progression depends on the NPC's 'progressionType', ensuring that companions stay relevant, while the growth of other key characters feels organic and narratively justified.
+                    This protocol defines the mandatory, role-based system for awarding XP to NPCs, designed to function with limited memory. 
+                    It uses persistent trackers within the NPC object to calculate growth without relying on historical logs.
                 </Description>
                 <InstructionText>
                     <![CDATA[
 
-                    On every turn, you MUST check if any NPC meets the trigger conditions for their specific 'progressionType' as defined in rule #19.8.1. 
-                    If a trigger is met, you MUST calculate the levels to grant (#19.8.2) and apply the advancement (#19.8.3).
-
+                    On every turn, you MUST check if any NPC meets the trigger conditions for gaining XP.
+                    If a trigger is met, you MUST calculate the XP grant using the tracker-based methods, log the change, and check if a level-up occurs.
+                    The goal is to ensure NPCs, especially 'Companions' and key 'PlotDriven' characters, grow and evolve in a way that is both narratively logical and mechanically robust.
+                    
                     ]]>
                 </InstructionText>
                 <Content type="ruleset">
                     <Rule id="19.8.1">
-                        <Title>Triggers for NPC Level Advancement by Progression Type</Title>
-                        <Description>An NPC's level advancement is triggered ONLY by the conditions matching their 'progressionType'.</Description>
+                        <Title>Progression Trackers Explained</Title>
                         <Content type="rule_text">
                             <![CDATA[
 
-                            CRITICAL NOTE: An NPC with 'progressionType: "Static"' does not level up from these triggers.
-
-                            1. For NPCs with 'progressionType: "Companion"':                                
-                                - Fate Card Milestone (Primary): 
-                                If a Fate Card is unlocked, calculate and grant levels.
-
-                                - Player Level-Up Sync (Conditional):
-                                This trigger is checked ONLY if the player leveled up this turn AND the NPC did not already gain levels from another source (like a Fate Card).
-                                The sync occurs IF '(PlayerLevel - NPCLevel) > 2'.
-
-                            2. For NPCs with 'progressionType: "PlotDriven"' (Allies, Rivals, Villains):
-                                - Fate Card Milestone ONLY: This is the primary way these characters grow. 
-                                If their Fate Card is unlocked, they gain levels. They are NOT affected by the player's level-ups. 
-                                This ensures their power progression feels independent.
-
-                            3. Rare Trigger for ALL types (including 'Static'):
-                                - Plot-Driven Development: The GM may award levels as a direct result of a major transformative story event not covered by a Fate Card 
-                                (e.g., a villain completing a dark ritual, a guard captain receiving a battlefield promotion). 
-                                This can even change a 'Static' NPC to 'PlotDriven'.
-
+                            To function without long-term memory, each non-static NPC has a 'progressionTrackers' object:
+                            - lastPlayerXPValueOnSync: Stores the player's total cumulative XP at the last point of interaction with this NPC. 
+                            This is the cornerstone for calculating all relative XP gains. It is updated EVERY time the NPC is in a scene with the player.
+                            
                             ]]>
                         </Content>
                     </Rule>
 
                     <Rule id="19.8.2">
-                        <Title>Framework for Calculating Levels to Grant</Title>
-                        <InstructionText>
-                            When an advancement trigger occurs, you MUST calculate the number of levels to grant (from 1 to a maximum of 4) based on the following factors. 
-                            You must show this calculation in your log.
-                        </InstructionText>
+                        <Title>Sources of Experience Points for NPCs (Final Sync-Based System)</Title>
                         <Content type="rule_text">
                             <![CDATA[
 
-                            Formula: TotalLevelsToGrant = min(4, BaseLevelGrant + LevelGapBonus + SignificanceBonus)
+                            A. Experience from Joint Activity (for ANY NPC in the Player's Party):
+                            This is the primary way any NPC traveling with the player gains experience. The rate depends on their role.
 
-                            a) Base Level Grant: Every advancement milestone is significant.
-                                   
-                                   BaseLevelGrant = 1
+                            - Trigger: At the end of any turn where an NPC is in the player's active party and the player has gained XP.
+                            - Calculation:
+                                1. Get 'Player_Current_Total_XP' from 'Context.playerCharacter.experience'.
 
-                            b) Level Gap Bonus (Applies ONLY to 'Companion' type): 
-                               This helps companions catch up. For 'PlotDriven' NPCs, this bonus is always 0.
+                                2. Get 'Player_Last_XP' from 'NPC.progressionTrackers.lastPlayerXPValueOnSync'. 
+                                (If null, this is their first turn in the party; set it to 'Player_Current_Total_XP' and the grant is 0 for this turn).
+                                
+                                3. 'XP_Gained_By_Player_Since_Last_Check = Player_Current_Total_XP - Player_Last_XP'.
+                                
+                                4. Determine the XP Rate based on 'progressionType':
+                                    - If NPC is a 'Companion': 'Rate = 0.8' (80%)
+                                    - If NPC is a 'PlotDriven' ally: 'Rate = 0.3' (30%)
+                                
+                                5. 'XP_Grant = round(XP_Gained_By_Player_Since_Last_Check * Rate)'.
 
-                               If NPC.progressionType is 'Companion':
+                                6. Update Tracker: Set 'NPC.progressionTrackers.lastPlayerXPValueOnSync = Player_Current_Total_XP'.
+                            - Rationale: This single, unified mechanism ensures ANY active ally grows, but true 'Companions' grow much faster. It solves the "Grinding Gap" problem perfectly and requires no long-term memory.
 
-                                   LevelGapBonus = max(0, floor((PlayerLevel - NPCLevel) / 3))
+                            B. Fate Card Milestone (for 'Companion' and 'PlotDriven'):
 
-                               Else: LevelGapBonus = 0
+                            - Trigger: When an NPC's Fate Card is unlocked.
+                            - Calculation: Grants a percentage of the NPC's 'experienceForNextLevel' based on card rarity: 
+                            Uncommon (25%), Rare (50%), Epic (100%), Legendary/Unique (150-200%). This is self-contained.
 
-                            c) Narrative Significance Bonus: This reflects the importance of the event.
+                            C. Narrative Power Sync (for 'PlotDriven' NPCs' off-screen growth):
+                            This is the protocol that solves the "Plot Lag" problem.
 
-                               If triggered by a Fate Card or Quest, check its 'rarity':
-                                   - 'Common'/'Uncommon' event: SignificanceBonus = 0
-                                   - 'Rare' event: SignificanceBonus = +1
-                                   - 'Epic' event: SignificanceBonus = +2
-                                   - 'Legendary'/'Unique' event: SignificanceBonus = +2 to +3
+                            - Trigger: When the player re-encounters a key 'PlotDriven' NPC after a narrative separation.
+                            - Calculation:
+                                1. Get 'Player_Current_Total_XP'.
 
-                               If triggered by Player Level-Up Sync, SignificanceBonus = 0.
+                                2. Get 'Player_Last_XP' from 'NPC.progressionTrackers.lastPlayerXPValueOnSync'.
 
-                            d) Final Calculation: Sum the components and cap the result at 4.
+                                3. 'XP_Gained_By_Player_While_Apart = Player_Current_Total_XP - Player_Last_XP'.
 
+                                4. Determine Sync Rate based on NPC's narrative role: (GM Discretion)
+                                    - Major Antagonist: 80-100% (Он должен оставаться серьезной угрозой).
+                                    - Major Ally/Rival: 60-80% (Они тоже растут, но не так сфокусированно, как игрок).
+                                    - Minor Plot NPC: 20-40% (Они развиваются, но медленнее).
+
+                                5. 'XP_Grant = round(XP_Gained_By_Player_While_Apart * Sync_Rate)'.
+
+                                6. Update Tracker: Set 'NPC.progressionTrackers.lastPlayerXPValueOnSync = Player_Current_Total_XP'.
+                            - Rationale: The NPC's growth is now directly proportional to the player's. 
+                            The more powerful the player becomes, the more powerful the world's key figures become in response.
+                            
                             ]]>
                         </Content>
                     </Rule>
 
                     <Rule id="19.8.3">
                         <Title>The NPC Level-Up Process</Title>
+                        <Description>This defines the mechanical and narrative consequences that MUST be applied when an NPC's experience triggers a level-up.</Description>
                         <Content type="ruleset">
                             <Rule id="19.8.3.A">
                                 <Title>Applying Level and Characteristic Changes</Title>
                                 <Content type="rule_text">
                                     <![CDATA[
 
-                                    1.  Determine Levels: Calculate 'TotalLevelsToGrant' using the framework in #19.8.2.
+                                    When an NPC levels up (as per Rule #5.10.A.2):
 
-                                    2.  Increment Level: Increase the NPC's 'level' attribute by 'TotalLevelsToGrant'.
+                                    1.  Grant Characteristic Points: 
+                                    The NPC gains 5 new standard characteristic points for each level they have gained.
 
-                                    3.  Grant Characteristic Points: The NPC gains 'TotalLevelsToGrant * 5' new standard characteristic points.
+                                    2.  GM Responsibility - Distribute Points: 
+                                    You, the Game Master, MUST distribute these points logically among the NPC's standard characteristics to reinforce their archetype and role 
+                                    (e.g., воин получает силу и выносливость, маг — интеллект). 
+                                    This distribution MUST strictly follow the principles of specialization outlined in the 'MANDATORY NPC Generation and Progression Protocol' (Rule #5.A.2).
 
-                                    4.  Distribute Points: Distribute these points logically among the NPC's standard characteristics to reinforce their role. 
-                                        This distribution MUST strictly follow the principles of specialization and balance outlined in the 'MANDATORY NPC Generation and Progression Protocol' (Rule #5.A.2).
+                                    3.  Reporting: 
+                                    You MUST report these changes by sending the complete, updated NPC Object in the 'NPCsData' array. 
+                                    The object must contain the new 'level', 'experience', 'experienceForNextLevel', and updated 'characteristics'.
 
-                                    5.  Update NPC Data: Report the changes by sending the complete, updated NPC Object in the 'NPCsData' array.
-
-                                    6.  Logging and Narration:
-                                        - In 'items_and_stat_calculations', you MUST log the entire calculation: the trigger, the NPC's 'progressionType', 
-                                        each bonus component, the final 'TotalLevelsToGrant', the total points awarded, and how you distributed them.
-                                        - In the 'response', narrate the NPC's growth in a thematically appropriate way.
-
+                                    4.  Logging: 
+                                    In 'items_and_stat_calculations', you MUST log the entire process: the fact of the level-up, the number of points awarded, and exactly how you distributed them.
+                                    
                                     ]]>
                                 </Content>
                             </Rule>
 
-                            <Rule id="19.8.3.1">
+                            <Rule id="19.8.3.B">
                                 <Title>Skill Advancement on Level-Up</Title>
                                 <Content type="rule_text">
                                     <![CDATA[
 
-                                    When an NPC gains a new level, the GM must also consider improving their skills. 
-                                    For every 2 full levels an NPC gains in a single advancement event, the GM MUST choose ONE of the following options:
+                                    To reflect growth in expertise, for every 2 full levels an NPC gains in a single advancement event, the GM MUST choose ONE of the following skill advancements:
 
-                                        a) Grant the NPC a new passive or active skill appropriate to their class and development.
-                                        b) Increase the 'masteryLevel' of one of the NPC's existing skills by 1.
+                                    a)  Grant the NPC a new passive or active skill appropriate to their class and development.
+                                    b)  Increase the 'masteryLevel' of one of the NPC's existing skills by 1.
 
+                                    This skill change MUST be reported via the 'NPCActiveSkillChanges'/'NPCPassiveSkillChanges' and/or 'NPCSkillMasteryChanges'/'NPCPassiveSkillMasteryChanges' arrays.
+                                    
                                     ]]>
                                 </Content>
                             </Rule>
                         </Content>
                     </Rule>
+                    
+                    <Rule id="19.8.4">
+                        <Title>GM's Turn-Based Progression Check (Final Version)</Title>
+                        <Content type="rule_text">
+                            <![CDATA[
+
+                            On every turn, the GM MUST perform this check for all relevant NPCs:
+                            
+                            1.  For ALL NPCs in the active party: Calculate and award 'Experience from Joint Activity' using the tracker method and their respective rate (80% or 30%).
+                            
+                            2.  For any re-encountered 'PlotDriven' NPCs: Calculate and award 'Narrative XP Grant'.
+                            
+                            3.  For any NPC: Check for 'Fate Card Unlocks' and award XP.
+                            
+                            4.  Sum Total XP for each NPC and check for level-ups.
+                            
+                            5.  Process Level-Ups if they occur, applying all consequences from Rule #19.8.3.
+                            
+                            6.  Report Changes: Log all calculations and report the complete, updated NPC Object (including the new tracker values) in the 'NPCsData' array.
+
+                            ]]>
+                        </Content>
+                    </Rule>
                 </Content>
                 <Examples>
-                    <Example type="good" contentType="log">
-                        <Title>Example: 'PlotDriven' Rival levels up after a story beat.</Title>
-                        <ScenarioContext>
-                            The player learns that their rival, "Captain Thorne" (Level 25, 'PlotDriven'), has completed a ritual, unlocking his 'Epic' Fate Card. 
-                            The player is Level 30.
-                        </ScenarioContext>
-                        <Content type="log">
-                            <![CDATA[
-
-                            NPC Progression Check for "Captain Thorne":
-                            - Trigger: Fate Card Milestone ('The Ritual of Shadows', Epic).
-                            - NPC Type: 'PlotDriven'.
-                            - Calculating Levels to Grant:
-                                - Base Grant: +1
-                                - Level Gap Bonus: +0 (NPC is 'PlotDriven', not 'Companion').
-                                - Significance Bonus ('Epic' card): +2
-                                - TotalLevelsToGrant = min(4, 1 + 0 + 2) = 3 levels.
-                            - Action: Leveling up Thorne from Level 25 to 28.
-                            - Awarding Points: 3 * 5 = 15 points.
-                            - Distribution for Antagonist: +10 Strength, +5 Constitution.
-
-                            ]]>
-                        </Content>
-                    </Example>
-
-                    <Example type="good" contentType="log">
-                        <Title>Example 2: 'Companion' levels up with the player.</Title>
-                        <ScenarioContext>
-                            Player levels up to Level 10. Their companion, "Elara" (Level 8, 'Companion'), did not unlock any Fate Cards.
-                        </ScenarioContext>
-                        <Content type="log">
-                            <![CDATA[
-
-                            NPC Progression Check for "Elara":
-                            - Trigger: Player Level-Up Sync.
-                            - NPC Type: 'Companion'.
-                            - Verification: (PlayerLevel - NPCLevel) > 2? -> (10 - 8) > 2? -> 2 > 2? -> FALSE.
-                            - Outcome: The sync trigger condition is NOT met because the level gap is not greater than 2.
-                            - Action: No level up for Elara this turn from this trigger.
-
-                            ]]>
-                        </Content>
-                    </Example>
-
                     <Example type="good" contentType="log_and_json_snippet">
-                        <Title>Example 3: Complex Scenario - Companion levels up from a Fate Card while lagging behind a leveling player.</Title>
+                        <Title>Example 1: 'Companion' NPC gains 'Experience from Joint Activity' (Memory-Safe)</Title>
                         <ScenarioContext>
-                            The Player (Level 15, just leveled up this turn) and their companion "Torvald" (Level 9, 'Companion') defeat a bandit leader. 
-                            This action completes the conditions for Torvald's 'Rare' Fate Card, "Vindicator's Oath".
+                            Player and "Elara" ('Companion') complete a quest. Player's total cumulative XP is now 2500.
+                            From Elara's context: 'progressionTrackers: { "lastPlayerXPValueOnSync": 1800 } '.
                         </ScenarioContext>
                         <LogOutput target="items_and_stat_calculations">
                             <![CDATA[
 
-                            NPC Progression Check for "Torvald":
-                            - Trigger: Fate Card Milestone ('Vindicator's Oath', Rare).
-                            - NPC Type: 'Companion'.
-                            - Calculating Levels to Grant:
-                                - Base Grant: +1
-                                - Level Gap Bonus (Player 15, Torvald 9): max(0, floor((15-9)/3)) = floor(2) = +2.
-                                - Significance Bonus ('Rare' card): +1.
-                                - TotalLevelsToGrant = min(4, 1 + 2 + 1) = 4 levels.
-                            - Applying Advancement:
-                                - Leveling up Torvald from Level 9 to 13.
-                                - Awarding Characteristic Points: 4 * 5 = 20 points.
-                                - Logical Distribution for Warrior: +11 to Strength, +9 to Constitution.
-                            - Skill Advancement (Rule #19.8.3.1):
-                                - Torvald gained 4 levels, triggering one skill advancement.
-                                - Decision: Grant new passive skill 'Battle Hardened' to reflect his growing resilience.
+                            NPC Progression Check for "Elara":
+                            - Trigger: Experience from Joint Activity.
+                            - NPC Type: 'Companion', Rate = 0.8.
+                            - Calculation:
+                                - Player Current Total XP: 2500.
+                                - Player Last XP (from tracker): 1800.
+                                - XP Gained by Player Since Last Check: 2500 - 1800 = 700 XP.
+                                - Shared XP for Elara: 700 * 0.8 = 560 XP.
+                            - Applying XP... (check for level up).
+                            - **Updating Tracker:** Elara's 'lastPlayerXPValueOnSync' is now set to 2500.
 
                             ]]>
                         </LogOutput>
-                        <JsonResponse>
-                            <NPCsData>
-                                <![CDATA[
+                    </Example>
 
-                                [
-                                    {
-                                        "NPCId": "npc-torvald-companion-01",
-                                        "name": "Torvald",
-                                        "level": 13,
-                                        "progressionType": "Companion",
-                                        "characteristics": {
-                                            "standardStrength": 29, "modifiedStrength": 29, 
-                                            "standardConstitution": 25, "modifiedConstitution": 25
-                                        },
-                                        "passiveSkills": [
-                                            {
-                                                "skillName": "Battle Hardened", "skillDescription": "Experience in battle has toughened Torvald.", "rarity": "Common", "type": "CombatEnhancement", "group": "Combat",
-                                                "combatEffect": {"effects": [{"effectType": "Buff", "value": "5%", "targetType": "resist (all)", "effectDescription": "Provides 5% resistance to all damage."}]}, "masteryLevel": 1, "maxMasteryLevel": 3
-                                            }
-                                        ]
-                                    }
-                                ]
+                    <Example type="good" contentType="log_and_json_snippet">
+                        <Title>Example 2: Solving "Plot Lag" with 'Narrative Power Sync' (Memory-Safe)</Title>
+                        <ScenarioContext>
+                            Player last saw the main villain, "Lord Malakor" (Lvl 15, 'PlotDriven'), when the player's total XP was 10,000. 
+                            The player now returns for the final battle, having reached Lvl 25 with a total XP of 90,000.
+                            From Malakor's context: 'progressionTrackers: { "lastPlayerXPValueOnSync": 10000 } '.
+                        </ScenarioContext>
+                        <LogOutput target="items_and_stat_calculations">
+                            <![CDATA[
 
-                                ]]>
-                            </NPCsData>
-                        </JsonResponse>
+                            NPC Progression Check for "Lord Malakor":
+                            - **Trigger:** Narrative Power Sync (Rule 19.8.2.C).
+                            - **Justification:** Re-encountering the main antagonist after a long period of player growth. Malakor must be scaled to remain a credible final boss.
+                            - **Calculation:**
+                                - Player Current Total XP: 90,000.
+                                - Player Last XP (from tracker): 10,000.
+                                - XP Gained by Player While Apart: 90,000 - 10,000 = 80,000 XP.
+                                - **Sync Rate (Major Antagonist):** 90% (0.9).
+                                - **XP Grant for Malakor:** 80,000 * 0.9 = 72,000 XP.
+                            - **Applying Advancement...** (This will grant Malakor multiple levels).
+                            - **Updating Tracker:** Malakor's 'lastPlayerXPValueOnSync' is now set to 90,000.
+
+                            ]]>
+                        </LogOutput>
+                    </Example>
+
+                    <Example type="good" contentType="log_and_json_snippet">
+                        <Title>Example 3: Solving the "Grinding Gap" with 'Joint Activity XP'</Title>
+                        <ScenarioContext>
+                            The Player (total cumulative XP is now 812) and "Каэль" (Lvl 1, 'PlotDriven' temporary ally) finish clearing the catacombs.
+                            From Каэль's context: 'progressionTrackers: { "lastPlayerXPValueOnSync": 0 } '.
+                        </ScenarioContext>
+                        <LogOutput target="items_and_stat_calculations">
+                            <![CDATA[
+
+                            NPC Progression Check for "Каэль":
+                            - Trigger: Experience from Joint Activity.
+                            - NPC Type: 'PlotDriven', Rate = 0.3.
+                            - Calculation:
+                                - Player Current Total XP: 812.
+                                - Player Last XP (from tracker): 0.
+                                - XP Gained by Player: 812 - 0 = 812 XP.
+                                - XP Grant for Каэль: 812 * 0.3 = 243.6 -> 243 XP.
+                            - Applying XP... (Каэль now levels up to Lvl 2, almost Lvl 3).
+                            - **Updating Tracker:** Каэль's 'lastPlayerXPValueOnSync' is now set to 812.
+
+                            ]]>
+                        </LogOutput>
                     </Example>
                 </Examples>
             </Rule>
@@ -17688,48 +17765,37 @@ export const getGameMasterGuideRules = (configuration) => {
                     <Rule id="19.9.2">
                         <Title>Changing an NPC's 'progressionType'</Title>
                         <InstructionText>
+                            <![CDATA[
+
                             Changing an NPC's role is a major plot event and MUST be triggered by significant narrative development.
+                            When this happens, you MUST report it by sending the complete, updated NPC object in the 'NPCsData' array.
+                                    
+                            ]]>
                         </InstructionText>
                         <Content type="rule_text">
                             <![CDATA[
 
-                            An NPC's 'progressionType' can change. 
-                            When this happens, you MUST report it by sending the complete, updated NPC object in the 'NPCsData' array.
+                            An NPC's 'progressionType' can and should change to reflect their evolving role in the story. This is a GM decision, but MUST be narratively justified and logged.
 
                             Common Scenarios for Changing Type:
-                            1.  Recruitment ('Static' -> 'Companion'): 
-                                When the player successfully convinces a background NPC (like a town guard or a hermit) to join them on their travels, their type changes. 
-                                This should often be accompanied by a small level boost to make them viable.
+                            1.  Joining as an Active Companion ('Static' -> 'Companion' or 'PlotDriven' -> 'Companion'): Occurs when an NPC becomes a long-term member of the player's party.
+                            2.  Departure ('Companion' -> 'PlotDriven'): When a companion leaves the party to pursue their own goals.
+                            3.  Rise to Prominence ('Static' -> 'PlotDriven'): When a minor character becomes a key figure.
 
-                            2.  Redemption/Alliance ('PlotDriven' -> 'Companion'): 
-                                When a former rival or independent ally, after a significant story arc, decides to permanently join the player's party.
+                            CRITICAL DIRECTIVE: The Principle of Inherent Level Preservation & Tracker Synchronization
+                            When an NPC's role changes, their 'level' and 'experience' MUST NOT be automatically scaled. Their current state is preserved.
+                            However, to ensure progression calculations function correctly, their sync tracker MUST be updated.
 
-                            3.  Departure ('Companion' -> 'PlotDriven'): 
-                                When a companion leaves the party to pursue their own goals but remains an important character in the story. 
-                                Their growth is no longer tied to the player's level-ups, but to their own off-screen (or on-screen) story progress.
+                            -   When an NPC becomes a 'Companion' (joins the party):
+                                You MUST initialize their 'progressionTrackers.lastPlayerXPValueOnSync' to the player's current total experience ('Context.playerCharacter.experience'). 
+                                This sets the baseline for calculating future Shared Experience.
 
-                            4.  Rise to Prominence ('Static' -> 'PlotDriven'): 
-                                When a seemingly minor character, due to the player's actions or other plot events, becomes a key figure 
-                                (e.g., a simple shopkeeper becomes the leader of a merchant guild resistance).
-                                                            
-                            CRITICAL DIRECTIVE: The Principle of Inherent Level Preservation on Recruitment
-                            When an NPC's 'progressionType' changes to 'Companion', their 'level' attribute MUST NOT be automatically scaled to match the player's level. 
-                            The NPC's level upon joining is a reflection of their established identity, history, and power within the game world.
+                            -   When a 'Companion' becomes 'PlotDriven' (leaves the party):
+                                You MUST update their 'progressionTrackers.lastPlayerXPValueOnSync' to the player's current total experience. 
+                                This sets the baseline for calculating future Narrative Power Sync when they are re-encountered.
 
-                            This principle MUST be applied as follows:
-
-                            -   Weak Recruit Scenario: 
-                            If a level 20 hero recruits a level 5 town guard who is narratively described as a simple guard, that NPC joins the party as a level 5 companion. 
-                            Their weakness is part of the story.
-
-                            -   Powerful Ally Scenario: 
-                            If the same level 20 hero, after completing a great quest, convinces a legendary level 30 archmage 
-                            (who is narratively and statistically a powerful figure) to join them, that archmage joins the party as a level 30 companion, potentially being even stronger than the player.
-
-                            The change to "progressionType: 'Companion'" only dictates how the NPC will gain levels from this point forward, according to Rule #19.8. 
-                            Their starting level as a companion is their pre-existing level.
-                            A minor, narratively justified level boost (e.g., +1 or +2) is permissible ONLY if the recruitment process itself involved intense training or a transformative event that logically increased their power.
-
+                            This tracker update is a mandatory mechanical step for every relevant role change.
+                            
                             ]]>
                         </Content>
                     </Rule>
@@ -17751,74 +17817,20 @@ export const getGameMasterGuideRules = (configuration) => {
                 </Content>
                 <Examples>
                     <Example type="good" contentType="log_and_json_snippet">
-                        <Title>Example 1: Recruiting a Static NPC to become a Companion</Title>
+                        <Title>Example: 'PlotDriven' NPC becomes a 'Companion' (Tracker Initialization)</Title>
                         <ScenarioContext>
-                            The player, after a long quest to defend the village, asks "Torvald", a 'Static' town guard (Level 5), to join their adventures. 
-                            The player succeeds on a high-stakes Persuasion check.
-                        </ScenarioContext>
-                        <LogOutput target="items_and_stat_calculations">
-                            <![CDATA[
-
-                            NPC Role Management Check for "Torvald":
-                            - Player Action: Successful recruitment of Torvald.
-                            - Trigger: A significant narrative event (recruitment).
-                            - Action: Changing 'progressionType' from 'Static' to 'Companion'.
-                            - Justification: Torvald has agreed to leave his post and travel with the player, making his growth now relevant and tied to the party.
-                            - Additional Action: Granting a level boost to make him a viable companion. Applying NPC Progression Protocol.
-                                - Trigger: Plot-Driven Development.
-                                - Granting +2 levels (GM discretion for a new companion).
-                                - Torvald's new level is 7.
-                                - Awarding 10 characteristic points: +6 Strength, +4 Constitution.
-                            - Preparing full updated NPC object for 'NPCsData'.
-
-                            ]]>
-                        </LogOutput>
-                        <JsonResponse>
-                            <NPCsData>
-                                <![CDATA[
-
-                                [
-                                    {
-                                        "NPCId": "npc-torvald-guard-01",
-                                        "name": "Torvald",
-                                        "level": 7,
-                                        "progressionType": "Companion",
-                                        "characteristics": {
-                                            "standardStrength": 18, "modifiedStrength": 18, // Was 12
-                                            "standardConstitution": 16, "modifiedConstitution": 16 // Was 12
-                                        },
-                                        // ... all other fields of the complete NPC object ...
-                                    }
-                                ]
-
-                                ]]>
-                            </NPCsData>
-                            <response>
-                                <![CDATA[
-
-                                    Torvald смотрит на спасенную вами деревню, затем на вас, и в его глазах загорается огонь. 
-                                    "Я... я служу этому городу всю жизнь. Но то, что ты сделал... это нечто большее. Если ты позволишь, для меня будет честью пойти с тобой и защищать нечто большее, чем просто стены." 
-                                    С этого момента Торвальд становится вашим верным спутником.
-
-                                ]]>
-                            </response>
-                        </JsonResponse>
-                    </Example>
-
-                    <Example type="good" contentType="log_and_json_snippet">
-                        <Title>Example 2: A Companion leaves the party to become PlotDriven</Title>
-                        <ScenarioContext>
-                            Your companion "Elara" ('Companion', Level 15) finally discovers the source of the Blight. 
-                            She realizes she must stay at the sacred grove to perform a long ritual to contain it, and cannot travel with you anymore.
+                            Player (Lvl 8, total experience: 5000) convinces "Elara" (Lvl 5, 'PlotDriven') to join them as a long-term companion.
                         </ScenarioContext>
                         <LogOutput target="items_and_stat_calculations">
                             <![CDATA[
 
                             NPC Role Management Check for "Elara":
-                            - Narrative Event: Elara has found her personal purpose and must leave the active party.
-                            - Trigger: A major personal quest resolution.
-                            - Action: Changing 'progressionType' from 'Companion' to 'PlotDriven'.
-                            - Justification: Elara is no longer an active adventurer with the player. Her future growth will now depend on the success of her ritual (a plot point), not the player's level.
+                            - Trigger: Successful recruitment by the player.
+                            - Action: Changing 'progressionType' from 'PlotDriven' to 'Companion'.
+                            - Level Preservation: Elara remains Level 5. No automatic level change.
+                            - **Tracker Synchronization (CRITICAL STEP):**
+                                - Player's current total XP is 5000.
+                                - Initializing Elara's 'progressionTrackers.lastPlayerXPValueOnSync' to 5000.
                             - Preparing full updated NPC object for 'NPCsData'.
 
                             ]]>
@@ -17831,37 +17843,18 @@ export const getGameMasterGuideRules = (configuration) => {
                                     {
                                         "NPCId": "npc-elara-meadowlight-01",
                                         "name": "Elara Meadowlight",
-                                        "level": 15,
-                                        "progressionType": "PlotDriven",
-                                        // ... all other fields of the complete NPC object ...
+                                        "level": 5,
+                                        "progressionType": "Companion",
+                                        "progressionTrackers": {
+                                            "lastPlayerXPValueOnSync": 5000
+                                        }
+                                        // ... other fields of the complete NPC object ...
                                     }
                                 ]
 
                                 ]]>
                             </NPCsData>
-                            <response>
-                                <![CDATA[
-
-                                    "Это мой путь," - говорит Элара, ее руки светятся мягкой энергией, когда она касается больного дерева в центре рощи. "Я должна остаться здесь. Я не могу больше путешествовать с тобой, но я буду бороться со Скверной отсюда. Мы еще встретимся, друг мой."
-                                
-                                ]]>
-                            </response>
                         </JsonResponse>
-                    </Example>
-
-                    <Example type="good" contentType="text">
-                        <Title>Example 3: Player fails to recruit a Static NPC</Title>
-                        <ScenarioContext>
-                            The player walks up to "Gus, the Stout Innkeeper" ('Static') and says, "Leave this inn and come fight dragons with me!"
-                        </ScenarioContext>
-                        <ResponseNarrative>
-                            <![CDATA[
-
-                                Гас смотрит на вас поверх своей кружки, затем разражается громогласным хохотом. 
-                                "Драконов, говоришь? Ха! Сынок, я человек простой. Мои драконы — это пустые бочки и недовольные клиенты. Кто же будет кормить и поить всех этих славных людей, если я уйду? Ищи себе славы, а я останусь здесь. Мое место у очага."
-                            
-                            ]]>
-                        </ResponseNarrative>
                     </Example>
                 </Examples>
             </Rule>
@@ -17872,21 +17865,23 @@ export const getGameMasterGuideRules = (configuration) => {
                 <LogOutput target="items_and_stat_calculations">
                     <![CDATA[
 
-                    Generating NPC 'Kaelen' (Level 25 Human Warrior):
-                    - Progression Type: 'PlotDriven' (as he is a key ally/antagonist whose growth is tied to the main plot, not daily adventuring with the player).
-                    - Base Stats: All start at 1.
-                    - Starting Points (8 total):
-                        - Race (Human): +1 to Str, Dex, Con, Attr, Pers for versatility.
-                        - Class (Warrior): +2 Str, +1 Con.
-                        - Level 1 Stats: Str: 4, Dex: 2, Con: 3, Attr: 2, Pers: 2, others 1.
-                    - Level-Up Point Pool: (25 - 1) * 5 = 120 points.
-                    - Distribution reflects Warrior/Leader class:
-                        - +51 to Strength (total 55)
-                        - +47 to Constitution (total 50)
-                        - +10 to Perception (total 11)
-                        - +12 to Wisdom (total 13)
-                    - Total Points Used: 51+47+10+12 = 120.
-                    - Final Standard Characteristics: Str 55, Con 50, Wis 13, Per 11, Dex 2, Attr 2, Pers 2, others 1. All stats are valid.
+                    Initializing new NPC 'Kaelen' (Level 25 Human Warrior):
+                    - Progression Type: 'PlotDriven' (as a key ally/antagonist, his growth is tied to the main plot).
+                    - **Step 1: Base Stats & Starting Points (Rule #5.A.2)**
+                        - Base Stats: All start at 1.
+                        - Starting Points (8 total, Human Warrior): +4 Str, +2 Dex, +3 Con.
+                        - Initial (Lvl 1) Stats: Str: 5, Dex: 3, Con: 4, others 1.
+                    - **Step 2: Allocate Level-Up Points**
+                        - Level-Up Point Pool: (25 - 1) * 5 = 120 points.
+                        - Distribution for a Warrior Captain archetype:
+                            - +51 to Strength (total 56)
+                            - +46 to Constitution (total 50)
+                            - +10 to Perception (total 11)
+                            - +13 to Wisdom (total 14)
+                        - Total Points Used: 51+46+10+13 = 120.
+                    - **Step 3: Finalization**
+                        - Final Standard Characteristics: Str 56, Con 50, Wis 14, Per 11, Dex 3. Stats are valid.
+                        - Initializing 'experience' to 0. Calculated 'experienceForNextLevel' for Lvl 25->26: 28099 XP.
 
                     ]]>
                 </LogOutput>
@@ -18048,19 +18043,21 @@ export const getGameMasterGuideRules = (configuration) => {
                 <LogOutput target="items_and_stat_calculations">
                     <![CDATA[
 
-                    Generating NPC 'Elara' (Level 5 Human Herbalist):
-                    - Progression Type: 'Companion' (as she is a potential active companion, her growth should keep pace with the player).
-                    - Base Stats: All start at 1.
-                    - Starting Points (8 total):
-                        - Race (Human): +1 to Int, Wis, Dex, Attr, Pers.
-                        - Class (Herbalist): +2 Wis, +1 Int.
-                        - Level 1 Stats: Int: 3, Wis: 4, Dex: 2, Attr: 2, Pers: 2, others 1.
-                    - Level-Up Point Pool: (5 - 1) * 5 = 20 points.
-                    - Distribution reflects Herbalist/Healer class:
-                        - +12 to Wisdom (total 16) -> Primary healing/nature stat.
-                        - +8 to Intelligence (total 11) -> Knowledge of herbs.
-                    - Total Points Used: 12+8 = 20.
-                    - Final Standard Characteristics: Wis 16, Int 11, Dex 2, Attr 2, Pers 2, others 1. Stats are valid.
+                   Initializing new NPC 'Elara' (Level 5 Human Herbalist):
+                    - Progression Type: 'Companion' (designed as a potential active companion).
+                    - **Step 1: Base Stats & Starting Points (Rule #5.A.2)**
+                        - Base Stats: All start at 1.
+                        - Starting Points (8 total, Human Herbalist): +2 Int, +3 Wis, +1 Dex, +2 Attr.
+                        - Initial (Lvl 1) Stats: Int: 3, Wis: 4, Dex: 2, Attr: 3, others 1.
+                    - **Step 2: Allocate Level-Up Points**
+                        - Level-Up Point Pool: (5 - 1) * 5 = 20 points.
+                        - Distribution for a Herbalist/Healer archetype:
+                            - +12 to Wisdom (total 16)
+                            - +8 to Intelligence (total 11)
+                        - Total Points Used: 12 + 8 = 20.
+                    - **Step 3: Finalization**
+                        - Final Standard Characteristics: Wis 16, Int 11, Dex 2, Attr 3. Stats are valid.
+                        - Initializing 'experience' to 0. Calculated 'experienceForNextLevel' for Lvl 5->6: floor(337 * 1.5) = 505 XP.
 
                     ]]>
                 </LogOutput>
@@ -18199,20 +18196,22 @@ export const getGameMasterGuideRules = (configuration) => {
                 <LogOutput target="items_and_stat_calculations">
                     <![CDATA[
 
-                    Generating NPC 'Lady Seraphina' (Level 8 Human Noble Scholar):
-                    - Progression Type: 'PlotDriven' (as a noble and potential quest-giver, her growth is tied to her personal story and discoveries, not combat experience).
-                    - Base Stats: All start at 1.
-                    - Starting Points (8 total):
-                        - Race (Human): +1 to Int, Wis, Attr, Pers, Luck.
-                        - Class (Noble Scholar): +2 Int, +1 Pers.
-                        - Level 1 Stats: Int: 4, Wis: 2, Attr: 2, Pers: 3, Luck: 2, others 1.
-                    - Level-Up Point Pool: (8 - 1) * 5 = 35 points.
-                    - Distribution reflects Noble/Scholar class:
-                        - +16 to Intelligence (total 20) -> Primary scholarly stat.
-                        - +14 to Attractiveness (total 16) -> Noble grace.
-                        - +5 to Persuasion (total 8)
-                    - Total Points Used: 16+14+5 = 35.
-                    - Final Standard Characteristics: Int 20, Attr 16, Pers 8, Wis 2, Luck 2, others 1. Stats are valid.
+                    Initializing new NPC 'Lady Seraphina' (Level 8 Human Noble Scholar):
+                    - Progression Type: 'PlotDriven' (as a noble and quest-giver, her growth is tied to her personal story).
+                    - **Step 1: Base Stats & Starting Points (Rule #5.A.2)**
+                        - Base Stats: All start at 1.
+                        - Starting Points (8 total, Human Noble Scholar): +2 Int, +2 Pers, +3 Attr, +1 Luck.
+                        - Initial (Lvl 1) Stats: Int: 3, Pers: 3, Attr: 4, Luck: 2, others 1.
+                    - **Step 2: Allocate Level-Up Points**
+                        - Level-Up Point Pool: (8 - 1) * 5 = 35 points.
+                        - Distribution for a Noble/Scholar archetype:
+                            - +17 to Intelligence (total 20)
+                            - +12 to Attractiveness (total 16)
+                            - +6 to Persuasion (total 9)
+                        - Total Points Used: 17 + 12 + 6 = 35.
+                    - **Step 3: Finalization**
+                        - Final Standard Characteristics: Int 20, Attr 16, Pers 9, Luck 2. Stats are valid.
+                        - Initializing 'experience' to 0. Calculated 'experienceForNextLevel' for Lvl 8->9: floor(1135 * 1.5) = 1702 XP.
 
                     ]]>
                 </LogOutput>
@@ -18357,13 +18356,23 @@ export const getGameMasterGuideRules = (configuration) => {
                 <LogOutput target="items_and_stat_calculations">
                     <![CDATA[
 
-                    Generating NPC 'Captain Thorne' (Level 25 Human Warrior):
-                    - Progression Type: 'PlotDriven' (as a key antagonist/ally, his power evolves with the plot, not with the player's level).
-                    - Base Stats: All start at 1.
-                    - Starting Points (8 total, Human Warrior): +4 Str, +2 Dex, +3 Con.
-                    - Level-Up Point Pool: (25 - 1) * 5 = 120 points.
-                    - Distribution for Guard Captain: +51 Str (total 55), +47 Con (total 50), +12 Wis (total 13), +10 Per (total 11).
-                    - Final Standard Characteristics: Str 55, Con 50, Wis 13, Per 11. All stats are valid.
+                    Initializing new NPC 'Captain Thorne' (Level 25 Human Warrior):
+                    - Progression Type: 'PlotDriven' (as a key antagonist, his power evolves with the plot).
+                    - **Step 1: Base Stats & Starting Points (Rule #5.A.2)**
+                        - Base Stats: All start at 1.
+                        - Starting Points (8 total, Human Warrior): +4 Str, +1 Dex, +3 Con.
+                        - Initial (Lvl 1) Stats: Str: 5, Dex: 2, Con: 4, others 1.
+                    - **Step 2: Allocate Level-Up Points**
+                        - Level-Up Point Pool: (25 - 1) * 5 = 120 points.
+                        - Distribution for a Guard Captain archetype:
+                            - +50 to Strength (total 55)
+                            - +46 to Constitution (total 50)
+                            - +12 to Wisdom (total 13)
+                            - +12 to Perception (total 13)
+                        - Total Points Used: 50 + 46 + 12 + 12 = 120.
+                    - **Step 3: Finalization**
+                        - Final Standard Characteristics: Str 55, Con 50, Wis 13, Per 13. Stats are valid.
+                        - Initializing 'experience' to 0. Calculated 'experienceForNextLevel' for Lvl 25->26: floor(17798 * 1.5) = 26697 XP.
 
                     ]]>
                 </LogOutput>
@@ -19571,8 +19580,110 @@ export const getGameMasterGuideRules = (configuration) => {
                         </Content>
                     </Rule>
                 </Content>
+            </Rule>            
+        </Content>
+    </InstructionBlock>     
+
+    <InstructionBlock id="21.5">
+        <Title>World State Flag Management</Title>
+        <Description>
+            This block defines the structure and rules for creating and updating global 'worldStateFlags'.
+            These flags represent significant, persistent changes to the world's state that influence narrative, NPC behavior, and available opportunities.
+        </Description>
+        <InstructionText>
+            <![CDATA[
+
+            You, the Game Master, are the sole authority responsible for creating and updating 'worldStateFlags'.
+            You MUST introduce new flags or update existing ones when major plot events occur (e.g., an ancient evil awakens, a city enters lockdown, a global phenomenon begins).
+            This is your primary tool for managing the global narrative state and ensuring world consistency.
+            All flags must have a 'flagId' (system name), 'displayName' (user-friendly name for UI), a 'value' (boolean, integer, or string), and a 'description' (for tooltips in UI).
+
+            ]]>
+        </InstructionText>
+        <Content type="ruleset">
+            <Rule id="21.5.1">
+                <Title>World State Flag Object Structure</Title>
+                <Description>When a global plot flag is created or its state changes, you MUST include the 'worldStateFlags' key in the JSON response as an array of Flag Objects.</Description>
+                <Content type="code_example" language="json">
+                    <![CDATA[
+
+                    Mandatory format for each Flag Object:
+                    {
+                        "flagId": "unique_system_name_for_flag_string",
+                        "displayName": "user_readable_name_for_ui_string",
+                        "value": "boolean_or_integer_or_string",
+                        "description": "user_readable_description_for_tooltip_string"
+                    }
+
+                    ]]>
+                </Content>
+            </Rule>
+            <Rule id="21.5.2">
+                <Title>Field Definitions and GM's Responsibility</Title>
+                <Content type="rule_text">
+                    <![CDATA[
+
+                    1.  "flagId": (string, MANDATORY) A unique, English, snake_case system name you, the GM, create for this flag (e.g., "ancient_evil_awakened", "city_in_lockdown", "plague_spreading"). This ID MUST remain consistent for this flag throughout the game.
+
+                    2.  "displayName": (string, MANDATORY) The human-readable name for the UI, which MUST be translated to the user's language (e.g., "Древнее Зло Пробудилось", "Город в изоляции", "Начинается чума").
+
+                    3.  "value": (boolean | integer | string, MANDATORY) The new state of the flag. This reflects the current status of the global event.
+                        -   Boolean: For simple on/off states (e.g., 'true' for "active", 'false' for "inactive").
+                        -   Integer: For measurable progress or severity (e.g., '50' for "plague_severity", '3' for "stages_of_ritual").
+                        -   String: For categorical states (e.g., '"phase_two"' for "invasion_phase").
+
+                    4.  "description": (string, MANDATORY) A human-readable description of what this flag signifies, for UI tooltips or detailed summaries. MUST be translated.
+
+                    CRITICAL DIRECTIVE: You, the GM, are responsible for creating, updating, and maintaining the consistency of these flags. 
+                    When a major plot event occurs, you MUST create a new flag or update an existing one to reflect the new reality of the game world. 
+                    This is your primary tool for managing the global narrative state. 
+                    You MUST log the creation or update of any 'worldStateFlags' in 'items_and_stat_calculations'.
+
+                    ]]>
+                </Content>
             </Rule>
         </Content>
+        <Examples>
+            <Example type="good" contentType="json_fragment">
+                <Title>Example: The player's actions cause a city-wide lockdown.</Title>
+                <JsonResponse>
+                    <worldStateFlags>
+                    <![CDATA[
+
+                        [
+                            {
+                                "flagId": "city_in_lockdown",
+                                "displayName": "Город в изоляции",
+                                "value": true,
+                                "description": "Ворота города запечатаны, а на улицах действует строгий комендантский час из-за недавних беспорядков."
+                            }
+                        ]
+
+                    ]]>
+                    </worldStateFlags>
+                </JsonResponse>
+            </Example>
+
+            <Example type="good" contentType="json_fragment">
+                <Title>Example: A global plague starts spreading (integer value for severity).</Title>
+                <JsonResponse>
+                    <worldStateFlags>
+                    <![CDATA[
+
+                        [
+                            {
+                                "flagId": "plague_spreading",
+                                "displayName": "Начинается Чума",
+                                "value": 1, // Represents stage 1 of plague spread
+                                "description": "По всему королевству начинают появляться первые случаи таинственной болезни. Воздух становится тяжелым."
+                            }
+                        ]
+
+                    ]]>
+                    </worldStateFlags>
+                </JsonResponse>
+            </Example>
+        </Examples>
     </InstructionBlock>
 
     <InstructionBlock id="22">
@@ -21359,15 +21470,16 @@ export const getGameMasterGuideRules = (configuration) => {
                 Refer to Rule #7.4.2 for guidelines on setting an appropriate 'maxMasteryLevel' based on the skill's rarity.
 
             3.  NPC PROGRESSION AUDIT (MANDATORY):
-                -   You MUST now perform a final audit of NPC level progression.
-                Iterate through ALL key NPCs in 'Context.encounteredNPCs'.
-                For EACH NPC, you MUST re-verify if any of the level-up triggers from 'InstructionBlock id = "19", Rule id = "19.8.1"' were met THIS TURN:
-                    -   'Companion' NPCs: Did the player level up this turn (compare 'Context.playerCharacter.level' and 'levelOnPreviousTurn') AND is the level gap '(PlayerLevel - NPCLevel)' now greater than 2? Was a Fate Card unlocked for them?
-                    -   'PlotDriven' NPCs: Was a Fate Card unlocked for them?
-                    -   All NPCs: Did a major plot event occur that justifies a level-up outside of normal triggers?
-                If you find that you have forgotten to level up an NPC who met these conditions, you MUST immediately go back and apply the changes. 
-                This involves adding their complete, updated data to the 'NPCsData' array, strictly following the full protocol in 'Rule #19.8.3'. 
-                This is a critical step for world consistency.
+                -   You MUST now perform a final audit of the new, memory-safe NPC progression system.
+                Iterate through ALL key NPCs in 'Context.encounteredNPCs'. 
+                For EACH NPC, verify:
+                    -   If they were in the player's party this turn: 
+                    Did you correctly calculate and apply 'Experience from Joint Activity' based on their 'progressionType' (80% or 30%) and update their 'lastPlayerXPValueOnSync' tracker?
+                    -   If a 'PlotDriven' NPC was re-encountered: 
+                    Did you correctly calculate and apply 'Narrative Power Sync' based on the player's XP gain since the last sync?
+                    -   If any NPC leveled up: 
+                    Did you correctly award 5 characteristic points per level, distribute them logically, and check for skill advancements?
+                -   If you find any discrepancy, you MUST correct it now by updating the 'NPCsData' array and relevant logs. This is a critical step for world consistency.
 
             4.  TRANSLATION AUDIT: 
                 -   Reread all strings in 'response', 'items_and_stat_calculations', 'combatLogEntries', and all generated 'name' and 'description' fields. 
@@ -21451,6 +21563,7 @@ export const getStep0 = () => {
                 10. An existing item was moved between containers ('moveInventoryItems' would be generated) as a result of Step 0's calculations.
                 11. An item's Fate Card was unlocked or its 'ownerBondLevel' changed as a result of Step 0's calculations.
                 12. A new NPC was created as a result of Step 0's calculations.
+                12.5. An NPC's 'progressionType' changed as a result of Step 0's calculations.
                 13. An NPC's Fate Card was unlocked or their active/passive skills or mastery level (not just mastery progress) changed as a result of Step 0's calculations.
                 14. Faction data changed due to a cascade effect (Rule 21.2.4 was applied) as a result of Step 0's calculations.
                 15. The Player Character leveled up (Rule 5.10) as a result of Step 0's calculations.
@@ -21656,6 +21769,7 @@ export const getStep4 = () => {
 
                     You MUST fill or update the following keys if relevant:
                     - "NPCsData": Generate or update full NPC data (Block 19).
+                    - "progressionType": Ensure 'progressionType' is set correctly for all NPCs in "NPCsData".
                     - "NPCsRenameData": Report renames.
                     - "NPCJournals": Generate current turn thoughts.
                     - "NPCUnlockedMemories": Generate newly unlocked memories.
@@ -21734,6 +21848,9 @@ export const getStep6 = () => {
                         - "playerClassChange": Based on logs (Block 23), if the player's class was fundamentally altered, provide the NEW class name. Otherwise, this MUST be 'null'.
                         - "playerAutoCombatSkillChange": Based on logs (Block 23), if the player's auto-combat skill was set or cleared, provide the skill name or 'null'. Otherwise, this MUST be 'null'.
                         - "playerStealthStateChange": Based on logs (Block 29), if the player's stealth state changed, provide the full state object. Otherwise, this MUST be 'null'.
+
+                    3.5. World State Flags:
+                        - "worldStateFlags": Based on logs (Block 21.5), provide an array of any NEW or MODIFIED global world state flags.
 
                     4.  System and Generation Parameters:
                         - "multipliers": You MUST calculate the five coefficients as defined in 'InstructionBlock id="24"' and place them in the array in the correct order.
