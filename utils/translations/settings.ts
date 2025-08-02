@@ -1,4 +1,5 @@
 
+
 export const settings = {
   en: {
     "Non-Magic Mode": "Non-Magic Mode",
@@ -52,6 +53,7 @@ export const settings = {
     "Use Flash for Corrections Tooltip": "Enable to use the powerful gemini-2.5-flash model to correct syntax errors from the primary model.",
     "Player Super-Instructions": "Player Super-Instructions",
     "These instructions override the GM's default behavior. Use with caution.": "These instructions override the GM's default behavior. Use with caution.",
+    "Save Super-Instructions": "Save Super-Instructions",
     "Hard Mode": "Hard Mode",
     "Increases enemy health and action difficulty for a greater challenge and enhanced rewards.": "Increases enemy health and action difficulty for a greater challenge and enhanced rewards.",
     "Game Management": "Game Management",
@@ -128,6 +130,7 @@ export const settings = {
     "Use Flash for Corrections Tooltip": "Включите, чтобы использовать мощную модель gemini-2.5-flash для исправления синтаксических ошибок от основной модели.",
     "Player Super-Instructions": "Супер-инструкции игрока",
     "These instructions override the GM's default behavior. Use with caution.": "Эти инструкции переопределяют стандартное поведение Мастера Игры. Используйте с осторожностью.",
+    "Save Super-Instructions": "Сохранить супер-инструкции",
     "Hard Mode": "Сложный режим",
     "Increases enemy health and action difficulty for a greater challenge and enhanced rewards.": "Враги значительно сильнее, а все действия сложнее. Взамен, опыт удваивается, а добыча становится лучше и обильнее.",
     "Game Management": "Управление игрой",

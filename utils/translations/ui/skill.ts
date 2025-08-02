@@ -1,4 +1,3 @@
-
 export const skill = {
   en: {
     // Skill Details
@@ -100,6 +99,7 @@ export const skill = {
     "No active skills known.": "Нет известных активных навыков.",
     "Passive Skills": "Пассивные навыки",
     "No passive skills known.": "Нет известных пассивных навыков.",
+    "Mastery Level": "Уровень мастерства",
 
     // Passive Skill Types/Groups
     "KnowledgeBased": "Основанный на знаниях",

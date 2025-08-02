@@ -1,8 +1,7 @@
-
 import React, { useState } from 'react';
 import CharacterSheet from './CharacterSheet';
 import QuestLog from './QuestLog';
-import { GameState, Location, WorldState, GameSettings, PlayerCharacter, Faction, PlotOutline, Item, DBSaveSlotInfo } from '../types';
+import { GameState, Location, WorldState, GameSettings, PlayerCharacter, Faction, PlotOutline, Item, DBSaveSlotInfo, WorldStateFlag } from '../types';
 import { UserCircleIcon, BookOpenIcon, CodeBracketIcon, DocumentTextIcon, UsersIcon, ShieldExclamationIcon, Cog6ToothIcon, MapIcon, MapPinIcon, QuestionMarkCircleIcon, UserGroupIcon, GlobeAltIcon, ArchiveBoxXMarkIcon, BeakerIcon } from '@heroicons/react/24/outline';
 import { ChevronDoubleRightIcon } from '@heroicons/react/24/solid';
 import JsonDebugView from './JsonDebugView';
@@ -22,7 +21,7 @@ import WorldPanel from './WorldPanel';
 interface SidePanelProps {
   gameState: GameState | null;
   worldState: WorldState | null;
-  worldStateFlags: Record<string, boolean | string> | null;
+  worldStateFlags: Record<string, WorldStateFlag> | null;
   onOpenInventory: () => void;
   lastJsonResponse: string | null;
   lastRequestJsonForDebug: string | null;

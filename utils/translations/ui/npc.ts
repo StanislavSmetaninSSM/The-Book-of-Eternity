@@ -36,6 +36,10 @@ export const npc = {
     "Companion": "Companion",
     "PlotDriven": "Plot-Driven",
     "Static": "Static",
+    "Delete 10 Oldest Entries": "Delete 10 Oldest Entries",
+    "Delete Oldest Journal Entries": "Delete Oldest Journal Entries",
+    "Are you sure you want to delete the 10 oldest journal entries for {name}? This cannot be undone.": "Are you sure you want to delete the 10 oldest journal entries for {name}? This cannot be undone.",
+    "Progression": "Progression",
 
 
     // NPC Log
@@ -98,6 +102,10 @@ export const npc = {
     "Companion": "Компаньон",
     "PlotDriven": "Сюжетный",
     "Static": "Статичный",
+    "Delete 10 Oldest Entries": "Удалить 10 старых записей",
+    "Delete Oldest Journal Entries": "Удалить старые записи журнала",
+    "Are you sure you want to delete the 10 oldest journal entries for {name}? This cannot be undone.": "Вы уверены, что хотите удалить 10 самых старых записей в журнале для {name}? Это действие нельзя отменить.",
+    "Progression": "Прогрессия",
 
     // NPC Log
     "Encountered NPCs": "Встреченные NPC",

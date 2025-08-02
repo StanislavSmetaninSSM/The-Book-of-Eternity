@@ -1,9 +1,8 @@
-
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { GameState, GameContext, ChatMessage, GameResponse, LocationData, Item, NPC, SaveFile, Location, PlayerCharacter, WorldState, GameSettings, Quest, Faction, PlotOutline, Language, DBSaveSlotInfo } from '../types';
 import { executeTurn, askGmQuestion, getMusicSuggestionFromAi } from '../utils/gameApi';
 import { createInitialContext, buildNextContext, updateWorldMap, recalculateDerivedStats } from '../utils/gameContext';
-import { processAndApplyResponse } from '../utils/responseProcessor';
+import { processAndApplyResponse, checkAndApplyLevelUp } from '../utils/responseProcessor';
 import { equipItem as equipItemUtil, unequipItem as unequipItemUtil, dropItem as dropItemUtil, moveItem as moveItemUtil, recalculateAllWeights, splitItemStack as splitItemUtil, mergeItemStacks as mergeItemUtil } from '../utils/inventoryManager';
 import { deleteMessage as deleteMessageUtil, clearHalfHistory as clearHalfHistoryUtil, deleteLogs as deleteLogsUtil, forgetNpc as forgetNpcUtil } from '../utils/uiManager';
 import { saveGameToFile, loadGameFromFile, saveToDB, loadFromDB, getAutosaveTimestampFromDB, saveToDBSlot, loadFromDBSlot, listDBSlots, deleteDBSlot } from '../utils/fileManager';
@@ -113,21 +112,34 @@ export function useGameLogic({ language, setLanguage }: UseGameLogicProps) {
 
   const restoreFromSaveData = useCallback((data: SaveFile) => {
       gameContextRef.current = data.gameContext;
-      setGameState(data.gameState);
+      const loadedGameState = data.gameState;
+
+      const { pc: updatedPc, logs: levelUpLogs } = checkAndApplyLevelUp(loadedGameState.playerCharacter, t);
+      
+      let finalGameLog = data.gameLog || [];
+      if (levelUpLogs.length > 0) {
+          loadedGameState.playerCharacter = updatedPc;
+          if (gameContextRef.current) {
+            gameContextRef.current.playerCharacter = updatedPc;
+          }
+          finalGameLog = [...finalGameLog, ...levelUpLogs];
+      }
+      
+      setGameState(loadedGameState);
       setWorldState(data.gameContext.worldState);
       const loadedSettings = data.gameContext.gameSettings;
       setGameSettings(loadedSettings);
       setSuperInstructions(data.gameContext.superInstructions || '');
       setLanguage(loadedSettings.language || 'en');
       setGameHistory(data.gameHistory as ChatMessage[]);
-      setGameLog(data.gameLog);
+      setGameLog(finalGameLog);
       setCombatLog(data.combatLog ?? []);
       setLastJsonResponse(data.lastJsonResponse);
       setSceneImagePrompt(data.sceneImagePrompt);
       setWorldMap(data.gameContext.worldMap ?? {});
       setVisitedLocations(data.gameContext.visitedLocations ?? []);
       setTurnNumber(data.gameContext.currentTurnNumber);
-  }, [setLanguage]);
+  }, [setLanguage, t]);
 
   const clearStashForNewTurn = () => {
     setGameState(prev => {
@@ -288,7 +300,7 @@ export function useGameLogic({ language, setLanguage }: UseGameLogicProps) {
         const newHistory = [...prevHistory, playerMessage];
         const newContext = { ...gameContextRef.current! };
         newContext.message = message;
-        newContext.responseHistory = newHistory;
+        newContext.responseHistory = newHistory.slice(-15);
         setLastRequestJson(JSON.stringify(newContext, null, 2));
         handleTurn(playerMessage, newContext);
         return newHistory;
@@ -337,7 +349,7 @@ export function useGameLogic({ language, setLanguage }: UseGameLogicProps) {
             superInstructions: "The user is asking a question out-of-character. Answer it as the Game Master based on the rules and current state, then return to the game.",
             currentStepFocus: 'StepQuestion_CorrectionAndClarification',
             partiallyGeneratedResponse: null,
-            responseHistory: historyWithQuestion
+            responseHistory: historyWithQuestion.slice(-15)
         };
         setLastRequestJson(JSON.stringify(context, null, 2));
 
@@ -704,11 +716,31 @@ export function useGameLogic({ language, setLanguage }: UseGameLogicProps) {
       const newState = { ...prevGameState, encounteredNPCs: newNPCs };
 
       if (gameContextRef.current) {
-        const contextNpc = gameContextRef.current.encounteredNPCs.find((n: NPC) => n.NPCId === npcIdToClear);
-        if (contextNpc) {
-          delete (contextNpc as Partial<NPC>).journalEntries;
-        }
+        gameContextRef.current.encounteredNPCs = newNPCs;
       }
+      return newState;
+    });
+  }, []);
+
+  const deleteOldestNpcJournalEntries = useCallback((npcId: string) => {
+    setGameState(prevGameState => {
+      if (!prevGameState) return prevGameState;
+      
+      const newNPCs = prevGameState.encounteredNPCs.map(n => {
+        if (n.NPCId === npcId && n.journalEntries && n.journalEntries.length > 10) {
+          // New entries are added to the start (unshift), so oldest are at the end.
+          // slice(0, -10) keeps the newest entries and removes the 10 oldest from the end.
+          return { ...n, journalEntries: n.journalEntries.slice(0, -10) };
+        }
+        return n;
+      });
+
+      const newState = { ...prevGameState, encounteredNPCs: newNPCs };
+
+      if (gameContextRef.current) {
+        gameContextRef.current.encounteredNPCs = newNPCs;
+      }
+      
       return newState;
     });
   }, []);
@@ -968,6 +1000,7 @@ export function useGameLogic({ language, setLanguage }: UseGameLogicProps) {
     deleteLogs,
     forgetNpc,
     clearNpcJournal,
+    deleteOldestNpcJournalEntries,
     forgetLocation,
     forgetQuest,
     spendAttributePoint,

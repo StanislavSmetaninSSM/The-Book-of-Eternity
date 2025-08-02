@@ -2,6 +2,8 @@
 
 
 
+
+
 import React, { useState } from 'react';
 import { Item, Quest, ActiveSkill, PassiveSkill, Effect, Wound, NPC, Location, PlayerCharacter, CombatAction, Faction, CustomState } from '../../types';
 import { DetailRendererProps } from './types';
@@ -78,7 +80,7 @@ const isCustomState = (data: any): data is CustomState & { type: 'customState' }
 
 
 export default function DetailRenderer(props: DetailRendererProps) {
-    const { data, onForgetNpc, onClearNpcJournal, onCloseModal, onForgetQuest, onForgetLocation, currentLocationId, disassembleItem, gameSettings } = props;
+    const { data, onForgetNpc, onClearNpcJournal, onCloseModal, onForgetQuest, onForgetLocation, currentLocationId, disassembleItem, gameSettings, onDeleteOldestNpcJournalEntries } = props;
     const [confirmation, setConfirmation] = useState<{ type: string | null; data: any }>({ type: null, data: null });
     const { t } = useLocalization();
 

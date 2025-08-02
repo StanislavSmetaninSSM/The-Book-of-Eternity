@@ -14,7 +14,7 @@ import {
     UserIcon, IdentificationIcon, TagIcon, CalendarIcon, GlobeAltIcon, UsersIcon, HeartIcon,
     StarIcon, BookOpenIcon, SparklesIcon, ShieldCheckIcon, ArchiveBoxIcon, DocumentTextIcon,
     CogIcon, TrashIcon, ArchiveBoxXMarkIcon, BoltIcon, SunIcon, CloudIcon, ShieldExclamationIcon, KeyIcon,
-    ClockIcon, ArrowPathIcon
+    ClockIcon, ArrowPathIcon, AcademicCapIcon
 } from '@heroicons/react/24/outline';
 
 interface NpcDetailsProps extends Omit<DetailRendererProps, 'data'> {
@@ -23,7 +23,29 @@ interface NpcDetailsProps extends Omit<DetailRendererProps, 'data'> {
   onOpenClearJournalConfirm: () => void;
 }
 
-const NpcDetailsRenderer: React.FC<NpcDetailsProps> = ({ npc, onOpenImageModal, onOpenDetailModal, onOpenForgetConfirm, onOpenClearJournalConfirm, allowHistoryManipulation, onEditNpcData, encounteredFactions }) => {
+const StatBar: React.FC<{
+    value: number;
+    max: number;
+    color: string;
+    label: string;
+    icon: React.FC<React.SVGProps<SVGSVGElement>>;
+}> = ({ value, max, color, label, icon: Icon }) => (
+    <div className="w-full text-left">
+        <div className="flex justify-between items-center mb-1">
+            <div className="flex items-center gap-2">
+                <Icon className={`w-4 h-4 ${color.replace('bg-', 'text-')}`} />
+                <span className="text-sm font-medium text-gray-300">{label}</span>
+            </div>
+          <span className="text-sm font-mono text-gray-400">{value} / {max}</span>
+        </div>
+        <div className="w-full bg-gray-700/50 rounded-full h-2">
+          <div className={`${color} h-2 rounded-full transition-all duration-500`} style={{ width: max > 0 ? `${(value / max) * 100}%` : '0%' }}></div>
+        </div>
+    </div>
+);
+
+
+const NpcDetailsRenderer: React.FC<NpcDetailsProps> = ({ npc, onOpenImageModal, onOpenDetailModal, onOpenForgetConfirm, onOpenClearJournalConfirm, allowHistoryManipulation, onEditNpcData, encounteredFactions, onDeleteOldestNpcJournalEntries }) => {
     const { t } = useLocalization();
     const [isJournalOpen, setIsJournalOpen] = useState(false);
     const factionMapById = new Map((encounteredFactions || []).filter(f => f.factionId).map(f => [f.factionId, f]));
@@ -68,8 +90,6 @@ const NpcDetailsRenderer: React.FC<NpcDetailsProps> = ({ npc, onOpenImageModal, 
                 } icon={UserIcon} />
                 {npc.race && npc.class && <DetailRow label={t("Race & Class")} value={`${t(npc.race as any)} ${t(npc.class as any)}`} icon={TagIcon} />}
                 {npc.age && <DetailRow label={t("Age")} value={npc.age} icon={CalendarIcon} />}
-                {npc.level && <DetailRow label={t("Level")} value={npc.level} icon={StarIcon} />}
-                {npc.progressionType && <DetailRow label={t("Progression Type")} value={t(npc.progressionType)} icon={ArrowPathIcon} />}
                 {npc.rarity && <DetailRow label={t("Rarity")} value={t(npc.rarity as any)} icon={TagIcon} />}
                 {npc.worldview && <DetailRow label={t("Worldview")} value={t(npc.worldview as any)} icon={GlobeAltIcon} />}
                 {npc.attitude && <DetailRow label={t("Attitude")} value={t(npc.attitude as any)} icon={UsersIcon} />}
@@ -86,6 +106,24 @@ const NpcDetailsRenderer: React.FC<NpcDetailsProps> = ({ npc, onOpenImageModal, 
                     </div>
                 } icon={HeartIcon} />}
             </Section>
+
+            {(npc.level !== undefined || npc.progressionType) && (
+                <Section title={t("Progression")} icon={AcademicCapIcon}>
+                    {npc.level !== undefined && <DetailRow label={t("Level")} value={npc.level} icon={StarIcon} />}
+                    {npc.progressionType && <DetailRow label={t("Progression Type")} value={t(npc.progressionType as any)} icon={ArrowPathIcon} />}
+                    {(npc.experience !== undefined && npc.experienceForNextLevel !== undefined && npc.experienceForNextLevel > 0) && (
+                        <div className="pt-2">
+                            <StatBar
+                                value={npc.experience}
+                                max={npc.experienceForNextLevel}
+                                color="bg-yellow-500"
+                                label={t('Experience')}
+                                icon={StarIcon}
+                            />
+                        </div>
+                    )}
+                </Section>
+            )}
 
             {npc.history && (
                 <Section title={t("History")} icon={BookOpenIcon}>
@@ -333,6 +371,7 @@ const NpcDetailsRenderer: React.FC<NpcDetailsProps> = ({ npc, onOpenImageModal, 
                     npcName={npc.name}
                     isEditable={allowHistoryManipulation}
                     onSaveEntry={handleSaveJournalEntry}
+                    onDeleteOldest={onDeleteOldestNpcJournalEntries ? () => onDeleteOldestNpcJournalEntries(npc.NPCId!) : undefined}
                 />
             )}
         </div>

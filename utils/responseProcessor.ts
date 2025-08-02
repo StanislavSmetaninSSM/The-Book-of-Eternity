@@ -1,5 +1,4 @@
-
-import { GameState, GameResponse, PlayerCharacter, Item, ActiveSkill, PassiveSkill, NPC, LocationData, Quest, EnemyCombatObject, AllyCombatObject, CustomState, Wound, Faction, SkillMastery, Effect, Recipe, UnlockedMemory } from '../types';
+import { GameState, GameResponse, PlayerCharacter, Item, ActiveSkill, PassiveSkill, NPC, LocationData, Quest, EnemyCombatObject, AllyCombatObject, CustomState, Wound, Faction, SkillMastery, Effect, Recipe, UnlockedMemory, WorldStateFlag } from '../types';
 import { recalculateDerivedStats } from './gameContext';
 import { recalculateAllWeights } from './inventoryManager';
 import { characteristics as charTranslations } from './translations/characteristics';
@@ -150,8 +149,26 @@ function upsertEntities<T extends { [key: string]: any }>(
         }
 
         if (existingIndex !== -1) {
+            const existingEntity = newEntities[existingIndex];
+            
+            // SPECIAL PRESERVATION LOGIC FOR NPC JOURNALS
+            if (idKey === 'NPCId') {
+                const npcChange = change as unknown as Partial<NPC>;
+                const existingNpc = existingEntity as unknown as NPC;
+                
+                // If the AI sends an update for an NPC but omits the journal or sends an empty one,
+                // and a journal already exists, we assume the AI forgot and we preserve the old journal.
+                if (existingNpc.journalEntries && Array.isArray(existingNpc.journalEntries) && existingNpc.journalEntries.length > 0) {
+                    if (!npcChange.journalEntries || (Array.isArray(npcChange.journalEntries) && npcChange.journalEntries.length === 0)) {
+                        // Preserve the existing journal by deleting the empty/missing one from the incoming change.
+                        // This way, deepMerge won't overwrite it.
+                        delete npcChange.journalEntries;
+                    }
+                }
+            }
+
             // Deep merge new data into the existing entity
-            newEntities[existingIndex] = deepMerge(newEntities[existingIndex], change);
+            newEntities[existingIndex] = deepMerge(existingEntity, change);
         } else {
             // It's a new entity. Ensure it has a generated ID if one wasn't provided.
             if (!change[idKey]) {
@@ -175,6 +192,39 @@ const getEffectKey = (effect: Effect): string => {
     return effect.description.replace(/\s*\([^)]*\)$/, '').trim();
 };
 
+export function checkAndApplyLevelUp(pc: PlayerCharacter, t: TFunction): { pc: PlayerCharacter, logs: string[] } {
+    const newPc = JSON.parse(JSON.stringify(pc));
+    let leveledUp = false;
+    let levelsGained = 0;
+    const logs: string[] = [];
+
+    let currentExperience = Number(newPc.experience);
+    let experienceForNextLevel = Number(newPc.experienceForNextLevel);
+
+    // Prevent infinite loop if experienceForNextLevel is 0 or negative
+    while (currentExperience >= experienceForNextLevel && experienceForNextLevel > 0) {
+        leveledUp = true;
+        levelsGained++;
+        const prevLevelExp = experienceForNextLevel;
+        newPc.level = Number(newPc.level) + 1;
+        newPc.attributePoints = (Number(newPc.attributePoints) || 0) + 5;
+        currentExperience -= prevLevelExp;
+        experienceForNextLevel = Math.floor(prevLevelExp * 1.5);
+    }
+
+    if (leveledUp) {
+        newPc.experience = currentExperience;
+        newPc.experienceForNextLevel = experienceForNextLevel;
+        if (levelsGained > 1) {
+            logs.push(t("You have gained {levels} levels and reached Level {level}! You have {points} new attribute points to spend.", { levels: levelsGained, level: newPc.level, points: levelsGained * 5 }));
+        } else {
+            logs.push(t("You have reached Level {level}! You have 5 new attribute points to spend.", { level: newPc.level }));
+        }
+    }
+
+    return { pc: newPc, logs };
+}
+
 export const processAndApplyResponse = (response: GameResponse, baseState: GameState, t: TFunction): { newState: GameState, logsToAdd: string[], combatLogsToAdd: string[] } => {
     const newState: GameState = JSON.parse(JSON.stringify(baseState));
     let pc = newState.playerCharacter;
@@ -195,18 +245,13 @@ export const processAndApplyResponse = (response: GameResponse, baseState: GameS
     pc.experience += response.experienceGained || 0;
 
     // --- Level Up Logic ---
-    let leveledUp = false;
-    while (pc.experience >= pc.experienceForNextLevel) {
-        leveledUp = true;
-        pc.level += 1;
-        pc.attributePoints = (pc.attributePoints || 0) + 5;
-        pc.experience -= pc.experienceForNextLevel;
-        pc.experienceForNextLevel = Math.floor(pc.experienceForNextLevel * 1.5);
-    }
-    if (leveledUp) {
-        logsToAdd.push(t("You have reached Level {level}! You have 5 new attribute points to spend.", { level: pc.level }));
+    const levelUpResult = checkAndApplyLevelUp(pc, t);
+    pc = levelUpResult.pc;
+    if (levelUpResult.logs.length > 0) {
+        logsToAdd.push(...levelUpResult.logs);
     }
     pc.levelOnPreviousTurn = pc.level;
+
 
     // --- Identity, Appearance & Stat Increases ---
     if (response.playerNameChange) {
@@ -805,6 +850,15 @@ export const processAndApplyResponse = (response: GameResponse, baseState: GameS
     if (response.playerStatus) {
         newState.playerStatus = response.playerStatus;
     }
+
+    const flagUpdates = asArray(response.worldStateFlags).reduce((acc, flag) => {
+        if (flag && flag.flagId) {
+            acc[flag.flagId] = flag as WorldStateFlag;
+        }
+        return acc;
+    }, {} as Record<string, WorldStateFlag>);
+    newState.worldStateFlags = { ...newState.worldStateFlags, ...flagUpdates };
+
 
     const finalWeight = newState.playerCharacter.totalWeight;
     const maxWeight = newState.playerCharacter.maxWeight + newState.playerCharacter.criticalExcessWeight;

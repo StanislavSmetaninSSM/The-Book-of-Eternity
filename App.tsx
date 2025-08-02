@@ -52,6 +52,7 @@ export default function App(): React.ReactNode {
     deleteLogs,
     forgetNpc,
     clearNpcJournal,
+    deleteOldestNpcJournalEntries,
     forgetLocation,
     forgetQuest,
     spendAttributePoint,
@@ -99,6 +100,30 @@ export default function App(): React.ReactNode {
   const [sidebarWidth, setSidebarWidth] = useState(384); // Default width (e.g., lg:w-96)
   const [isResizing, setIsResizing] = useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+
+  useEffect(() => {
+    // This effect ensures that the data shown in the detail modal is always fresh.
+    // When gameState is updated (e.g., by deleting journal entries), this finds the
+    // corresponding object in the new state and updates the modal's data,
+    // triggering a re-render with the correct information.
+    if (detailModalData && gameState) {
+        const { data } = detailModalData;
+        let updatedData = null;
+
+        // Identify the type of data and find its updated version in the new gameState.
+        if (data.NPCId && Array.isArray(gameState.encounteredNPCs)) {
+            updatedData = gameState.encounteredNPCs.find(npc => npc.NPCId === data.NPCId);
+        } else if (data.existedId && Array.isArray(gameState.playerCharacter.inventory)) {
+            updatedData = gameState.playerCharacter.inventory.find(item => item.existedId === data.existedId);
+        } else if (data.questId && Array.isArray(gameState.activeQuests)) {
+            updatedData = gameState.activeQuests.find(q => q.questId === data.questId) || gameState.completedQuests.find(q => q.questId === data.questId);
+        }
+
+        if (updatedData && JSON.stringify(updatedData) !== JSON.stringify(data)) {
+            setDetailModalData(prev => (prev ? { ...prev, data: updatedData } : null));
+        }
+    }
+  }, [gameState, detailModalData]);
 
   const toggleSidebar = useCallback(() => {
     setIsSidebarCollapsed(prev => !prev);
@@ -244,7 +269,7 @@ export default function App(): React.ReactNode {
             <div className="absolute inset-0 z-0 cursor-pointer" onClick={() => handleShowImageModal(sceneImagePrompt)}>
                 <ImageRenderer 
                   prompt={sceneImagePrompt} 
-                  alt="Current game scene" 
+                  alt={t("Current game scene")} 
                   className="object-cover w-full h-full opacity-30" 
                   width={1024} 
                   height={1024} 
@@ -368,7 +393,7 @@ export default function App(): React.ReactNode {
             <ImageRenderer 
               prompt={imageModalPrompt} 
               className="w-full h-auto rounded-md" 
-              alt="Enlarged game scene"
+              alt={t("Enlarged game scene")}
               showRegenerateButton={true}
               width={1024}
               height={1024}
@@ -381,6 +406,7 @@ export default function App(): React.ReactNode {
             onForgetNpc={forgetNpc} 
             onForgetLocation={forgetLocation} 
             onClearNpcJournal={clearNpcJournal}
+            onDeleteOldestNpcJournalEntries={deleteOldestNpcJournalEntries}
             onForgetQuest={forgetQuest}
             onCloseModal={handleCloseDetailModal} 
             onOpenImageModal={handleShowImageModal}

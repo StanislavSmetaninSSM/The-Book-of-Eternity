@@ -1,4 +1,3 @@
-
 export const details = {
   en: {
     // Common Detail View Titles

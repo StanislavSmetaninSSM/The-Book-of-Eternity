@@ -67,7 +67,11 @@ export const status = {
     "NPCEffect '{effectName}' on {npcName} has expired.": "Effect '{effectName}' on {npcName} has expired.",
     "NPCEffect '{effectName}' on {npcName} has been removed.": "Effect '{effectName}' on {npcName} has been removed.",
     "Wound '{woundName}' has been fully healed.": "Wound '{woundName}' has been fully healed.",
-    "energy_lost_overload": "Lost {amount} energy due to being overloaded."
+    "energy_lost_overload": "Lost {amount} energy due to being overloaded.",
+
+    // Custom States
+    "States": "States",
+    "No custom states are active.": "No custom states are active.",
   },
   ru: {
     // Conditions, Effects, Wounds
@@ -138,6 +142,10 @@ export const status = {
     "NPCEffect '{effectName}' on {npcName} has expired.": "Эффект '{effectName}' на {npcName} истек.",
     "NPCEffect '{effectName}' on {npcName} has been removed.": "Эффект '{effectName}' на {npcName} был снят.",
     "Wound '{woundName}' has been fully healed.": "Рана '{woundName}' полностью зажила.",
-    "energy_lost_overload": "Потеряно {amount} энергии из-за перегрузки."
+    "energy_lost_overload": "Потеряно {amount} энергии из-за перегрузки.",
+
+    // Custom States
+    "States": "Состояния",
+    "No custom states are active.": "Нет активных особых состояний.",
   }
 };

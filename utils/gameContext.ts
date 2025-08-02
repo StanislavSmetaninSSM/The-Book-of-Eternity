@@ -1,5 +1,4 @@
-
-import { GameState, GameContext, ChatMessage, GameResponse, PlayerCharacter, LocationData, Characteristics, Location, Faction, Language, LootTemplate, UnlockedMemory, Recipe, Item } from '../types';
+import { GameState, GameContext, ChatMessage, GameResponse, PlayerCharacter, LocationData, Characteristics, Location, Faction, Language, LootTemplate, UnlockedMemory, Recipe, Item, WorldStateFlag } from '../types';
 import { gameData } from './localizationGameData';
 import { generateLootTemplates } from './lootGenerator';
 
@@ -465,7 +464,7 @@ export const buildNextContext = (
       enemiesDataForCurrentTurn: response.enemiesData,
       alliesDataForCurrentTurn: response.alliesData,
       worldState: newWorldState,
-      worldStateFlags: { ...prevContext.worldStateFlags, ...(response.worldStateFlags || {}) },
+      worldStateFlags: newState.worldStateFlags,
       encounteredFactions: newState.encounteredFactions,
       plotOutline: response.plotOutline || prevContext.plotOutline,
       worldMap: newWorldMap,

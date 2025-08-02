@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { WorldState } from '../types';
+import { WorldState, WorldStateFlag } from '../types';
 import { useLocalization } from '../context/LocalizationContext';
 import { GlobeAltIcon, FlagIcon } from '@heroicons/react/24/outline';
 import MarkdownRenderer from './MarkdownRenderer';
@@ -22,7 +22,7 @@ const WorldStateDisplay = ({ worldState, turnNumber }: { worldState: WorldState 
         <div className="bg-gray-900/50 p-3 rounded-lg text-sm flex justify-around items-center border border-gray-700/60 mb-6">
             <div className="text-center">
                 <p className="text-xs text-gray-400">{t('Turn')}</p>
-                <p className="font-bold text-lg text-cyan-300">{turnNumber > 0 ? turnNumber : '—'}</p>
+                <p className="font-bold text-lg text-cyan-300">{turnNumber && turnNumber > 0 ? turnNumber : '—'}</p>
             </div>
             {worldState && (
                 <>
@@ -45,9 +45,9 @@ const WorldStateDisplay = ({ worldState, turnNumber }: { worldState: WorldState 
     );
 };
 
-const WorldPanel = ({ worldState, worldStateFlags, turnNumber }: { worldState: WorldState | null, worldStateFlags: Record<string, boolean | string> | null, turnNumber: number | null }) => {
+const WorldPanel = ({ worldState, worldStateFlags, turnNumber }: { worldState: WorldState | null, worldStateFlags: Record<string, WorldStateFlag> | null, turnNumber: number | null }) => {
     const { t } = useLocalization();
-    const activeFlags = worldStateFlags ? Object.entries(worldStateFlags).filter(([_, value]) => value === true || typeof value === 'string') : [];
+    const activeFlags = worldStateFlags ? Object.values(worldStateFlags).filter(flag => flag.value !== false) : [];
 
     return (
         <div className="space-y-6">
@@ -59,10 +59,17 @@ const WorldPanel = ({ worldState, worldStateFlags, turnNumber }: { worldState: W
                 </h3>
                 {activeFlags.length > 0 ? (
                     <div className="space-y-3">
-                        {activeFlags.map(([key, value]) => (
-                            <div key={key} className="bg-gray-900/40 p-3 rounded-lg border border-gray-700/50">
-                                <p className="font-semibold text-cyan-300">{t(key)}</p>
-                                {typeof value === 'string' && <div className="text-sm text-gray-400 italic mt-1"><MarkdownRenderer content={t(value)} /></div>}
+                        {activeFlags.map((flag) => (
+                            <div key={flag.flagId} className="bg-gray-900/40 p-3 rounded-lg border border-gray-700/50" title={flag.description}>
+                                <p className="font-semibold text-cyan-300">{flag.displayName}</p>
+                                <div className="text-sm text-gray-400 italic mt-1">
+                                    <MarkdownRenderer content={flag.description} />
+                                </div>
+                                {typeof flag.value !== 'boolean' && (
+                                    <p className="text-xs text-yellow-300 mt-2 font-mono">
+                                        {t('Status')}: {String(flag.value)}
+                                    </p>
+                                )}
                             </div>
                         ))}
                     </div>

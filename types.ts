@@ -2,6 +2,13 @@
 
 // Represents the entire state of the game world passed between turns
 
+export interface WorldStateFlag {
+  flagId: string;
+  displayName: string;
+  value: boolean | string | number;
+  description: string;
+}
+
 export interface UnlockedMemory {
   memoryId: string;
   title: string;
@@ -30,7 +37,7 @@ export interface GameContext {
   lootForCurrentTurn: LootTemplate[]; // Define more specifically if needed
   preGeneratedDices1d20: number[];
   worldState: WorldState;
-  worldStateFlags: Record<string, boolean | string>;
+  worldStateFlags: Record<string, WorldStateFlag>;
   previousTurnResponse: GameResponse | null;
   encounteredFactions: Faction[];
   plotOutline: PlotOutline | null;
@@ -62,7 +69,7 @@ export interface GameState {
   lastUpdatedQuestId?: string | null;
   plotOutline: PlotOutline | null;
   temporaryStash?: Item[];
-  worldStateFlags: Record<string, boolean | string>;
+  worldStateFlags: Record<string, WorldStateFlag>;
   playerStatus?: PlayerStatus;
 }
 
@@ -333,6 +340,10 @@ export interface FactionAffiliation {
     membershipStatus: 'Active' | 'Former' | 'Exiled' | 'Undercover' | 'Ally' | 'Enemy';
 }
 
+export interface NPCProgressionTrackers {
+    lastPlayerXPValueOnSync?: number;
+}
+
 export interface NPC {
   NPCId: string | null;
   name: string;
@@ -346,7 +357,10 @@ export interface NPC {
   appearanceDescription?: string;
   history?: string;
   level?: number;
+  experience?: number;
+  experienceForNextLevel?: number;
   progressionType?: 'Companion' | 'PlotDriven' | 'Static';
+  progressionTrackers?: NPCProgressionTrackers;
   relationshipLevel?: number;
   attitude?: string;
   characteristics?: Characteristics;
@@ -534,7 +548,7 @@ export interface GameResponse {
   questUpdates: Quest[] | null;
   plotOutline: PlotOutline | null;
   worldMapUpdates: any | null;
-  worldStateFlags: Record<string, any> | null;
+  worldStateFlags: Partial<WorldStateFlag>[] | null;
   dialogueOptions: string[] | null;
   NPCsData: Partial<NPC>[] | null;
   NPCsRenameData: any[] | null;

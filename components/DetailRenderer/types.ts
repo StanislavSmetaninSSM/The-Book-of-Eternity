@@ -4,6 +4,7 @@ export interface DetailRendererProps {
     data: any;
     onForgetNpc?: (npcId: string) => void;
     onClearNpcJournal?: (npcId: string) => void;
+    onDeleteOldestNpcJournalEntries?: (npcId: string) => void;
     onCloseModal?: () => void;
     onOpenImageModal?: (prompt: string) => void;
     onForgetLocation?: (locationId: string) => void;
