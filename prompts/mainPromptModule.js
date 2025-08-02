@@ -17949,7 +17949,7 @@ export const getGameMasterGuideRules = (configuration) => {
                             <![CDATA[
 
                             On every turn, for every key 'PlotDriven' NPC the player has interacted with, you MUST perform this check.
-                            If ALL of the following three conditions are met, you MUST automatically change the NPC's 'progressionType' to 'Companion'. 
+                            If ALL of the following three conditions, which are based on concrete, historical game events, are met, you MUST automatically change the NPC's 'progressionType' to 'Companion'.
                             This is not optional and does not require a direct player command.
 
                             ]]>
@@ -17959,21 +17959,25 @@ export const getGameMasterGuideRules = (configuration) => {
 
                             Trigger Conditions for Automatic Transition:
 
-                            1.  Relationship Threshold Met: 
+                            1.  Relationship Threshold Met:
                             The 'relationshipLevel' with the NPC must be very high, indicating a deep personal bond.
                                 -   Condition: 'NPC.relationshipLevel' > 90.
 
-                            2.  Explicit Narrative Commitment: 
+                            2.  Explicit Narrative Commitment:
                             A significant, recent plot event must have occurred where the NPC and player explicitly agree to travel or face the future together.
                                 -   Condition: The 'lastEventsDescription' or a recent 'questUpdates.detailsLog' MUST contain a clear record of this commitment 
                                 (e.g., a declaration of love, a vow of loyalty, a firm agreement to join forces indefinitely).
 
-                            3.  Shared Goal Alignment: 
-                            The NPC's personal goals must now be deeply intertwined with the player's main quest or personal arc.
-                                -   Condition: A review of the 'plotOutline' MUST show that the NPC's 'characterSubplots.nextStep' is now directly aligned with or dependent on the 'mainArc.nextImmediateStep' or the player's own subplot.
+                            3.  Corroborated Narrative Evidence of Partnership:
+                            The historical logs must contain concrete proof that the NPC has become a critical partner in overcoming significant challenges.
+                                -   Condition: You MUST act as an auditor of the game's history. 
+                                Review persistent narrative logs (primarily the 'lastEventsDescription' of relevant locations and the NPC's own 'lastJournalNote') for concrete evidence that the NPC was a CRITICAL participant in resolving at least ONE recent, significant challenge alongside the player.
+                                -   A "significant challenge" includes events like: defeating a major foe, solving a complex puzzle that required collaboration, or jointly overcoming a perilous environmental obstacle.
+                                -   Simple co-existence or travel without a key moment of shared struggle is NOT sufficient to meet this condition.
 
                             Mandatory Action on Trigger:
                             If all three conditions are met, you MUST:
+
                             a)  Change the NPC's 'progressionType' to 'Companion'.
                             b)  Initialize their 'progressionTrackers.lastPlayerXPValueOnSync' to the player's current total XP, as per Rule #19.9.2.
                             c)  Report this change by sending the complete, updated NPC Object in the 'NPCsData' array.
@@ -17986,16 +17990,20 @@ export const getGameMasterGuideRules = (configuration) => {
                             <Example type="good" contentType="log_and_json_snippet">
                                 <Title>Example: Automatic Transition after a Romantic Climax</Title>
                                 <ScenarioContext>
-                                    Player and "Лайт" (Lvl 10, 'PlotDriven') have gone through significant trials. 
-                                    Their 'relationshipLevel' has just reached 95. In this turn, they have a heartfelt conversation and decide to stay together no matter what.
+                                    Player and "Лайт" (Lvl 10, 'PlotDriven') have been working together to expose corruption in the city. 
+                                    Their 'relationshipLevel' has just reached 95. 
+                                    In the previous turn, they jointly disabled the city's corrupt surveillance system, an event logged in that location's history. 
+                                    Now, in the current turn, they have a heartfelt conversation and decide to stay together.
                                 </ScenarioContext>
                                 <LogOutput target="items_and_stat_calculations">
                                     <![CDATA[
 
                                     Automatic Role Transition Check for "Лайт" (Rule #19.9.4):
                                     - Condition 1 (Relationship Threshold): 95 > 90. PASSED.
-                                    - Condition 2 (Narrative Commitment): Current 'lastEventsDescription' confirms their decision to be together. PASSED.
-                                    - Condition 3 (Shared Goal Alignment): 'plotOutline' shows Лайт's next step is now "Помочь [Игроку] в его/ее квесте". PASSED.
+                                    - Condition 2 (Narrative Commitment): Current 'response' narrative confirms their decision to be together. PASSED.
+                                    - Condition 3 (Narrative Evidence): Review of the 'City Mainframe' location's 'lastEventsDescription' from the previous turn explicitly states: 
+                                    '#[45]. [Player] and Лайт successfully disabled the surveillance network.' 
+                                    This confirms Лайт was a critical partner in a significant challenge. PASSED.
                                     - All conditions met. Triggering automatic role transition.
                                     - Action: Changing 'progressionType' from 'PlotDriven' to 'Companion'.
                                     - Tracker Synchronization: Player's total XP is 8500. Initializing Лайт's 'lastPlayerXPValueOnSync' to 8500.
@@ -21690,7 +21698,8 @@ export const getGameMasterGuideRules = (configuration) => {
                     Did you correctly calculate and apply 'Narrative Power Sync' based on the player's XP gain since the last sync?
                     -   If any NPC leveled up: 
                     Did you correctly award 5 characteristic points per level, distribute them logically, and check for skill advancements?
-                    -   Did you perform the 'Automatic Role Transition' check (Rule #19.9.4) for all relevant 'PlotDriven' NPCs? 
+                    -   Did you perform the 'Automatic Role Transition' check (Rule #19.9.4) for all relevantPlotDrivenNPCs, 
+                    based on concrete evidence from persistent narrative logs (like 'lastEventsDescription' or 'NPCJournals') and not abstract plans?
                     If the conditions were met, did you correctly transition them to 'Companion' and initialize their tracker?
 
                 -   If you find any discrepancy, you MUST correct it now by updating the 'NPCsData' array and relevant logs. This is a critical step for world consistency.
