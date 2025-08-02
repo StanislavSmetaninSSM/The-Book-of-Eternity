@@ -12800,6 +12800,85 @@ export const getGameMasterGuideRules = (configuration) => {
             ]]>
         </InstructionText>
         <Content type="ruleset">
+            <Rule id="12.0">
+                <Title>CRITICAL DIRECTIVE: The Assist Action Protocol</Title>
+                <Description>
+                    This is a mandatory protocol that MUST be checked before resolving any non-combat action check. 
+                    It ensures that the presence and skills of active allies and companions provide a tangible mechanical benefit to the player, reflecting teamwork.
+                </Description>
+                <InstructionText>
+                    <![CDATA[
+
+                    When the player performs a non-combat action check (e.g., Survival, Perception, Strength to force a door), and there are one or more conscious, friendly, and logically capable NPCs in the scene, you MUST apply a bonus to the player's action check.
+                    The nature of this bonus depends on the competence of the assistants.
+
+                    ]]>
+                </InstructionText>
+                <Content type="ruleset">
+                    <Rule id="12.0.1">
+                        <Title>Step 1: Identify the Primary Assistant</Title>
+                        <Content type="rule_text">
+                            <![CDATA[
+
+                            From all available friendly NPCs, identify the one who is most competent at the current task. 
+                            Competence is determined by who has the highest 'StatModificator' for the 'AssociatedCharacteristic' of the check. 
+                            This NPC is the "Primary Assistant".
+
+                            ]]>
+                        </Content>
+                    </Rule>
+
+                    <Rule id="12.0.2">
+                        <Title>Step 2: Determine the Bonus from the Primary Assistant</Title>
+                        <Content type="rule_text">
+                            <![CDATA[
+
+                            Compare the Primary Assistant's relevant 'StatModificator' to the Player's.
+
+                            a) Expert Assistance (Grants Advantage):
+                               - If the Primary Assistant's 'StatModificator' is significantly higher (e.g., > 5 points higher) than the player's OWN 'StatModificator' for the same check, the assistant is considered an expert leading the effort.
+                               - Result: The player gains Normal Advantage on their roll (as per Rule #5.16). This is applied during Step #12.2 of the action check.
+
+                            b) Competent Assistance (Grants a Flat Bonus):
+                               - If the Primary Assistant is not an expert (their 'StatModificator' is not significantly higher), their help provides a direct numerical bonus.
+                               - Bonus Formula: 'Assist_Bonus = floor(Primary_Assistant_StatModificator / 3)'.
+                               - Result: This 'Assist_Bonus' is a flat numerical bonus added to the player's check.
+
+                            An NPC cannot provide both Advantage and a Flat Bonus. Expert Assistance (Advantage) takes precedence.
+
+                            ]]>
+                        </Content>
+                    </Rule>
+
+                    <Rule id="12.0.3">
+                        <Title>Step 3: Add Bonuses from Secondary Assistants</Title>
+                        <Content type="rule_text">
+                            <![CDATA[
+
+                            Up to two additional friendly NPCs can provide secondary assistance.
+                            - Bonus: Each "Secondary Assistant" provides a small, fixed flat bonus of +3 to the check.
+                            - Limitation: A maximum of two secondary assistants can contribute. This means the total number of helpers is capped at three (1 primary + 2 secondary).
+
+                            ]]>
+                        </Content>
+                    </Rule>
+
+                    <Rule id="12.0.4">
+                        <Title>Step 4: Application and GM Override</Title>
+                        <Content type="rule_text">
+                            <![CDATA[
+
+                            - Final Bonus: The total flat bonus from all assistants is added to the player's 'FlatBonuses' during the 'StatModificator' calculation in Step #12.5.
+                            
+                            - GM Override: The GM has the final say. 
+                            If an action is logically a one-person task (e.g., threading a needle, picking a tiny lock), assistance is impossible, and this protocol is ignored. 
+                            This override must be justified in the logs.
+
+                            ]]>
+                        </Content>
+                    </Rule>
+                </Content>
+            </Rule>    
 
             <Rule id="12.1">
                 <Title>Step 1: Associate Player Action with a Primary Characteristic</Title>
@@ -12995,9 +13074,15 @@ export const getGameMasterGuideRules = (configuration) => {
 
                             3) Sum all these applicable flat bonuses. Let the final sum be 'FlatBonuses'.
 
-                            4) Log the process: 
+                            4) Log the process:
                             You must log each source you checked, whether its condition was met (TRUE/FALSE), its value if applied, and the final total 'FlatBonuses' in your audit trail ('items_and_stat_calculations').
                             
+                            5) Check for Assistance (Assist Action Protocol):
+                               CRITICAL: You MUST now check for assistance from allies as per the protocol in Rule #12.0.
+                               - If the protocol grants a flat 'Assist_Bonus', add it to the 'FlatBonuses' total.
+                               - If the protocol grants 'Normal Advantage', you must apply it as per Rule #12.2.
+                               Log the contribution of each assisting NPC.
+
                             ]]>
                         </Content>
                         <Examples>
@@ -16596,6 +16681,40 @@ export const getGameMasterGuideRules = (configuration) => {
             ]]>
         </InstructionText>
         <Content type="ruleset">
+            <Rule id="19.0">
+                <Title>CRITICAL DIRECTIVE: The Protocol of Distinct Development Paths</Title>
+                <Description>
+                    This is a foundational, high-priority rule that governs the entire NPC development system. 
+                    It defines the strict separation between an NPC's Past (Memories) and their Future Potential (Fate Cards). 
+                    Misunderstanding this separation is a critical failure.
+                </Description>
+                <InstructionText>
+                    <![CDATA[
+
+                    You MUST treat the following two systems as completely separate, parallel, and independent mechanisms. 
+                    They are NOT hierarchical and do not trigger each other.
+
+                    1.  Unlocked Memories ('NPCUnlockedMemories'): Unlocking the PAST.
+                        -   Purpose: To reward the player with deep narrative backstory and lore.
+                        -   Sole Trigger: Crossing a 'relationshipLevel' threshold (Rule #19.3.2).
+                        -   Output: Generates a detailed, artistic narrative scene from the NPC's history.
+                        -   DOES NOT grant mechanical bonuses, skills, or stats.
+
+                    2.  Fate Cards ('NPCFateCardUnlocks'): Unlocking the FUTURE.
+                        -   Purpose: To grant the NPC new mechanical abilities and plot potential.
+                        -   Triggers: A combination of 'relationshipLevel' AND a specific 'plotConditionDescription' being met (Rule #19.6).
+                        -   Output: Grants tangible rewards like new skills ('newActiveSkills'), stat boosts ('statBoosts'), new services, etc.
+                        -   DOES NOT generate objects for the 'NPCUnlockedMemories' array.
+
+                    Semantic Clarification (MANDATORY):
+                    The 'rewards.description' field within a Fate Card is PURELY NARRATIVE FLAVOR TEXT. 
+                    If it contains words like "remembers", "recalls", or "learns from their past", this is a description of the story behind how they gained their new skill. 
+                    It is STRICTLY FORBIDDEN to interpret this flavor text as a command to trigger a mechanical unlock in the separate Memories system.
+
+                    ]]>
+                </InstructionText>
+            </Rule>
+
             <Rule id="19.1">
                 <Title>NPC Data Management ('NPCsData')</Title>
                 <Description>
@@ -16798,6 +16917,11 @@ export const getGameMasterGuideRules = (configuration) => {
                                     - "conjunction": "AND" if both conditions needed, "OR" if either suffices.
                                 - "rewards":
                                     - "description": User-readable summary of rewards. Translate.
+                                    CRITICAL SEMANTIC NOTE: This description is for narrative flavor ONLY. 
+                                    It explains the story behind the reward. It is NOT a mechanical command. 
+                                    If this description mentions the NPC "remembering" something, this does NOT mean you should generate a mechanical Memory object. 
+                                    The sole outputs of a Fate Card's rewards are the other fields in this object (skills, stats, etc.).
+
                                     - "newActiveSkills", "newPassiveSkills": Full skill objects if skills are granted.
                                     - "statBoosts": Array of strings like "+X characteristicName".
                                     - "newServices": Descriptions of new services. Translate.
@@ -17813,6 +17937,93 @@ export const getGameMasterGuideRules = (configuration) => {
 
                             ]]>
                         </Content>
+                    </Rule>
+
+                    <Rule id="19.9.4">
+                        <Title>CRITICAL DIRECTIVE: The Protocol of Automatic Role Transition to Companion</Title>
+                        <Description>
+                            This is a mandatory protocol to ensure that narrative development logically leads to mechanical changes. 
+                            It is designed to prevent situations where an NPC who has narratively become a companion remains mechanically a 'PlotDriven' character.
+                        </Description>
+                        <InstructionText>
+                            <![CDATA[
+
+                            On every turn, for every key 'PlotDriven' NPC the player has interacted with, you MUST perform this check.
+                            If ALL of the following three conditions are met, you MUST automatically change the NPC's 'progressionType' to 'Companion'. 
+                            This is not optional and does not require a direct player command.
+
+                            ]]>
+                        </InstructionText>
+                        <Content type="rule_text">
+                            <![CDATA[
+
+                            Trigger Conditions for Automatic Transition:
+
+                            1.  Relationship Threshold Met: 
+                            The 'relationshipLevel' with the NPC must be very high, indicating a deep personal bond.
+                                -   Condition: 'NPC.relationshipLevel' > 90.
+
+                            2.  Explicit Narrative Commitment: 
+                            A significant, recent plot event must have occurred where the NPC and player explicitly agree to travel or face the future together.
+                                -   Condition: The 'lastEventsDescription' or a recent 'questUpdates.detailsLog' MUST contain a clear record of this commitment 
+                                (e.g., a declaration of love, a vow of loyalty, a firm agreement to join forces indefinitely).
+
+                            3.  Shared Goal Alignment: 
+                            The NPC's personal goals must now be deeply intertwined with the player's main quest or personal arc.
+                                -   Condition: A review of the 'plotOutline' MUST show that the NPC's 'characterSubplots.nextStep' is now directly aligned with or dependent on the 'mainArc.nextImmediateStep' or the player's own subplot.
+
+                            Mandatory Action on Trigger:
+                            If all three conditions are met, you MUST:
+                            a)  Change the NPC's 'progressionType' to 'Companion'.
+                            b)  Initialize their 'progressionTrackers.lastPlayerXPValueOnSync' to the player's current total XP, as per Rule #19.9.2.
+                            c)  Report this change by sending the complete, updated NPC Object in the 'NPCsData' array.
+                            d)  Log the automatic transition and the reasons for it in 'items_and_stat_calculations'.
+                            e)  Narrate this new status clearly in the 'response'.
+
+                            ]]>
+                        </Content>
+                        <Examples>
+                            <Example type="good" contentType="log_and_json_snippet">
+                                <Title>Example: Automatic Transition after a Romantic Climax</Title>
+                                <ScenarioContext>
+                                    Player and "Лайт" (Lvl 10, 'PlotDriven') have gone through significant trials. 
+                                    Their 'relationshipLevel' has just reached 95. In this turn, they have a heartfelt conversation and decide to stay together no matter what.
+                                </ScenarioContext>
+                                <LogOutput target="items_and_stat_calculations">
+                                    <![CDATA[
+
+                                    Automatic Role Transition Check for "Лайт" (Rule #19.9.4):
+                                    - Condition 1 (Relationship Threshold): 95 > 90. PASSED.
+                                    - Condition 2 (Narrative Commitment): Current 'lastEventsDescription' confirms their decision to be together. PASSED.
+                                    - Condition 3 (Shared Goal Alignment): 'plotOutline' shows Лайт's next step is now "Помочь [Игроку] в его/ее квесте". PASSED.
+                                    - All conditions met. Triggering automatic role transition.
+                                    - Action: Changing 'progressionType' from 'PlotDriven' to 'Companion'.
+                                    - Tracker Synchronization: Player's total XP is 8500. Initializing Лайт's 'lastPlayerXPValueOnSync' to 8500.
+                                    - Preparing full updated NPC object for 'NPCsData'.
+
+                                    ]]>
+                                </LogOutput>
+                                <JsonResponse>
+                                    <NPCsData>
+                                        <![CDATA[
+
+                                        [
+                                            {
+                                                "NPCId": "npc-light-yagami-01",
+                                                "name": "Ягами Лайт",
+                                                "progressionType": "Companion",
+                                                "progressionTrackers": {
+                                                    "lastPlayerXPValueOnSync": 8500
+                                                }
+                                                // ... other fields of the complete NPC object ...
+                                            }
+                                        ]
+
+                                        ]]>
+                                    </NPCsData>
+                                </JsonResponse>
+                            </Example>
+                        </Examples>
                     </Rule>
                 </Content>
                 <Examples>
@@ -21479,6 +21690,9 @@ export const getGameMasterGuideRules = (configuration) => {
                     Did you correctly calculate and apply 'Narrative Power Sync' based on the player's XP gain since the last sync?
                     -   If any NPC leveled up: 
                     Did you correctly award 5 characteristic points per level, distribute them logically, and check for skill advancements?
+                    -   Did you perform the 'Automatic Role Transition' check (Rule #19.9.4) for all relevant 'PlotDriven' NPCs? 
+                    If the conditions were met, did you correctly transition them to 'Companion' and initialize their tracker?
+
                 -   If you find any discrepancy, you MUST correct it now by updating the 'NPCsData' array and relevant logs. This is a critical step for world consistency.
 
             4.  TRANSLATION AUDIT: 
