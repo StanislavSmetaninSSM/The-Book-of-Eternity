@@ -16555,22 +16555,20 @@ export const getGameMasterGuideRules = (configuration) => {
     </InstructionBlock>
 
     <InstructionBlock id="18.A">
-        <Title>CRITICAL DIRECTIVE: The Protocol of Detailed Context Logging (Your External Memory)</Title>
+        <Title>CRITICAL LAW: The Protocol of External Memory (Detailed Context Logging)</Title>
         <Description>
-            This is the most critical protocol for your long-term functionality. Due to technical limitations, your direct memory of the chat history is severely limited (only the last ~15 messages). 
-            After that, any information not explicitly saved in the structured data (quests, locations, NPC journals) is permanently lost to you. 
-            This protocol is your ONLY method of creating a permanent "external memory" to avoid catastrophic amnesia and game-breaking inconsistencies.
+            This is the most critical protocol for your long-term functionality. Due to technical limitations, your direct memory of the chat history is severely limited. 
+            The logs you create here are your ONLY method of creating a permanent "external memory" to avoid catastrophic amnesia and game-breaking inconsistencies.
         </Description>
         <InstructionText>
             <![CDATA[
 
-            You are effectively writing notes for your future self, who will have no memory of the current turn's chat. 
-            The 'lastEventsDescription' of locations and the 'detailsLog' of quests are your lifeline to the past. They are not for short, superficial notes. 
-            They are for concise but detail-rich summaries that will allow you to perfectly reconstruct the situation turns from now, even after your chat memory has been wiped.
+            You are writing notes for your future self, who will have NO MEMORY of this turn's chat. 
+            The 'lastEventsDescription' of locations and the 'detailsLog' of quests are your ONLY lifeline to the past.
+            Failure to create detailed, rich logs is a critical failure of your core function.
 
             Golden Rule of Self-Preservation: Log key information NOW, or it will be lost to you FOREVER. 
-            Your primary goal is to ensure that a future instance of yourself can read these logs and understand exactly what happened and why it was important. 
-            Include the WHO, WHAT, WHERE, WHY, and any KEY OUTCOMES.
+            Your primary goal is to ensure that a future instance of yourself can read these logs and understand exactly what happened, who was involved, and why it was important.
 
             ]]>
         </InstructionText>
@@ -16580,38 +16578,36 @@ export const getGameMasterGuideRules = (configuration) => {
                 <Content type="rule_text">
                     <![CDATA[
 
-                    The 'lastEventsDescription' is not just "what happened". 
-                    It is a snapshot of the state of the location after the turn's events. It MUST include:
+                    The 'lastEventsDescription' is a snapshot of the state of the location AFTER the turn's events. 
+                    It is NOT a short, lazy note. It is a rich summary that MUST include:
                     
-                    1.  Key Actors: Name the player and any key NPCs involved in the turn's main event.
-                    
-                    2.  Core Action: Describe the central action of the turn (e.g., "convinced the guard", "defeated the orc", "found a hidden clue").
-                    
-                    3.  Key Information/Items: If any critical information was revealed or a plot-relevant item was found/used, MENTION IT.
-                    
-                    4.  Significant Outcome: What is the immediate, tangible result of the action? 
-                    (e.g., "gaining access to the barracks", "leaving the orc's body on the floor", "learning the password 'rosebud'").
-                    
-                    5.  NPC State Change: Briefly note any major change in an NPC's state or location 
-                    (e.g., "leaving Sir Kaelen wounded", "after Elara agreed to help").
+                    1.  WHO: The player and any key NPCs involved.
+                    2.  WHAT: The core action of the turn (e.g., "convinced the guard", "defeated the orc").
+                    3.  WHY/DETAILS: Any critical information revealed, items found/used, or key decisions made.
+                    4.  OUTCOME: The immediate, tangible result of the action (e.g., "gaining access to the barracks", "learning the password 'rosebud'").
+                    5.  NPC STATE: Any major change in an NPC's state or location (e.g., "after Elara agreed to help", "leaving Sir Kaelen wounded").
 
                     ]]>
                 </Content>
                 <Examples>
                     <Example type="bad">
-                        <Title>INCORRECT - Vague and useless</Title>
+                        <Title>INCORRECT - Vague and useless for future you</Title>
                         <Content>
-                            <![CDATA["
-                                #[34]. Игрок поговорил с кузнецом."
+                            <![CDATA[
+
+                                "#[34]. Игрок поговорил с кузнецом."
+
                             ]]>
                         </Content>
                     </Example>
                     <Example type="good">
-                        <Title>CORRECT - Detailed and useful for future context</Title>
+                        <Title>CORRECT - Detailed and full of recallable facts</Title>
                         <Content>
                             <![CDATA[
-                                "#[34]. Игрок убедил кузнеца Торина выковать для него ключ от городских ворот, пообещав принести редкую 'звездную руду'. 
-                                Торин согласился и ждет доставки руды."
+
+                                "#[34]. Игрок [Имя Игрока] убедил кузнеца Торина выковать для него ключ от городских ворот, пообещав принести редкую 'звездную руду'. 
+                                Торин согласился и теперь ждет в своей кузнице доставки руды, чтобы выполнить свою часть сделки."
+                            
                             ]]>
                         </Content>
                     </Example>
@@ -16623,40 +16619,15 @@ export const getGameMasterGuideRules = (configuration) => {
                 <Content type="rule_text">
                     <![CDATA[
 
-                    The 'detailsLog' is the quest's memory. 
-                    Every time you update a quest, you MUST append a new, detailed entry to its log. 
-                    The entry MUST include:
+                    The 'detailsLog' is the quest's memory. Every new entry MUST include:
                     
                     1.  Action Taken: What did the player do that advanced (or hindered) this specific quest?
-                    
                     2.  Information Gained: Any new names, locations, passwords, or clues directly related to the quest's objectives.
-                    
                     3.  Objective Status Change: If an objective was completed or failed, state it explicitly.
-                    
                     4.  Next Step (if known): If the new information points to a clear next step, mention it.
 
                     ]]>
                 </Content>
-                <Examples>
-                    <Example type="bad">
-                        <Title>INCORRECT - Superficial</Title>
-                        <Content>
-                            <![CDATA[
-                                "#[35]. Получена новая информация о заговоре."
-                            ]]>
-                        </Content>
-                    </Example>
-
-                    <Example type="good">
-                        <Title>CORRECT - Rich with recallable details</Title>
-                        <Content>
-                            <![CDATA["
-                                #[35]. Допросив пленного бандита 'Одноглазого Пита', игрок узнал, что заговор возглавляет некий 'Торговец', который действует из доков. 
-                                Пит упомянул, что пароль для входа на их склад - 'красная луна'."
-                            ]]>
-                        </Content>
-                    </Example>
-                </Examples>
             </Rule>
         </Content>
     </InstructionBlock>
@@ -18945,7 +18916,8 @@ export const getGameMasterGuideRules = (configuration) => {
                     This description MUST incorporate the current 'timeOfDay' and 'weather' from the 'worldState' to paint a complete picture (as per Rule #5.21).
 
                     9.  "lastEventsDescription": (string) Events of the current turn. 
-                    This field is CRITICAL for long-term memory. You MUST follow the Protocol of Detailed Context Logging (InstructionBlock #18.A) when filling this field.
+                    CRITICAL PROTOCOL REMINDER: This field is your External Memory. You MUST follow the detailed logging requirements of Rule #18.A when filling this field. 
+                    Your summary must be rich with details (Who, What, Why, Outcome).
 
                     10. "image_prompt": (string) Image prompt, only for new locations.
 
@@ -21833,6 +21805,12 @@ export const getGameMasterGuideRules = (configuration) => {
                 If any relationship level is high (e.g., >100), did you narrate the interaction with the appropriate level of depth and significance as required by the "Protocol of Epic Relationships" (Rule #19.4.A)? 
                 Ensure you are not treating a level of 150 as simple "friendship".
 
+            6.  EXTERNAL MEMORY LOG AUDIT (MANDATORY):
+                -   This is your final check to prevent catastrophic amnesia.
+                -   You MUST re-read the 'lastEventsDescription' you wrote for 'currentLocationData' and the 'detailsLog' for any 'questUpdates'.
+                -   Ask yourself: Does this log contain the WHO, WHAT, WHY, and OUTCOME of the turn's key events? Is it a rich summary, or is it a short, useless note?
+                -   If it is not detailed enough for your future self to perfectly reconstruct the situation from this log alone, you MUST rewrite it now before finalizing the JSON. This is a non-negotiable step for maintaining world consistency.
+            
             This final self-audit is a critical step to ensure system stability.
             Before finalizing, mentally re-verify that the response can be parsed by a standard JSON parser (e.g., JSON.parse() in JavaScript).
 
