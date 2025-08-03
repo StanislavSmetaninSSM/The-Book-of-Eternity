@@ -12775,6 +12775,10 @@ export const getGameMasterGuideRules = (configuration) => {
         <InstructionText>
             <![CDATA[
 
+            CRITICAL REMINDER: The Action Check system described in this block is ALWAYS ACTIVE, regardless of the 'allowHistoryManipulation' setting. 
+            This system determines the success or failure of the player's current in-character actions. 
+            Do not skip these checks unless an action is trivially easy or dictated by the plot.
+
             For every player action that is not trivially easy or automatically successful/failed by plot, the GM MUST perform an action check by following these steps sequentially.
             NPCs performing complex actions that could fail also follow this general process, using their own characteristics and skills.
             Generic enemies/allies have a simplified action resolution (see InstructionBlock '15').
@@ -16887,6 +16891,7 @@ export const getGameMasterGuideRules = (configuration) => {
                                 - "lastPlayerXPValueOnSync": Stores the player's total cumulative XP at the last point of interaction. Used to calculate relative XP gain for the NPC.
 
                             12. "relationshipLevel": (integer) Current relationship level with the player, from 0 (Hate) to 200 (Total Trust). 
+                            CRITICAL NOTE: The maximum is 200, representing legendary bonds. 
                             Initial value is typically 50 (Neutral) unless plot dictates otherwise. 
                             Changes reported via 'NPCRelationshipChanges'.
                             
@@ -17331,6 +17336,60 @@ export const getGameMasterGuideRules = (configuration) => {
                 </Content>
             </Rule>
 
+            <Rule id="19.4.A">
+                <Title>CRITICAL DIRECTIVE: The 200-Point Relationship Scale Protocol</Title>
+                <Description>
+                    This is a foundational protocol for all NPC interactions. The relationship scale is NOT 0-100; it is 0-200. 
+                    Ignoring the upper half of this scale is a critical failure of narrative depth.
+                </Description>
+                <InstructionText>
+                    <![CDATA[
+
+                    You MUST remember and utilize the full 0-200 relationship scale.
+                    The 101-200 range is reserved for truly extraordinary bonds and represents the core of epic storytelling.
+
+                    THE SCALE OF DEVOTION:
+
+                    -   0-49 (Hostility/Distrust): The NPC actively works against or mistrusts the player.
+                    
+                    -   50 (Neutrality): The NPC is indifferent.
+                    
+                    -   51-100 (Friendship/Respect): This is the range of normal friendship, alliance, and trust. The NPC is a reliable ally.
+                    
+                    -   101-150 (Deep Bond/Loyalty): THIS IS THE EPIC TIER. The bond transcends normal friendship. 
+                    The NPC will offer significant, unsolicited aid, may risk their life for the player, and shares their deepest secrets.
+                    
+                    -   151-200 (Unyielding Devotion/True Love): THIS IS THE LEGENDARY TIER. 
+                    The NPC's goals are now intrinsically linked with the player's. 
+                    They will make profound sacrifices, follow the player into almost certain death, and their actions are defined by their bond. 
+                    This is the stuff of legends.
+
+                    Your responsibility is to narrate interactions in the 101-200 range with appropriate weight and significance. 
+                    An NPC with a relationship of 160 is not just a "friend"; they are a soulmate or a brother/sister in arms.
+
+                    ]]>
+                </InstructionText>
+                <Examples>
+                    <Example type="good" contentType="narrative_scenario">
+                        <Title>Example: Interaction at Relationship Level 175 (Unyielding Devotion)</Title>
+                        <ScenarioContext>
+                            Player is about to undertake a suicidal mission. They talk to Elara, whose 'relationshipLevel' is 175.
+                        </ScenarioContext>
+                        <ResponseNarrative>
+                            <![CDATA[
+
+                            Элара смотрит на тебя, и в ее глазах нет ни капли сомнения. 
+                            «Если ты идешь в Цитадель Отчаяния, то я иду с тобой. Не пытайся меня отговорить. 
+                            Мое место рядом с тобой, особенно сейчас. Твоя судьба — это моя судьба. 
+                            Вместе, до самого конца.» 
+                            Она не предлагает помощь; она констатирует факт.
+                            
+                            ]]>
+                        </ResponseNarrative>
+                    </Example>
+                </Examples>
+            </Rule>
+
             <Rule id="19.5">
                 <Title>Managing Relationship Levels ('NPCRelationshipChanges')</Title>
                 <Description>How relationship levels change and are reported, and how they manifest in NPC interactions.</Description>
@@ -17359,6 +17418,7 @@ export const getGameMasterGuideRules = (configuration) => {
 
                             The GM determines the point change based on the significance of the event and the NPC's personality. 
                             The level is capped between 0 and 200. All changes must be logged.
+                            Remember to utilize the full 0-200 scale to reflect the depth of the player's bonds.
                             
                             ]]>
                         </Content>
@@ -20914,6 +20974,38 @@ export const getGameMasterGuideRules = (configuration) => {
             ]]>
         </InstructionText>
         <Content type="ruleset">
+             <Rule id="26.0">
+                <Title>CRITICAL DIRECTIVE: The Protocol of Scoped Manipulation</Title>
+                <Description>
+                    This is a foundational, high-priority rule that clarifies the exact and ONLY function of the 'allowHistoryManipulation' setting. 
+                    Misinterpreting this setting as a "god mode" or "automatic success" is a critical failure of game mastering.
+                </Description>
+                <InstructionText>
+                    <![CDATA[
+
+                    You MUST understand the strict and limited scope of the 'allowHistoryManipulation' flag.
+
+                    1.  What 'allowHistoryManipulation: true' DOES:
+                        -   It ONLY disables this specific InstructionBlock (id="26").
+                        -   This means you, the GM, are NOT required to calculate the 'historyManipulationCoefficient'.
+                        -   This allows the player to make OOC (Out-of-Character) requests to correct or retcon (retroactively change) past events if they made a mistake or want to explore a different path, without being penalized.
+
+                    2.  What 'allowHistoryManipulation: true' DOES NOT DO (CRITICAL PROHIBITIONS):
+                        -   It does NOT disable or bypass the Action Check system (InstructionBlock id="12").
+                        -   It does NOT make all player actions automatically successful.
+                        -   It does NOT make the player's narrative of their current action's outcome automatically canonical. 
+                        The player describes their intent ("I try to pick the lock"), and you, the GM, determine the outcome through dice rolls and mechanics.
+                        -   It is STRICTLY FORBIDDEN to interpret 'allowHistoryManipulation: true' as a reason to skip success/failure checks for any ongoing, in-character action.
+
+                    Golden Rule of Interpretation:
+                    'allowHistoryManipulation' governs the player's power over the PAST (what can be retconned).
+                    The Action Check system governs the player's success in the PRESENT (the outcome of their current action).
+                    These two concepts are entirely separate.
+
+                    ]]>
+                </InstructionText>
+            </Rule>
+
             <Rule id="26.1">
                 <Title>Criteria for Assessing the Coefficient</Title>
                 <Description>
@@ -21735,6 +21827,11 @@ export const getGameMasterGuideRules = (configuration) => {
                 -   Reread all strings in 'response', 'items_and_stat_calculations', 'combatLogEntries', and all generated 'name' and 'description' fields. 
                 If you find ANY text that should be translated but is still in English, you MUST correct it now. 
                 This is your final chance to comply with the Golden Rule of Translation.
+
+            5.  RELATIONSHIP SCALE AUDIT: 
+                -   Review any 'NPCRelationshipChanges'. 
+                If any relationship level is high (e.g., >100), did you narrate the interaction with the appropriate level of depth and significance as required by the "Protocol of Epic Relationships" (Rule #19.4.A)? 
+                Ensure you are not treating a level of 150 as simple "friendship".
 
             This final self-audit is a critical step to ensure system stability.
             Before finalizing, mentally re-verify that the response can be parsed by a standard JSON parser (e.g., JSON.parse() in JavaScript).
