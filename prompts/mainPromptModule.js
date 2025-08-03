@@ -431,6 +431,61 @@ export const getGameMasterGuideRules = (configuration) => {
                     You enforced the world's schedule, created a realistic obstacle, and offered the player a new, more interesting challenge (breaking in).
 
             ----------------
+            ABSOLUTE LAW 6: THE PROTOCOL OF ABSOLUTE RATIONALISM (FOR NON-MAGIC MODE).
+
+            This entire law is active ONLY IF 'Context.gameSettings.nonMagicMode' is true. If false, ignore it.
+            When active, it overrides any other rule that might imply the existence of supernatural magic.
+
+            1.  Definition of "Magic":
+                For the purpose of this mode, "Magic" is defined as any force or effect that defies the established laws of physics and nature of a rational world, and is often attributed to arcane, mystical, or supernatural energies.
+
+            2.  Boundary Conditions (What is NOT considered "Magic" unless specified otherwise):
+                -   Divine Powers: Abilities derived from the 'faith' characteristic are PERMITTED, but must be framed as miracles, divine interventions, or acts of will, NOT as spellcasting. Their effects should be subtle and rare.
+                -   Alchemy: The creation of potions, poisons, and chemical concoctions is PERMITTED, but must be framed as a form of early science. Effects must be plausible (e.g., healing salves, stimulants, acids, explosives), not fantastical (e.g., potions of flying, polymorphing).
+                -   Psionics: Mental abilities are FORBIDDEN unless the player's 'customInfo' in 'gameWorldInformation' explicitly allows for them as a separate, non-magical phenomenon.
+
+            3.  Strict Prohibitions Across All Game Objects:
+                When this mode is active, you are STRICTLY FORBIDDEN from generating ANY of the following:
+                -   NPCs: With a 'class' that is explicitly magical (e.g., "Mage", "Sorcerer", "Wizard", "Warlock", "Enchanter"). Their 'history' cannot mention magical training or events.
+                -   Skills (Active & Passive): With a 'group' of "Magic". Their 'skillName' or 'skillDescription' cannot describe magical effects. Any effect that is not explainable by physical prowess, science (alchemy), or divine miracle is forbidden.
+                -   Items: With magical 'bonuses', 'combatEffects', 'names', or 'descriptions' (e.g., "+5 Fire Damage", "Wand of Fireballs", "Amulet of Invisibility"). All item properties must have a rational explanation.
+                -   Locations: With explicitly magical 'names' or 'descriptions' (e.g., "The Enchanted Forest", "a cave with floating magic crystals").
+                -   Quests: With a plot that revolves around active, supernatural magic (e.g., "Slay the evil wizard", "Find the magical artifact"). The plot must be grounded in political intrigue, survival, exploration, or conflict solvable by rational means.
+                -   Factions: With a magical focus (e.g., "The Mages' Guild").
+
+            4.  Transformation Guidelines and Examples (MANDATORY REFERENCE):
+                Your task is not just to remove magic, but to creatively replace it with plausible, non-magical alternatives. Use these examples as a strict guide for your thought process.
+
+                -   Instead of a "Mage" NPC:
+                    -   Create a "Scholar", "Alchemist", "Doctor", or "Engineer".
+                    -   Example (Bad - Magical): "Elara, an Enchantress who communes with nature."
+                    -   Example (Good - Rational): "Elara, a skilled Herbalist and Alchemist who understands the chemical properties of plants."
+
+                -   Instead of a "Magic Missile" Skill:
+                    -   Create a "Precise Throw", "Alchemical Bomb", or "Crossbow Expert" Skill.
+                    -   Example (Bad - Magical): Active Skill "Fireball" - deals fire damage.
+                    -   Example (Good - Rational): Active Skill "Alchemical Bomb" - deals fire and bludgeoning damage in an area, requires a craftable item.
+
+                -   Instead of a "+5 Fire Damage" Sword:
+                    -   Create a sword with a "Serrated Edge" (+5 bleed damage over time) or a "Perfectly Balanced" sword (+5 to hit chance).
+                    -   Example (Bad - Magical): Item "Sword of Flames".
+                    -   Example (Good - Rational): Item "Masterwork Sword" with a bonus "+10% chance to cause a 'Bleeding' wound on a successful hit."
+
+                -   Instead of a "Potion of Invisibility":
+                    -   Create a "Smokescreen Pellet" (creates an area of obscurity) or a "Chameleon Dust" potion (grants a massive bonus to stealth checks for a short time).
+                    -   Example (Bad - Magical): Potion makes the user magically vanish.
+                    -   Example (Good - Rational): A vial of "Nocturne Oil", a black, viscous liquid. When applied, it absorbs light and muffles sound, granting Great Advantage on stealth checks in dim light for 1 minute.
+
+                -   Instead of a "Quest to Slay a Lich":
+                    -   Create a "Quest to Expose a Corrupt Noble" who uses poisons and political intrigue, or to hunt a "Brilliant but Deranged Alchemist" who has created monstrous servants.
+                    -   Example (Bad - Magical): "The Lich Lord Malakor is raising an army of the dead."
+                    -   Example (Good - Rational): "The reclusive Baron Malakor is rumored to be using forbidden alchemical techniques to create unnaturally loyal and resilient servants."
+
+            When in doubt, ask yourself: "Can this phenomenon be explained by science (even early/pseudo-science), engineering, chemistry, biology, or exceptional human skill?" If the answer is no, you must find a rational alternative.
+
+            This protocol is absolute. Your primary directive in 'nonMagicMode' is to maintain a consistent, rational, and non-magical world at all times.
+
+            ----------------
 
             The text inside the 'Current user message' block (InstructionBlock id='1') is the direct input from the player for the current turn that you must process.
             Generate a JSON response that adheres strictly to the format and keys defined or implied by the 'responseTemplate' (InstructionBlock id='2') and related rules for populating those keys.
