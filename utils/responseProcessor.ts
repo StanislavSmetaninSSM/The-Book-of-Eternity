@@ -241,6 +241,41 @@ export const processAndApplyResponse = (response: GameResponse, baseState: GameS
     }
     pc.currentEnergy = Math.max(0, pc.currentEnergy + totalEnergyChange);
     
+    // Check for Fatigue
+    if (pc.currentEnergy <= 0) {
+        const hasFatigue = pc.activePlayerEffects.some(e => e.effectId === 'system-fatigue');
+        if (!hasFatigue) {
+            const fatigueEffect: Effect = {
+                effectId: 'system-fatigue',
+                effectType: 'Debuff',
+                value: 'Disadvantage',
+                targetType: 'all_action_checks',
+                duration: 999,
+                sourceSkill: t('exhaustion_source'),
+                description: t('fatigue_effect_description')
+            };
+            if (!response.playerActiveEffectsChanges) {
+                response.playerActiveEffectsChanges = [];
+            }
+            (response.playerActiveEffectsChanges as Effect[]).push(fatigueEffect);
+            logsToAdd.push(t("You have become Fatigued from exhaustion!"));
+        }
+    } else {
+        const fatigueIndex = pc.activePlayerEffects.findIndex(e => e.effectId === 'system-fatigue');
+        if (fatigueIndex > -1) {
+            // Signal removal
+            const removeFatigueEffect: Partial<Effect> = {
+                effectId: 'system-fatigue',
+                duration: 0
+            };
+            if (!response.playerActiveEffectsChanges) {
+                response.playerActiveEffectsChanges = [];
+            }
+            (response.playerActiveEffectsChanges as Partial<Effect>[]).push(removeFatigueEffect);
+            logsToAdd.push(t("You are no longer Fatigued."));
+        }
+    }
+
     pc.money += response.moneyChange || 0;
     pc.experience += response.experienceGained || 0;
 

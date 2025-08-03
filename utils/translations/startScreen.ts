@@ -60,7 +60,7 @@ export const startScreen = {
     "Could not read or parse the configuration file.": "Could not read or parse the configuration file.",
     // New/Missing
     "Allow History Manipulation": "Allow History Manipulation",
-    "Enables god mode, allowing editing of history and game state.": "Enables god mode, allowing editing of history and game state.",
+    "allowHistoryManipulationDescription": "Allows for flexible interaction with the game's narrative. Enables editing of chat messages and game state details, and allows for 'cheats' like declaring the discovery of items or money.",
   },
   ru: {
     // StartScreen specific
@@ -121,6 +121,6 @@ export const startScreen = {
     "Could not read or parse the configuration file.": "Не удалось прочитать или разобрать файл конфигурации.",
     // New/Missing
     "Allow History Manipulation": "Разрешить манипуляции с историей",
-    "Enables god mode, allowing editing of history and game state.": "Включает режим бога, позволяя редактировать историю и состояние игры.",
+    "allowHistoryManipulationDescription": "Разрешает гибкое взаимодействие с повествованием игры. Включает редактирование сообщений чата и деталей игрового состояния, а также позволяет использовать «читы», например, объявлять о находке предметов или денег.",
   }
 };

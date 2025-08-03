@@ -72,6 +72,14 @@ export const status = {
     // Custom States
     "States": "States",
     "No custom states are active.": "No custom states are active.",
+
+    // Fatigue
+    "exhaustion_source": "Exhaustion",
+    "fatigue_effect_description": "Fatigued! You have Disadvantage on all action checks until you rest.",
+    "Disadvantage": "Disadvantage",
+    "all_action_checks": "All Action Checks",
+    "You have become Fatigued from exhaustion!": "You have become Fatigued from exhaustion!",
+    "You are no longer Fatigued.": "You are no longer Fatigued.",
   },
   ru: {
     // Conditions, Effects, Wounds
@@ -147,5 +155,13 @@ export const status = {
     // Custom States
     "States": "Состояния",
     "No custom states are active.": "Нет активных особых состояний.",
+
+    // Fatigue
+    "exhaustion_source": "Усталость",
+    "fatigue_effect_description": "Усталость! У вас Помеха на все проверки действий, пока не отдохнете.",
+    "Disadvantage": "Помеха",
+    "all_action_checks": "Все проверки действий",
+    "You have become Fatigued from exhaustion!": "Вы получили Усталость от истощения!",
+    "You are no longer Fatigued.": "Вы больше не чувствуете Усталость.",
   }
 };

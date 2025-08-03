@@ -48,16 +48,18 @@ export default function ChatWindow({ history, error, onDeleteMessage, onShowMess
         return (
           <div key={index} className={`flex items-start group ${msg.sender === 'player' ? 'justify-end' : 'justify-start'}`}>
             {/* For player messages, buttons are on the left */}
-            {msg.sender === 'player' && allowHistoryManipulation && (
+            {msg.sender === 'player' && (
               <div className="flex items-center self-center opacity-40 group-hover:opacity-100 transition-opacity mr-2 flex-shrink-0 pointer-events-auto space-x-1">
-                <button 
-                  onClick={() => onShowEditModal(index, msg)} 
-                  className="p-1 rounded-full text-gray-400 hover:bg-gray-700 hover:text-white"
-                  aria-label={t("Edit")}
-                  title={t("Edit")}
-                >
-                  <PencilSquareIcon className="w-5 h-5" />
-                </button>
+                {allowHistoryManipulation && (
+                    <button 
+                      onClick={() => onShowEditModal(index, msg)} 
+                      className="p-1 rounded-full text-gray-400 hover:bg-gray-700 hover:text-white"
+                      aria-label={t("Edit")}
+                      title={t("Edit")}
+                    >
+                      <PencilSquareIcon className="w-5 h-5" />
+                    </button>
+                )}
                 <button 
                   onClick={() => onDeleteMessage(index)} 
                   className="p-1 rounded-full text-gray-400 hover:bg-gray-700 hover:text-white"
@@ -102,7 +104,6 @@ export default function ChatWindow({ history, error, onDeleteMessage, onShowMess
                   }
                 </button>
                 {allowHistoryManipulation && (
-                  <>
                     <button 
                       onClick={() => onShowEditModal(index, msg)} 
                       className="p-1 rounded-full text-gray-400 hover:bg-gray-700 hover:text-white"
@@ -111,15 +112,14 @@ export default function ChatWindow({ history, error, onDeleteMessage, onShowMess
                     >
                       <PencilSquareIcon className="w-5 h-5" />
                     </button>
-                    <button 
-                      onClick={() => onDeleteMessage(index)} 
-                      className="p-1 rounded-full text-gray-400 hover:bg-gray-700 hover:text-white"
-                      aria-label={t("Delete message")}
-                    >
-                      <XCircleIcon className="w-5 h-5" />
-                    </button>
-                  </>
                 )}
+                <button 
+                  onClick={() => onDeleteMessage(index)} 
+                  className="p-1 rounded-full text-gray-400 hover:bg-gray-700 hover:text-white"
+                  aria-label={t("Delete message")}
+                >
+                  <XCircleIcon className="w-5 h-5" />
+                </button>
               </div>
             )}
           </div>

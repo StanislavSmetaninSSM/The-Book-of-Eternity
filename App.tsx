@@ -1003,7 +1003,7 @@ function StartScreen({ onStart, onLoadGame, onLoadAutosave, autosaveTimestamp, o
                 <div className="flex items-center justify-between p-3 bg-gray-900/30 rounded-lg border border-cyan-500/20">
                   <div>
                     <label className="font-medium text-gray-300">{t("Allow History Manipulation")}</label>
-                    <p className="text-xs text-gray-400">{t("Enables god mode, allowing editing of history and game state.")}</p>
+                    <p className="text-xs text-gray-400">{t("allowHistoryManipulationDescription")}</p>
                   </div>
                    <label htmlFor="allowHistoryManipulation" className="relative inline-flex items-center cursor-pointer">
                     <input
