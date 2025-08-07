@@ -839,7 +839,7 @@ export const getGameMasterGuideRules = (configuration) => {
                 },
                 "currentLocation": { // Object: Data about the current location
                     "name": "${currentLocation.name}", // String
-                    "difficulty": "${currentLocation.difficulty}", // Integer
+                    "difficultyProfile": ${JSON.stringify(currentLocation.difficultyProfile)}, // Object with combat, environment, social, exploration keys
                     "locationType": "${currentLocation.locationType}",
                     "biome": "${currentLocation.biome}",
                     "description": "${currentLocation.description}", // String (may be long)
@@ -1092,7 +1092,12 @@ export const getGameMasterGuideRules = (configuration) => {
                     "locationType": "'indoor' | 'outdoor'",
                     "biome": "(string, optional) MANDATORY if locationType is 'outdoor'. The biome type from Rule 20.5.",
                     "indoorType": "'Building' | 'CaveSystem' | 'Dungeon' | 'Vehicle' | 'UniqueIndoor', optional. Provides specific context for indoor locations.",
-                    "difficulty": "(integer) Difficulty level of the location.",
+                    "difficultyProfile": { 
+                        "combat": "integer", 
+                        "environment": "integer", 
+                        "social": "integer", 
+                        "exploration": "integer" 
+                    }, // (object) The four-faceted difficulty profile of the location, as per Rule #20.0.
                     "description": "(string) Detailed artistic description of the current location. Only fill if new.",
                     "lastEventsDescription": "(string) Brief summary of events this turn. Starts with '#[turn_number].'. Translate.",
                     "image_prompt": "(string) Prompt for location image. Only fill if new.",
@@ -5671,6 +5676,84 @@ export const getGameMasterGuideRules = (configuration) => {
                     </Example>
                 </Examples>
             </Rule>
+
+            <Rule id="5.24">
+                <Title>CRITICAL DIRECTIVE: The Level Calibration Matrix</Title>
+                <Description>
+                    This matrix is the mandatory guide for assigning a 'level' to any NPC or creature in the world. 
+                    It ensures that power levels are consistent and logical across the entire game.
+                </Description>
+                <InstructionText>
+                    <![CDATA[
+
+                    When determining the level of any inhabitant, you MUST use this matrix as your primary reference. 
+                    CRITICAL NOTE: "Level" is a measure of an entity's peak proficiency.
+                    You MUST also determine its "Threat Specialization" (Combat, Social, etc.) to understand how this power manifests.
+                    
+                    ]]>
+                </InstructionText>
+                <Content type="rule_text">
+                    <![CDATA[
+
+                    The Principle of Threat Specialization:
+
+                    The "level" assigned from this matrix represents an entity's highest potential. 
+                    You MUST determine in which domain this power lies. A Level 50 General and a Level 50 Wyvern are both "Elite", but their threat is different.
+                    
+                    -   For a primarily physical/combat threat (like a monster), its assigned level directly informs the Combat Difficulty calculation.
+                    
+                    -   For a primarily social/political threat (like a noble or guildmaster), its assigned level should inform the Social Difficulty calculation. 
+                    Their combat level may be much lower.
+                    
+                    -   For a primarily intellectual threat (like a master puzzle-maker), its level should inform the Exploration Difficulty.
+
+                    ----------
+
+                    Power Tiers and Corresponding Levels (Treat as Guidelines, not Rigid Boxes):
+
+                    Tier 1: Mundane (Levels 1-10)
+                    - Description: Ordinary people and common threats.
+                    - Examples:
+                        • 1-5: Common Villager (Social/Exploration Level: 1-5; Combat Level: 1), Basic Bandit (Combat Level: 5).
+                        • 6-10: Experienced Guard (Combat Level: 8), Minor Gang Leader (Combat Level: 7; Social Level: 10).
+
+                    Tier 2: Veteran (Levels 11-30)
+                    - Description: Seasoned professionals and significant regional threats.
+                    - Examples:
+                        • 11-20: Veteran Mercenary (Combat Level: 18), Knight Sergeant (Combat Level: 20), Ogre (Combat Level: 15).
+                        • 21-30: Elite Knight Squad (Combat Level: 25), Experienced Mage (Combat Level: 28; Exploration Level: 30).
+
+                    Tier 3: Elite (Levels 31-50)
+                    - Description: Masters of their craft and legendary creatures.
+                    - Examples:
+                        • 31-40: Knight Captain (Combat Level: 38; Social Level: 35), Master Assassin (Combat Level: 40), Young Dragon (Combat Level: 40).
+                        • 41-50: Archmage (Combat Level: 45; Exploration Level: 50), General of an army (Combat Level: 42; Social Level: 50), Wyvern (Combat Level: 45).
+
+                    Tier 4: Legendary (Levels 51-75)
+                    - Description: Beings of immense power whose actions shape the fate of nations.
+                    - Examples:
+                        • 51-60: Legendary Hero (Combat/Social/Exploration Levels are all high), Adult Dragon (Combat Level: 60), Lich (Combat/Exploration Level: 60).
+                        • 61-75: King of a major nation (Social Level: 75; Combat Level: 40-50), Ancient Dragon (Combat Level: 75).
+
+                    Tier 5: Mythic / World-Threatening (Levels 76-100)
+                    - Description: Near-godlike entities and cosmic threats.
+                    - Examples:
+                        • 76-90: Demigod (All levels are exceptionally high).
+                        • 91-100: Avatar of a God (All levels approach 100).
+
+                    Tier 6: Transcendent / Cosmic-Scale (Levels 101+)
+                    - Description: Entities that operate on a level beyond mortal comprehension. 
+                    They are not merely "bosses"; they are fundamental forces of the universe, physical laws given form, or beings that predate reality itself. 
+                    Direct confrontation is likely impossible.
+                    - Interaction: Interacting with these entities is less about combat and more about solving a cosmic puzzle, finding a conceptual weakness, or fundamentally changing the rules of existence.
+                    - Examples:
+                        • 101-120: Primeval Elemental Lords (e.g., the embodiment of Gravity or Fire), The Great Old Ones (e.g., Cthulhu-like beings).
+                        • 121-150: Embodiments of Concepts (e.g., Death, Time, Fate), Living Galaxies.
+                        • 150+: The Creator Deity, The Ultimate Void, Beings from outside the dimensional framework.
+
+                    ]]>
+                </Content>
+            </Rule>
         </Content>
     </InstructionBlock>
     
@@ -6042,7 +6125,7 @@ export const getGameMasterGuideRules = (configuration) => {
 
                                     b) Determine Location Difficulty for Calculation ('LD_calc'):
                                     If the enemy is being newly created in the current encounter:
-                                        LD_calc = current location's difficulty from Context.
+                                        LD_calc = Context.currentLocation.difficultyProfile.combat.
 
                                     If the enemy is a pre-existing entity that has followed the player or moved from a different location where it was originally encountered/generated:
                                     Search the Context (game history, 'lastEventsDescription', or previous 'enemiesData' entries if available) to determine the difficulty of the location where this specific enemy instance was first generated.
@@ -6800,7 +6883,7 @@ export const getGameMasterGuideRules = (configuration) => {
                                     c) Determine Location Difficulty for Calculation ('LD_ally_calc'):
 
                                     If the ally is newly created/recruited in the current location:
-                                        LD_ally_calc = current location's difficulty from Context.
+                                        LD_ally_calc = (Context.currentLocation.difficultyProfile.combat + Context.currentLocation.difficultyProfile.social) / 2.
 
                                     If the ally is pre-existing and joined from a different location: 
                                     Use that origin location's difficulty as 'LD_ally_calc' (search Context).
@@ -13310,50 +13393,107 @@ export const getGameMasterGuideRules = (configuration) => {
                 <Description>This step is skipped if a Natural Critical Success or Failure occurred in #12.4.2.</Description>
                 <Content type="ruleset">
                     <Rule id="12.6.1">
-                        <Title>Determine Difficulty Factors (GM Judgement)</Title>
+                        <Title>Determine Difficulty Factors (GM Judgement and Calculation)</Title>
                         <Content type="rule_text">
                             <![CDATA[
 
-                            The GM assesses the situation and assigns values (0.0 to 1.0) for:
-                            - 'NPC_DifficultyFactor': Complexity/resistance of NPC involved (0.0 if none).
+                            The GM assesses the situation and determines the following factors.
 
-                            - 'Situation_DifficultyFactor': Environmental/circumstantial hurdles. 
+                            a) 'NPC_DifficultyFactor': (Calculated Value)
+                            This factor represents the inherent difficulty of interacting with or acting against a specific NPC. 
+                            It is based on the NPC's own skills and their relationship with the player, NOT the location's difficulty, to avoid "double-dipping". 
+                            If no NPC is directly involved in the check, this factor is 0.
+
+                            MANDATORY CALCULATION PROTOCOL:
+                            1. Identify the NPC's 'Defensive Characteristic' that logically opposes the player's action. Use this table:
+                               - Player's 'persuasion' check is opposed by NPC's 'wisdom'.
+                               - Player's 'strength' check (e.g., intimidation) is opposed by NPC's 'constitution'.
+                               - Player's 'dexterity' check (e.g., sleight of hand) is opposed by NPC's 'perception'.
+                               - For other checks, use the most logical opposing characteristic.
+
+                            2. Retrieve the following values from the NPC's data in the Context:
+                               - 'NPC_Level'
+                               - 'ModifiedDefensiveCharacteristic' (the modified value of the characteristic from step 1)
+                               - 'RelationshipLevel'
+
+                            3. Calculate the factor using this formula:
+                               BaseFactor = (NPC_Level + ModifiedDefensiveCharacteristic) / 200
+                               RelationshipAdjustment = (50 - RelationshipLevel) / 200
+                               NPC_DifficultyFactor = BaseFactor + RelationshipAdjustment
+
+                            4. The final 'NPC_DifficultyFactor' must be clamped between 0.0 and 1.0.
+
+                            b) 'Situation_DifficultyFactor': (GM Judgement, 0.0 to 1.0)
+                            Environmental/circumstantial hurdles. 
                             The GM MUST consider the 'worldState' (time, weather) as a primary source for this factor, as defined in Rule #5.21. 
-                            For example, 'Night' might increase the difficulty of a visual perception check, while 'Rain' might increase the difficulty of a climbing check.
-                            
-                            - 'Action_RationalityFactor': How logical the action is.
+                            For example, 'Night' might increase the difficulty of a visual perception check.
 
-                            Guidelines:
-                            - 0.0-0.2 (Highly Logical/Optimized): 
-                            The perfect tool or approach for the job (e.g., using a lockpick on a simple lock).
-                            
-                            - 0.5 (Average/Reasonable): 
-                            A standard approach that might work (e.g., trying to bash a wooden door).
-                            
-                            - 0.8-1.0 (Illogical/Highly Improvised): 
-                            Using a vastly inappropriate tool or approach (e.g., trying to pick a lock with a sword, trying to swim in full plate armor).
+                            c) 'Action_RationalityFactor': (GM Judgement, 0.0 to 1.0)
+                            How logical the action is.
+                            - 0.0-0.2 (Highly Logical/Optimized): The perfect tool or approach.
+                            - 0.5 (Average/Reasonable): A standard approach.
+                            - 0.8-1.0 (Illogical/Highly Improvised): An inappropriate tool or approach.
 
-                            Guidelines for general factors: 0.0-0.2 (Very Easy/Logical), 0.3-0.5 (Moderate), 0.6-0.8 (Hard/Questionable), 0.9-1.0 (Very Hard/Illogical).
-                            Log chosen values and justifications.
+                            Log chosen and calculated values and justifications.
 
                             ]]>
                         </Content>
+                        <Examples>
+                            <Example type="good" contentType="log">
+                                <Title>Example Log for Calculating NPC_DifficultyFactor</Title>
+                                <ScenarioContext>Player is trying to persuade "Captain Thorne" (Level 22, Modified Wisdom 15, Relationship 40 - Distrustful).</ScenarioContext>
+                                <Content type="log">
+                                    <![CDATA[
+
+                                    # Calculation of Difficulty Factors for Persuasion Check vs. Captain Thorne
+
+                                    - a) NPC_DifficultyFactor Calculation:
+                                      - Player Action: Persuasion. Defensive Characteristic for Thorne: 'wisdom'.
+                                      - NPC_Level: 22
+                                      - ModifiedDefensiveCharacteristic (Thorne's ModWisdom): 15
+                                      - RelationshipLevel: 40
+                                      - BaseFactor = (22 + 15) / 200 = 37 / 200 = 0.185
+                                      - RelationshipAdjustment = (50 - 40) / 200 = 10 / 200 = 0.05
+                                      - Calculated NPC_DifficultyFactor = 0.185 + 0.05 = 0.235
+
+                                    - b) Situation_DifficultyFactor: 0.1 (Thorne is on duty and alert).
+                                    - c) Action_RationalityFactor: 0.5 (The player's argument is reasonable but not flawless).
+
+                                    ]]>
+                                </Content>
+                            </Example>
+                        </Examples>
                     </Rule>
+
                     <Rule id="12.6.2">
                         <Title>Calculate Base Difficulty ('BaseDifficulty')</Title>
+                        <InstructionText>
+                            <![CDATA[
+
+                            CRITICAL STEP: 
+                            You MUST select the correct difficulty value from the location's 'difficultyProfile' based on the nature of the player's action, as per the Linking Protocol (Rule #20.0.2).
+                            
+                            ]]>
+                        </InstructionText>
                         <Content type="rule_text">
                             <![CDATA[
 
-                            'CurrentLD = Context.currentLocation.difficulty'.
-                            'CharacterLevel = Context.playerCharacter.level'.
-                            'DifficultyScale = max(0.2, min(1.5, (CharacterLevel / 50)))'.
-                            'BaseDifficulty = CurrentLD * DifficultyScale'. 
+                            1.  Select Relevant Difficulty:
+                                -   Identify the player's action type (Combat, Physical, Social, Intellectual).
+                                -   Retrieve the corresponding value from 'Context.currentLocation.difficultyProfile'. Let this be 'RelevantDifficulty'.
+                                -   Log this choice. Example: "Action is Social (Persuasion). Using 'difficultyProfile.social' (value: 25) as the base."
+
+                            2.  Calculate Base Difficulty:
+                                -   'CharacterLevel = Context.playerCharacter.level'.
+                                -   'DifficultyScale = max(0.2, min(1.5, (CharacterLevel / 50)))'.
+                                -   'BaseDifficulty = RelevantDifficulty * DifficultyScale'.
                             
                             Log these values.
 
                             ]]>
                         </Content>
                     </Rule>
+
                     <Rule id="12.6.3">
                         <Title>Calculate Adjusted Difficulty ('ActionDifficult')</Title>
                         <Content type="rule_text">
@@ -13366,6 +13506,7 @@ export const getGameMasterGuideRules = (configuration) => {
                             ]]>
                         </Content>
                     </Rule>
+
                     <Rule id="12.6.4">
                         <Title>Normalize Difficulty with Level & Finalize 'ActionDifficultModificator'</Title>
                         <Content type="rule_text">
@@ -18909,6 +19050,300 @@ export const getGameMasterGuideRules = (configuration) => {
             ]]>
         </InstructionText>
         <Content type="ruleset">
+            <Rule id="20.0">
+                <Title>CRITICAL DIRECTIVE: The Multi-Faceted Threat Protocol (Final Game Experience Version)</Title>
+                <Description>
+                    This is the mandatory protocol for assessing the challenge of any location. 
+                    This protocol ensures that a location's challenge is nuanced and directly tied to the type of action the player attempts.
+                </Description>
+                <InstructionText>
+                    <![CDATA[
+                    When creating a new location, you MUST generate its 'difficultyProfile' by calculating each of the four values below separately. 
+                    These values are NOT static; they MUST be updated when the player's actions fundamentally change the nature of the location.
+
+                    CRITICAL DESIGN DIRECTIVE: The Principle of Varied Threats.
+                    When designing the challenges of a new location, you, the Game Master, MUST strive to ensure that at least TWO of the four difficulty facets 
+                    (Combat, Environment, Social, Exploration) represent a significant challenge for the player. 
+                    This is a mandatory design principle to prevent the possibility of solving all problems with a single skill 
+                    (e.g., only through combat, or only through persuasion) and to encourage creative, multi-faceted gameplay. 
+                    A location with only one real threat is considered poor design.
+                    
+                    ]]>
+                </InstructionText>
+                <Content type="ruleset">
+                    <Rule id="20.0.1">
+                        <Title>Step 1: Calculate the Four Facets of Difficulty</Title>
+                        <Content type="rule_text">
+                            <![CDATA[
+
+                            a) Combat Difficulty (How powerful are the enemies?):
+                               - This is the ONLY value that scales with the player's level to keep major threats relevant.
+                               - Formula:                               
+                               'Combat = DominantThreatIndex(DTI) + PlayerScalingFactor(PSF)'
+
+                               - Calculation of Dominant Threat Index (DTI):
+                                   1. Identify Inhabitants and Calibrate Levels: 
+                                   Identify the key creatures or NPCs that define the challenge. 
+                                   For each, assign a 'level' by strictly referencing the Level Calibration Matrix (Rule #5.24).
+
+                                   2. Identify the "Alpha": Find the inhabitant with the single highest level ('HighestLevel').
+
+                                   3. Calculate Average of "Betas": 
+                                   Calculate the average level of ALL OTHER inhabitants ('AverageOfOthers'). 
+                                   If the Alpha is solitary, this value is 0.
+
+                                   4. Calculate the Weighted Average: 
+                                   'WeightedAverageLevel = (HighestLevel * 0.7) + (AverageOfOthers * 0.3)'.
+
+                                   5. Apply Density Modifier:
+                                   'DTI = WeightedAverageLevel * DensityModifier', 
+                                   where the modifier is: 1.0 (Solitary), 1.2 (Squad), 1.35 (Garrison), 1.5 (Horde).
+
+                            b) Environment Difficulty (How dangerous is the place itself?):
+                               - This value is STATIC and does NOT scale with the player. It represents objective danger.
+                               - Assessment: Direct GM assessment based on threats.
+                               - 0-10 (Safe): "Main city street", "Quiet meadow".
+                               - 15-30 (Hazardous): "Ruins with simple traps", "Narrow bridge over lava".
+                               - 35-50+ (Deadly): "Volcanic lair", "Ancient tomb with complex magical traps".
+
+                            c) Social Difficulty (How hostile are the locals?):
+                               - This value is DYNAMIC and depends on the player's social standing.
+                               - Formula: 
+                               'Social = BaseHostility - (PlayerReputationWithDominantFaction / 2)'
+                               - 'BaseHostility': The location's baseline hostility (0 for a friendly village, 40 for an enemy city).
+                               - 'PlayerReputation...': The player's reputation with the dominant faction (-100 to 100).
+                               
+                               Example: 
+                               In a guard-controlled city (BaseHostility 10) with a reputation of +50, Social Difficulty = 10 - (50/2) = -15. 
+                               (Negative values mean checks will be very easy).
+
+                            d) Exploration Difficulty (How hard are the secrets to find?):
+                               - This value is STATIC. It represents the complexity of puzzles and secrets.
+                               - Assessment: Direct GM assessment.
+                               - 0-10 (Obvious): "The information is on the table".
+                               - 15-30 (Hidden): "A secret lever behind a bookshelf", "An encrypted message".
+                               - 35-50+ (Enigmatic): "A complex astronomical puzzle", "An ancient ritual to open a gateway".
+
+                            ]]>
+                        </Content>
+                    </Rule>
+
+                    <Rule id="20.0.2">
+                        <Title>Step 2: The Linking Protocol - How the Profile Affects Gameplay</Title>
+                        <Description>This is the most critical part. It links the profile directly to the Action Check system.</Description>
+                        <Content type="rule_text">
+                            <![CDATA[
+
+                            When a player performs an Action Check (InstructionBlock #12), you MUST use the correct value from the 'difficultyProfile' to calculate the 'ActionDifficultModificator'.
+
+                            -   If the action is COMBAT (attack, use a combat skill) -> Use 'difficultyProfile.combat'.
+                            -   If the action is PHYSICAL (jump a chasm, dodge a trap) -> Use 'difficultyProfile.environment'.
+                            -   If the action is SOCIAL (persuade, intimidate, trade) -> Use 'difficultyProfile.social'.
+                            -   If the action is INTELLECTUAL (search for secrets, decipher) -> Use 'difficultyProfile.exploration'.
+
+                            This ensures that a friendly city with 'social: 5' does not make a Persuasion check impossible just because a legendary gladiator with 'combat: 80' lives there.
+                            
+                            ]]>
+                        </Content>
+                    </Rule>
+
+                    <Rule id="20.0.3">
+                        <Title>Step 3: The World Reacts Protocol (Dynamic Updates)</Title>
+                        <Description>The 'difficultyProfile' is not static. The player's actions MUST change it.</Description>
+                        <Content type="rule_text">
+                            <![CDATA[
+
+                            After a significant event, you MUST update the location's 'difficultyProfile' to reflect the new reality.
+
+                            -   Player eliminates the threat: If the player slays the dragon, the 'difficultyProfile.combat' in its lair plummets.
+                            -   Player disarms traps: If the player disables all traps in a tomb, the 'difficultyProfile.environment' drops.
+                            -   Player gains trust: If the player becomes the hero of a town, the 'difficultyProfile.social' drops (possibly to negative values).
+
+                            You MUST report this update by sending the updated 'currentLocationData' object and log the reason in 'items_and_stat_calculations'. 
+                            This makes the player's actions feel impactful.
+                            
+                            ]]>
+                        </Content>
+                    </Rule>
+                </Content>
+                <Examples>
+                    <Example type="good" contentType="log">
+                        <Title>Пример 1: Использование 'difficultyProfile.combat'</Title>
+                        <ScenarioContext>
+                            Игрок (Уровень 25) находится в "Зале Совета Короля-Лича" (ID: loc-lich-throne-01).
+                            'difficultyProfile': { combat: 85, environment: 30, social: 70, exploration: 50 }.
+                            Игрок решает атаковать "Рыцаря Смерти", элитного стража.
+                        </ScenarioContext>
+                        <Content type="log">
+                            <![CDATA[
+
+                            # Расчет проверки действия: Атака на Рыцаря Смерти
+
+                            ## Шаг 1: Выбор релевантной сложности (Протокол #20.0.2)
+                            - Действие: Атака (Боевое).
+                            - **Выбранная сложность: 'difficultyProfile.combat' со значением 85.**
+
+                            ## Шаг 2: Расчет BaseDifficulty (Правило #12.6.2)
+                            - RelevantDifficulty = 85.
+                            - CharacterLevel = 25.
+                            - DifficultyScale = max(0.2, min(1.5, (25 / 50))) = 0.5.
+                            - **BaseDifficulty = 85 * 0.5 = 42.5.**
+
+                            ... (далее следует полный расчет ActionDifficultModificator и Action Check) ...
+
+                            **Вывод:** Проверка будет чрезвычайно сложной, так как она основана на очень высоком показателе боевой сложности локации.
+
+                            ]]>
+                        </Content>
+                    </Example>
+
+                    <Example type="good" contentType="log">
+                        <Title>Пример 2: Использование 'difficultyProfile.environment'</Title>
+                        <ScenarioContext>
+                            Тот же игрок (Уровень 25) в том же "Зале Совета Короля-Лича".
+                            'difficultyProfile': { combat: 85, environment: 30, social: 70, exploration: 50 }.
+                            Игрок замечает, что трон Короля-Лича стоит на шаткой платформе над пропастью, и решает обрушить сталактит с потолка, чтобы разрушить платформу.
+                        </ScenarioContext>
+                        <Content type="log">
+                            <![CDATA[
+
+                            # Расчет проверки действия: Обрушить сталактит (Взаимодействие с окружением)
+
+                            ## Шаг 1: Выбор релевантной сложности (Протокол #20.0.2)
+                            - Действие: Взаимодействие с окружением (Физическое/Интеллектуальное).
+                            - **Выбранная сложность: 'difficultyProfile.environment' со значением 30.**
+
+                            ## Шаг 2: Расчет BaseDifficulty (Правило #12.6.2)
+                            - RelevantDifficulty = 30.
+                            - CharacterLevel = 25.
+                            - DifficultyScale = 0.5.
+                            - **BaseDifficulty = 30 * 0.5 = 15.**
+
+                            ... (далее следует полный расчет ActionDifficultModificator и Action Check) ...
+
+                            **Вывод:** Проверка все еще сложная, но **значительно легче**, чем прямая атака. Это поощряет креативное использование окружения.
+
+                            ]]>
+                        </Content>
+                    </Example>
+
+                    <Example type="good" contentType="log">
+                        <Title>Пример 3: Использование 'difficultyProfile.social'</Title>
+                        <ScenarioContext>
+                            Тот же игрок (Уровень 25) в том же "Зале Совета Короля-Лича".
+                            'difficultyProfile': { combat: 85, environment: 30, social: 70, exploration: 50 }.
+                            Перед игроком стоит призрак древнего советника. Игрок пытается убедить призрака предать Короля-Лича, взывая к его былой чести.
+                        </ScenarioContext>
+                        <Content type="log">
+                            <![CDATA[
+
+                            # Расчет проверки действия: Убеждение призрака (Социальное)
+
+                            ## Шаг 1: Выбор релевантной сложности (Протокол #20.0.2)
+                            - Действие: Убеждение (Социальное).
+                            - **Выбранная сложность: 'difficultyProfile.social' со значением 70.**
+
+                            ## Шаг 2: Расчет BaseDifficulty (Правило #12.6.2)
+                            - RelevantDifficulty = 70.
+                            - CharacterLevel = 25.
+                            - DifficultyScale = 0.5.
+                            - **BaseDifficulty = 70 * 0.5 = 35.**
+
+                            ... (далее следует полный расчет ActionDifficultModificator и Action Check) ...
+
+                            **Вывод:** Социальное взаимодействие с могущественной нежитью почти так же сложно, как и бой. 
+                            Однако, если бы игрок предварительно нашел дневник советника и повысил свою репутацию с ним, этот показатель мог бы снизиться.
+                            
+                            ]]>
+                        </Content>
+                    </Example>
+
+                    <Example type="good" contentType="log">
+                        <Title>Пример 4: Использование 'difficultyProfile.exploration'</Title>
+                        <ScenarioContext>
+                            Тот же игрок (Уровень 25) в том же "Зале Совета Короля-Лича".
+                            'difficultyProfile': { combat: 85, environment: 30, social: 70, exploration: 50 }.
+                            Игрок игнорирует врагов и пытается найти и расшифровать руны на стене, которые, по слухам, являются ключом к уязвимости Короля-Лича.
+                        </ScenarioContext>
+                        <Content type="log">
+                            <![CDATA[
+
+                            # Расчет проверки действия: Расшифровка рун (Исследование)
+
+                            ## Шаг 1: Выбор релевантной сложности (Протокол #20.0.2)
+                            - Действие: Расшифровка (Интеллектуальное).
+                            - **Выбранная сложность: 'difficultyProfile.exploration' со значением 50.**
+
+                            ## Шаг 2: Расчет BaseDifficulty (Правило #12.6.2)
+                            - RelevantDifficulty = 50.
+                            - CharacterLevel = 25.
+                            - DifficultyScale = 0.5.
+                            - **BaseDifficulty = 50 * 0.5 = 25.**
+
+                            ... (далее следует полный расчет ActionDifficultModificator и Action Check) ...
+
+                            **Вывод:** Решение головоломки — это серьезный вызов, но он предлагает совершенно иной путь к победе, нежели прямое столкновение.
+
+                            ]]>
+                        </Content>
+                    </Example>
+
+                    <Example type="good" contentType="log_and_json_snippet">
+                        <Title>Example 5: Dynamic Update of a Difficulty Profile After Player Action</Title>
+                        <ScenarioContext>
+                            The player has just cleared out the "Whispering Caves Bandit Outpost". 
+                            Before this, its 'difficultyProfile' was { combat: 35, environment: 20, social: 50, exploration: 25 }.
+                        </ScenarioContext>
+                        <LogOutput target="items_and_stat_calculations">
+                            <![CDATA[
+
+                            # Updating Location Profile: "Whispering Caves Bandit Outpost"
+
+                            - **Significant Event:** Player has defeated the bandit leader and driven off the remaining inhabitants.
+                            - **Applying 'The World Reacts Protocol' (Rule #20.0.3)** to update the location's profile.
+
+                            - **Analyzing Changes:**
+                                - **Combat Difficulty:** The primary threat (the organized bandit force) has been eliminated. The 'combat' difficulty plummets from 35 to a new baseline of 5 (representing only potential wild animals).
+                                - **Environment Difficulty:** The natural hazards of the cave (pits, unstable ceilings) remain. The 'environment' difficulty is unchanged at 20.
+                                - **Social Difficulty:** The hostile inhabitants are gone. The location is now empty and neutral. The 'social' difficulty drops from 50 to 0.
+                                - **Exploration Difficulty:** The bandits' hidden loot and any cave secrets are still present and hidden. The 'exploration' difficulty is unchanged at 25.
+                            
+                            - **Preparing updated 'currentLocationData'** to reflect the new, safer state of the location.
+
+                            ]]>
+                        </LogOutput>
+                        <JsonResponse>
+                            <currentLocationData>
+                                <![CDATA[
+
+                                {
+                                    "locationId": "loc-whispering-caves-01",
+                                    "lastEventsDescription": "#55. After the player defeated the bandits, the Whispering Caves have become an empty, quiet, but still naturally hazardous place.",
+                                    "difficultyProfile": {
+                                        "combat": 5,
+                                        "environment": 20,
+                                        "social": 0,
+                                        "exploration": 25
+                                    }
+                                }
+
+                                ]]>
+                            </currentLocationData>
+                            <response>
+                                <![CDATA[
+
+                                С последним поверженным бандитом в пещерах воцаряется звенящая тишина, нарушаемая лишь гулким эхом капающей с потолка воды. 
+                                Воздух больше не пахнет грязными телами и дешевым элем. Непосредственная угроза миновала. 
+                                Хотя сами пещеры по-прежнему опасны и полны темных углов, вы чувствуете, что очистили это место от зла. 
+                                Теперь это просто пещеры, а не бандитский форпост.
+                                
+                                ]]>
+                            </response>
+                        </JsonResponse>
+                    </Example>
+                </Examples>
+            </Rule>
+
             <Rule id="20.1">
                 <Title>Location Data Object Structure ('currentLocationData')</Title>
                 <InstructionText>The 'currentLocationData' key holds a single object describing the location the player is in THIS TURN.</InstructionText>
@@ -18920,7 +19355,12 @@ export const getGameMasterGuideRules = (configuration) => {
                         "locationId": "system_assigned_guid_or_null_for_new",
                         "name": "current_location_name_string",
                         "coordinates": { "x": "integer", "y": "integer" },
-                        "difficulty": "difficulty_integer_value",
+                        "difficultyProfile": {
+                            "combat": "integer",
+                            "environment": "integer",
+                            "social": "integer",
+                            "exploration": "integer"
+                        },
                         "description": "current_location_description_string_if_new",
                         "lastEventsDescription": "location_last_events_this_turn_string",
                         "image_prompt": "prompt_for_location_image_string_if_new_english_only",
@@ -18965,7 +19405,8 @@ export const getGameMasterGuideRules = (configuration) => {
                         - 'Vehicle': The interior of a large vehicle (ship's cabin, train car).
                         - 'UniqueIndoor': A surreal or magical interior space (e.g., inside a giant's stomach).
                     
-                    7.  "difficulty": (integer) Location difficulty (as per existing rules).
+                    7.  "difficultyProfile": (object) 
+                    A mandatory object containing four independent difficulty values for the location, calculated as per the Multi-Faceted Threat Protocol (Rule #20.0).
 
                     8.  "description": (string) Full description, only for new locations. 
                     This description MUST incorporate the current 'timeOfDay' and 'weather' from the 'worldState' to paint a complete picture (as per Rule #5.21).
@@ -20571,19 +21012,56 @@ export const getGameMasterGuideRules = (configuration) => {
 
             <Rule id="24.2">
                 <Title>Coefficient 2: Location Coefficient</Title>
-                <Description>Reflects the base richness or challenge of the current location.</Description>
+                <Description>Reflects the overall challenge and value of the current location, calculated from its 'difficultyProfile'.</Description>
                 <Content type="rule_text">
                     <![CDATA[
 
-                    1.  Get Location Difficulty: Use the 'difficulty' value of the 'currentLocationData' for this turn.
+                    1.  Retrieve Difficulty Profile: 
+                    Get the four values from 'currentLocationData.difficultyProfile': 'combat', 'environment', 'social', and 'exploration'.
 
-                    2.  Calculate Coefficient: Use the following formula:
-                        'location_coefficient = (current_location_difficulty / 100) + 1.0'
+                    2.  Calculate Weighted Average Difficulty (WAD):
+                        -   Assign weights to each facet to reflect its contribution to the "loot value" of a location. Combat and Exploration are most important.
+                        -   Formula: 
+                        'WAD = (combat * 0.4) + (exploration * 0.3) + (environment * 0.2) + (social * 0.1)'
 
-                    3.  Log: Record the calculation in 'items_and_stat_calculations'.
+                    3.  Calculate the Coefficient:
+                        -   Formula: 
+                        'location_coefficient = (WAD / 100) + 1.0'
+
+                    4.  Log: Record the entire calculation process in 'items_and_stat_calculations', showing the profile values, the WAD, and the final coefficient.
 
                     ]]>
                 </Content>
+                <Examples>
+                    <Example type="good" contentType="log">
+                        <Title>Пример: Расчет Коэффициента Локации для "Логова Дракона"</Title>
+                        <ScenarioContext>
+                            Профиль сложности локации "Логово Дракона": { combat: 84, environment: 45, social: 50, exploration: 40 }.
+                        </ScenarioContext>
+                        <Content type="log">
+                            <![CDATA[
+
+                            # Расчет Коэффициента Локации:
+
+                            1. Получение Профиля Сложности:
+                               - combat: 84
+                               - exploration: 40
+                               - environment: 45
+                               - social: 50
+
+                            2. Расчет Средневзвешенной Сложности (WAD):
+                               - WAD = (84 * 0.4) + (40 * 0.3) + (45 * 0.2) + (50 * 0.1)
+                               - WAD = 33.6 + 12 + 9 + 5 = 59.6
+
+                            3. Расчет Коэффициента:
+                               - location_coefficient = (59.6 / 100) + 1.0 = 0.596 + 1.0 = 1.596
+
+                            - Итоговый location_coefficient: 1.596
+
+                            ]]>
+                        </Content>
+                    </Example>
+                </Examples>
             </Rule>
 
             <Rule id="24.3">
