@@ -6129,7 +6129,7 @@ export const getGameMasterGuideRules = (configuration) => {
 
                                     If the enemy is a pre-existing entity that has followed the player or moved from a different location where it was originally encountered/generated:
                                     Search the Context (game history, 'lastEventsDescription', or previous 'enemiesData' entries if available) to determine the difficulty of the location where this specific enemy instance was first generated.
-                                    Use that original location's difficulty as 'LD_calc'.
+                                    Use that original location's difficultyProfile.combat value as 'LD_calc'.
 
                                     If the origin location's difficulty for a pre-existing enemy cannot be reliably determined, use the current location's difficulty as a fallback, but note this assumption in 'items_and_stat_calculations'.
 
