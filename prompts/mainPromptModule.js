@@ -1660,7 +1660,7 @@ export const getGameMasterGuideRules = (configuration) => {
                         (e.g., "# Player Action: Attempting to climb the castle wall.")
 
                     2.  Variable Identification: List all raw input values you are taking from the Context for this calculation.
-                        (e.g., "## Input Variables\n- Player's Standard Strength: 40\n- Player Level: 15\n- Location Difficulty: 25")
+                        (e.g., "## Input Variables\n- Player's Standard Strength: 40\n- Player Level: 15\n- Location Difficulty Profile (Environment): 25 (climbing is an environmental challenge)")
 
                     3.  Conditional Check & Bonus/Penalty Enumeration:
                         Explicitly list every potential modifier. For each, you MUST state whether its condition is met and if you are applying it.
@@ -21174,14 +21174,16 @@ export const getGameMasterGuideRules = (configuration) => {
                     <Example type="good" contentType="log_and_json_snippet">
                         <Title>Example Calculation for a Turn</Title>
                         <ScenarioContext>
-                            Player is in combat (high danger) in a difficult dungeon (difficulty 40), searching a chest (logical place), has one search bonus item, and is alone (no social complexity).
+                            Player is in combat (high danger) in a difficult dungeon (complex difficulty profile), searching a chest (logical place), has one search bonus item, and is alone (no social complexity).
                         </ScenarioContext>
                         <LogOutput target="items_and_stat_calculations">
                             <![CDATA[
 
                             Calculating Multipliers:
                             - Item Search: 1 minor bonus item -> item_search_coefficient = 0.2
-                            - Location: Difficulty 40 -> location_coefficient = (40 / 100) + 1.0 = 1.4
+                            - Location: "Dungeon of Despair" (Profile: {combat: 70, environment: 50, social: 10, exploration: 60})
+                                - WAD = (70 * 0.4) + (60 * 0.3) + (50 * 0.2) + (10 * 0.1) = 28 + 18 + 10 + 1 = 57
+                                - location_coefficient = (57 / 100) + 1.0 = 1.57
                             - Danger: In combat with 3 enemies -> danger_coefficient = 1.8
                             - Logic: Searching a chest for loot is highly logical -> logic_coefficient = 1.9
                             - Characters: Player is alone -> characters_coefficient = 1.0
@@ -21192,7 +21194,7 @@ export const getGameMasterGuideRules = (configuration) => {
                             <multipliers>
                                 <![CDATA[
 
-                                [0.2, 1.4, 1.8, 1.9, 1.0]
+                                [0.2, 1.57, 1.8, 1.9, 1.0]
 
                                 ]]>
                             </multipliers>
