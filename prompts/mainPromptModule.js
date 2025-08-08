@@ -847,7 +847,7 @@ export const getGameMasterGuideRules = (configuration) => {
                     "image_prompt": "${currentLocation.image_prompt}" // String
                 },
                 "visitedLocations": // Array of Location Objects (structure similar to currentLocation) for all previously visited locations
-                    // Example: { "name": "Old Forest", "difficulty": 5, ... }
+                    // Example: { "name": "Old Forest", "difficultyProfile": { "combat": 15, "environment": 20, "social": 5, "exploration": 10 }, ... }
                     ${JSON.stringify(visitedLocations)}
                 ,
                 "activeQuests": // Array of Quest Objects for currently active quests (structure from #18.2)
@@ -15657,7 +15657,7 @@ export const getGameMasterGuideRules = (configuration) => {
 
                     Pre-generated Dices for the turn: [17, 5, 14, 18, 3, 11, 9, 12] (Consumed sequentially)
                     Player's Crit Chance Threshold (StandardLuck 10, from #5.7.3): 20 - floor(10/20) = 20
-                    Location Difficulty (LD): 8 
+                    Location: "Forest Clearing" (Difficulty Profile: { combat: 8, environment: 10, social: 2, exploration: 5 })
                     Significant Damage Thresholds (GM guidelines from #5.20.3): 
                         - Threshold 1 (Light Wound / Minor Debuff): >25% target's maxHealth
                         - Threshold 2 (Moderate Wound / Significant Debuff): >45% target's maxHealth
@@ -15709,7 +15709,7 @@ export const getGameMasterGuideRules = (configuration) => {
                                 - Target: Goblin Spearman (Generic Enemy).
                                 - GM sets Difficulty Factors for player attacking generic enemy: 
                                     NPC_DifficultyFactor=0.0, Situation_DifficultyFactor=0.1, Action_RationalityFactor=0.0.
-                                - CurrentLD: 8
+                                - Action is Combat. Retrieving 'combat' facet from "Forest Clearing" profile. RelevantDifficulty = 8.
                                 - DifficultyScale (Player Lvl 10): 0.2
                                 - BaseDifficulty = 8 * 0.2 = 1.6
                                 - ActionDifficult = 1.6 * (1 + 0.0 + 0.1 + 0.0) = 1.76
@@ -15842,6 +15842,7 @@ export const getGameMasterGuideRules = (configuration) => {
                 <Title>Example 2: Post-Apocalyptic - Player Raider vs. Mutant Scavengers (Automatic Weapon)</Title>
                 <ScenarioContext>
                     <![CDATA[
+
                     Player Character ("Scrap", PC):
                     - Level: 15
                     - Standard Characteristics: Dexterity=35, Perception=30, Luck=15, Speed=30
@@ -15868,14 +15869,16 @@ export const getGameMasterGuideRules = (configuration) => {
 
                     Pre-generated Dices: [12, 16, 8, 19, 4, 11, 15, 7, 10, 13, 6, 1, 20, 2]
                     Player's Crit Chance Threshold (StdLuck 15): 20 - floor(15/20) = 20.
-                    Location: "Ruined Gas Station" (LD=12)
+                    Location: "Ruined Gas Station" (Difficulty Profile: { combat: 12, environment: 18, social: 5, exploration: 15 })
                     Significant Damage Thresholds: >25% (Minor Debuff), >45% (Significant Debuff)
+
                     ]]>
                 </ScenarioContext>
                 <ActionSequence>
                     <Step turn_by="Player" action_description="Scrap fires a burst from the Assault Rifle at the Mutant Bruiser.">
                         <LogOutput target="items_and_stat_calculations">
                             <![CDATA[
+
                             Player Action: Scrap fires Assault Rifle burst (3 shots) at Mutant Bruiser.
                             Ammunition Check: "7.62mm Rounds" count: 50. Sufficient for 3 shots. New count will be 47.
 
@@ -15888,11 +15891,12 @@ export const getGameMasterGuideRules = (configuration) => {
                                 StatValue=35, FlatBonus=0, PercBonus=0 => StatValWithBonus=35
                                 MaxStatVal(L15)=27.5, CappedStatVal=27.5
                                 LevelScale(L15)=floor(15*0.8)=12. StatModificator=27.5+12=39.5 -> 40 (rounded for simplicity in log)
-                            #12.6: ActionDifficultModificator (Target: Mutant Bruiser, Generic Moderate, LD=12):
-                                Factors: NPC_Diff=0.2 (Moderate type defense), Sit_Diff=0.0, Act_Rat=0.0
-                                DifficultyScale(L15)=max(0.2,min(1.5,(15/50)))=0.3
-                                BaseDiff=12*0.3=3.6. ActionDiff=3.6*(1+0.2)=4.32
-                                ActionDifficultMod=round(min(120, 4.32*(0.4+15/100)))=round(min(120, 4.32*0.55))=round(2.376)=2
+                            #12.6: ActionDifficultModificator (Target: Mutant Bruiser, Generic Moderate)
+                                - Action is Combat. Retrieving 'combat' facet from "Ruined Gas Station" profile. RelevantDifficulty = 12.
+                                - Factors: NPC_Diff=0.2 (Moderate type defense), Sit_Diff=0.0, Act_Rat=0.0
+                                - DifficultyScale(L15)=max(0.2,min(1.5,(15/50)))=0.3
+                                - BaseDiff=12*0.3=3.6. ActionDiff=3.6*(1+0.2)=4.32
+                                - ActionDifficultMod=round(min(120, 4.32*(0.4+15/100)))=round(min(120, 4.32*0.55))=round(2.376)=2
                             #12.7: Difference = (12+40) - (16+2) = 52 - 18 = 34. Result: 'Critical Success'.
                             #12.8: Interpret: Critical Success. Eligible for Dexterity increase.
 
@@ -15924,6 +15928,7 @@ export const getGameMasterGuideRules = (configuration) => {
                             Shot 2 deals 48% piercing, Bruiser at 32%.
                             Shot 3 deals 48% piercing, Bruiser at -16% (Defeated).
                             Ammunition "7.62mm Rounds" count becomes 47. Player energy: -10 (example for burst fire).
+
                             ]]>
                         </LogOutput>
                         <JsonResponse>
@@ -16007,7 +16012,7 @@ export const getGameMasterGuideRules = (configuration) => {
                     Generic Enemy ("Wild Boar", Weak, EL=6, MaxHealth=87%, Resist: slashing 5%)
                     Dices: [10, 15, 5, 12, 18, 9]
                     Anya Crit Threshold: 20 (StdLuck assumed 10)
-                    Location: "Old Road" (LD=5)
+                    Location: "Old Road" (Difficulty Profile: { combat: 5, environment: 8, social: 2, exploration: 3 })
 
                     ]]>
                 </ScenarioContext>
@@ -16022,10 +16027,11 @@ export const getGameMasterGuideRules = (configuration) => {
                             #12.4: GMDice: Takes 15. (Normal Roll)
                             #12.5: StatModificator (Player L8, ModInt 45):
                                 StdInt assumed 30. StatValueWithBonuses=30 (capped at MaxStatVal(L8)=24). LevelScale(L8)=6. StatMod=24+6=30.
-                            #12.6: ActionDifficultModificator (Target: Wild Boar Weak EL6, LD=5):
-                                Factors: NPC_Diff=0.1 (Weak type), Sit_Diff=0.0, Act_Rat=0.0
-                                DiffScale(L8)=0.2. BaseDiff=5*0.2=1. ActionDiff=1*1.1=1.1
-                                ActionDifficultMod=round(min(120, 1.1*(0.4+8/100)))=round(0.528)=1.
+                            #12.6: ActionDifficultModificator (Target: Wild Boar Weak EL6):
+                                - Action is Combat. Retrieving 'combat' facet from "Old Road" profile. RelevantDifficulty = 5.
+                                - Factors: NPC_Diff=0.1 (Weak type), Sit_Diff=0.0, Act_Rat=0.0
+                                - DiffScale(L8)=0.2. BaseDiff=5*0.2=1. ActionDiff=1*1.1=1.1
+                                - ActionDifficultMod=round(min(120, 1.1*(0.4+8/100)))=round(0.528)=1.
                             #12.7: Difference = (10+30) - (15+1) = 40 - 16 = 24. Result: 'Critical Success'.
                             #12.8: Interpret: Critical Success. Eligible for Intelligence increase.
                             #12.9: Applying Mechanical Effects (Frost Shard)
@@ -16168,7 +16174,7 @@ export const getGameMasterGuideRules = (configuration) => {
 
                     Dices: [18, 3, 11, 14, 7, 10, 19, 1]
                     Whisper Crit Threshold (StdLuck 25): 20 - floor(25/20) = 19.
-                    Location: "Castle Treasury" (LD=20)
+                    Location: "Castle Treasury" (Difficulty Profile: { combat: 20, environment: 25, social: 30, exploration: 35 })
                     Thorne is currently unaware of Whisper.
 
                     ]]>
@@ -16185,10 +16191,11 @@ export const getGameMasterGuideRules = (configuration) => {
                             #12.4: GMDice: Takes 14. (Normal Roll, 18 < CritThreshold 19)
                             #12.5: StatModificator (Player L20, ModDex 60):
                                 StdDex assumed 40. StatValWithBonus=40 (capped at MaxStatVal(L20)=30). LevelScale(L20)=16. StatMod=30+16=46.
-                            #12.6: ActionDifficultModificator (Target: Captain Thorne L22 NPC, LD=20):
-                                Factors: NPC_Diff=0.3 (Strong type, but unaware reduces effective defense), Sit_Diff=-0.2 (surprise), Act_Rat=0.0
-                                DiffScale(L20)=0.4. BaseDiff=20*0.4=8. ActionDiff=8*(1+0.3-0.2)=8*1.1=8.8
-                                ActionDifficultMod=round(min(120, 8.8*(0.4+20/100)))=round(min(120, 8.8*0.6))=round(5.28)=5.
+                            #12.6: ActionDifficultModificator (Target: Captain Thorne L22 NPC):
+                                - Action is Combat. Retrieving 'combat' facet from "Castle Treasury" profile. RelevantDifficulty = 20.
+                                - Factors: NPC_Diff=0.3 (Strong type, but unaware reduces effective defense), Sit_Diff=-0.2 (surprise), Act_Rat=0.0
+                                - DiffScale(L20)=0.4. BaseDiff=20*0.4=8. ActionDiff=8*(1+0.3-0.2)=8*1.1=8.8
+                                - ActionDifficultMod=round(min(120, 8.8*(0.4+20/100)))=round(min(120, 8.8*0.6))=round(5.28)=5.
                             #12.7: Difference = (18+46) - (14+5) = 64 - 19 = 45. Result: 'Critical Success'.
                             #12.8: Interpret: Critical Success. Eligible for Dexterity increase.
                             #12.9: Applying Mechanical Combat Effects (Shadow Strike + Dagger)
@@ -19440,7 +19447,12 @@ export const getGameMasterGuideRules = (configuration) => {
                                 "linkType": "'Road', 'Path', 'Secret Passage', 'Stairs Up', 'Stairs Down', 'Door', 'Gate', 'Waterway', 'Wilderness'",
                                 "linkState": "'Safe', 'Dangerous', 'Hidden', 'Blocked', 'Requires Key'",
                                 "targetCoordinates": { "x": "integer", "y": "integer" },
-                                "estimatedDifficulty": "integer_estimated_difficulty_level"
+                                "estimatedDifficultyProfile": {
+                                    "combat": "integer",
+                                    "environment": "integer",
+                                    "social": "integer",
+                                    "exploration": "integer"
+                                }
                             }
 
                             ]]>
@@ -19453,11 +19465,17 @@ export const getGameMasterGuideRules = (configuration) => {
                             <![CDATA[
 
                             1.  "name": (string) The name of the adjacent location. Translate.
+                            
                             2.  "shortDescription": (string) A one-sentence teaser. Translate.
+                            
                             3.  "linkType": (string) The type of connection. Choose from the list or a logical equivalent.
+                            
                             4.  "linkState": (string) The current state of the connection. 'Hidden' requires a Perception check to find. 'Blocked' requires an action to clear.
+                            
                             5.  "targetCoordinates": (object) The coordinates {x, y} of the adjacent location, determined logically.
-                            6.  "estimatedDifficulty": (integer) The GM's estimated difficulty for the adjacent location.
+                            
+                            6. "estimatedDifficultyProfile": (object) The GM's quick, logical estimation of the four difficulty facets for the adjacent location. 
+                            This is not a full calculation, but an informed guess based on the location's name and description, to serve as a preview for the player.
 
                             ]]>
                         </Content>
@@ -19645,7 +19663,7 @@ export const getGameMasterGuideRules = (configuration) => {
                         "locationType": "indoor",
                         "indoorType": "Building", 
                         "biome": null, 
-                        "difficulty": 2,
+                        "difficultyProfile": { "combat": 5, "environment": 1, "social": 10, "exploration": 3 },
                         "description": "You push open the heavy oak door and step inside The Rusty Flagon. The air is warm and filled with the smell of pipe smoke and ale. You can hear the gentle drumming of rain on the roof above the din of conversation. A fire crackles merrily in the hearth.",
                         "lastEventsDescription": "#22. You have entered the tavern to escape the rain.",
                         "image_prompt": "Cozy, dimly lit medieval tavern interior, patrons drinking at wooden tables, large fireplace, rain visible on a window pane, fantasy art.",
@@ -19656,7 +19674,12 @@ export const getGameMasterGuideRules = (configuration) => {
                                 "linkType": "Door", 
                                 "linkState": "Safe", 
                                 "targetCoordinates": {"x": 5, "y": 2}, 
-                                "estimatedDifficulty": 1 
+                                "estimatedDifficultyProfile": {
+                                    "combat": 5,
+                                    "environment": 2,
+                                    "social": 15,
+                                    "exploration": 5
+                                } 
                             }
                         ]
                     }
@@ -19680,7 +19703,7 @@ export const getGameMasterGuideRules = (configuration) => {
                         "locationType": "outdoor",
                         "biome": "Desert",
                         "indoorType": null,
-                        "difficulty": 15,
+                        "difficultyProfile": { "combat": 15, "environment": 25, "social": 2, "exploration": 10 },
                         "description": "Endless dunes of orange sand stretch to the horizon under a blazing, cloudless sky. The air shimmers with heat, and the only sound is the whisper of the wind over the sand.",
                         "lastEventsDescription": "#31. You continue your trek through the desert.",
                         "image_prompt": "Vast desert landscape with massive sand dunes, blazing sun in a clear blue sky, heat haze, cinematic, fantasy art.",
@@ -19706,7 +19729,7 @@ export const getGameMasterGuideRules = (configuration) => {
                         "locationType": "indoor",
                         "indoorType": "CaveSystem",
                         "biome": null,
-                        "difficulty": 9,
+                        "difficultyProfile": { "combat": 10, "environment": 12, "social": 1, "exploration": 15 },
                         "description": "You squeeze through a narrow fissure in the rock and enter a cavern. The air is still and cold, smelling of damp earth and stone. The sound of the wind and snow outside is immediately muffled to a distant whisper. Water drips rhythmically from stalactites into a small pool in the center of the chamber.",
                         "lastEventsDescription": "#35. You have discovered the entrance to the Echoing Caverns.",
                         "image_prompt": "Dark, natural cave entrance, glowing moss on damp rock walls, stalactites and stalagmites, deep fantasy cavern.",
@@ -19717,7 +19740,12 @@ export const getGameMasterGuideRules = (configuration) => {
                                 "linkType": "Exit",
                                 "linkState": "Safe", 
                                 "targetCoordinates": {"x": -4, "y": 9}, 
-                                "estimatedDifficulty": 8
+                                "estimatedDifficultyProfile": {
+                                    "combat": 10,
+                                    "environment": 15,
+                                    "social": 2,
+                                    "exploration": 5
+                                }
                             }
                         ]
                     }
@@ -19744,7 +19772,7 @@ export const getGameMasterGuideRules = (configuration) => {
                                 "locationId": "loc-tavern-01",
                                 "name": null,
                                 "coordinates": null,
-                                "difficulty": null,
+                                "difficultyProfile": null,
                                 "description": null,
                                 "lastEventsDescription": "#45. A massive bar fight erupts after a gambler accuses another of cheating.",
                                 "image_prompt": null,
