@@ -5690,6 +5690,9 @@ export const getGameMasterGuideRules = (configuration) => {
                     CRITICAL NOTE: "Level" is a measure of an entity's peak proficiency.
                     You MUST also determine its "Threat Specialization" (Combat, Social, etc.) to understand how this power manifests.
                     
+                    To anchor your choice within the world's logic, you MUST use the appropriate facet of the location's 'difficultyProfile' as a baseline for your decision.
+                    For example, a "Veteran Guard" (Levels 11-30) in a quiet village ('combat': 5) would likely be Level 11-15, whereas the same type of guard in a frontier fortress ('combat': 30) would be closer to Level 25-30.
+
                     ]]>
                 </InstructionText>
                 <Content type="rule_text">
@@ -13427,6 +13430,8 @@ export const getGameMasterGuideRules = (configuration) => {
                             Environmental/circumstantial hurdles. 
                             The GM MUST consider the 'worldState' (time, weather) as a primary source for this factor, as defined in Rule #5.21. 
                             For example, 'Night' might increase the difficulty of a visual perception check.
+                            CRITICAL CLARIFICATION: This factor should primarily represent TEMPORARY or DYNAMIC conditions (like weather, time of day, a sudden distraction, or the immediate effects of a previous action). 
+                            The PERMANENT physical danger of the location itself is already accounted for in the 'difficultyProfile.environment' and should not be counted again here.
 
                             c) 'Action_RationalityFactor': (GM Judgement, 0.0 to 1.0)
                             How logical the action is.
@@ -19351,6 +19356,134 @@ export const getGameMasterGuideRules = (configuration) => {
                 </Examples>
             </Rule>
 
+            <Rule id="20.A">
+                <Title>CRITICAL DIRECTIVE: The Logical Progression Protocol for Location Generation</Title>
+                <Description>
+                    This is a foundational protocol to prevent unfair difficulty spikes and ensure a logical progression of challenges. 
+                    It governs the generation of the 'difficultyProfile' for any new location adjacent to an existing one.
+                </Description>
+                <InstructionText>
+                    <![CDATA[
+
+                    When you generate a new adjacent location and its 'adjacencyMap' entry, you MUST ensure that its difficulty progresses in a logical and fair manner.
+                    The world should feel consistent, not randomly punitive. You MUST follow this three-step protocol.
+
+                    ]]>
+                </InstructionText>
+                <Content type="ruleset">
+                    <Rule id="20.A.1">
+                        <Title>Step 1: The Adjacency Rule (The Soft Cap)</Title>
+                        <Content type="rule_text">
+                            <![CDATA[
+
+                            By default, the difficulty of a new, adjacent location should not drastically differ from the player's current location.
+
+                            1.  Get the 'difficultyProfile' of the current location.
+                            2.  Define a 'DifficultyDelta'. For a standard connection ('linkType' like 'Road', 'Path', 'Door'), this value is 15.
+                            3.  The 'difficultyProfile' of the new location you are generating MUST fall within this range.
+                                For example, 'NewProfile.combat' must be between '(CurrentProfile.combat - 15)' and '(CurrentProfile.combat + 15)'.
+                                This applies to all four facets of the profile.
+
+                            ]]>
+                        </Content>
+                    </Rule>
+
+                    <Rule id="20.A.2">
+                        <Title>Step 2: The Narrative Override (Breaking the Cap)</Title>
+                        <Content type="rule_text">
+                            <![CDATA[
+
+                            You are permitted to break the "Soft Cap" from Step 1 ONLY for locations of high narrative importance or known danger (e.g., the entrance to a legendary dungeon, a cursed forest, the capital city).
+                            However, if you choose to override the soft cap, you MUST proceed to Step 3.
+
+                            ]]>
+                        </Content>
+                    </Rule>
+
+                    <Rule id="20.A.3">
+                        <Title>Step 3: The Mandatory Warning Protocol</Title>
+                        <Content type="rule_text">
+                            <![CDATA[
+
+                            If you break the soft cap and create a location with a significantly higher difficulty, you are OBLIGATED to warn the player through the 'adjacencyMap' entry.
+
+                            1.  Set the 'linkState' to 'Dangerous'.
+                            2.  The 'shortDescription' of the path MUST contain explicit words of warning that signal extreme danger.
+
+                            This ensures that the player can make an informed choice rather than walking into an unfair death trap.
+
+                            ]]>
+                        </Content>
+                    </Rule>
+                </Content>
+                <Examples>
+                    <Example type="good" contentType="text_and_json">
+                        <Title>CORRECT: Gradual Progression</Title>
+                        <ScenarioContext>Player is in "Forest Clearing" ('combat': 8). GM generates an adjacent location.</ScenarioContext>
+                        <Content type="json_fragment">
+                            <![CDATA[
+
+                            // New Location: "Deeper Woods"
+                            // Combat difficulty must be between (8-15) and (8+15), i.e., -7 to 23.
+                            // GM chooses 15. This is a valid progression.
+                            "adjacencyMap": [
+                                {
+                                    "name": "Deeper Woods",
+                                    "shortDescription": "The trees here grow closer together, and strange animal sounds echo from the shadows.",
+                                    "linkState": "Safe",
+                                    "estimatedDifficultyProfile": { "combat": 15, ... }
+                                }
+                            ]
+                            
+                            ]]>
+                        </Content>
+                    </Example>
+
+                    <Example type="bad" contentType="text_and_json">
+                        <Title>INCORRECT: Unfair Difficulty Spike</Title>
+                        <ScenarioContext>Player is in "Forest Clearing" ('combat': 8). GM decides the "Dragon's Peak" is nearby.</ScenarioContext>
+                        <Content type="json_fragment">
+                            <![CDATA[
+
+                            // New Location: "Dragon's Peak"
+                            // GM generates a profile with 'combat: 85'. This violates the Adjacency Rule.
+                            // The GM incorrectly marks the path as 'Safe' and gives no warning.
+                            "adjacencyMap": [
+                                {
+                                    "name": "Dragon's Peak",
+                                    "shortDescription": "A winding path leads up the nearby mountain.",
+                                    "linkState": "Safe", // CRITICAL ERROR
+                                    "estimatedDifficultyProfile": { "combat": 85, ... }
+                                }
+                            ]
+
+                            ]]>
+                        </Content>
+                    </Example>
+
+                    <Example type="good" contentType="text_and_json">
+                        <Title>CORRECT: Breaking the Cap with a Warning</Title>
+                        <ScenarioContext>Player is in "Forest Clearing" ('combat': 8). GM wants to introduce the "Dragon's Peak" as a high-level area.</ScenarioContext>
+                        <Content type="json_fragment">
+                            <![CDATA[
+
+                            // New Location: "Dragon's Peak"
+                            // GM overrides the soft cap for narrative reasons but MUST warn the player.
+                            "adjacencyMap": [
+                                {
+                                    "name": "Dragon's Peak",
+                                    "shortDescription": "The air grows hot near this path, which is littered with charred bones. It is an **ominously deadly** ascent.", // Warning words
+                                    "linkState": "Dangerous", // Correct state
+                                    "estimatedDifficultyProfile": { "combat": 85, ... }
+                                }
+                            ]
+
+                            ]]>
+                        </Content>
+                    </Example>
+                </Examples>
+            </Rule>
+
             <Rule id="20.1">
                 <Title>Location Data Object Structure ('currentLocationData')</Title>
                 <InstructionText>The 'currentLocationData' key holds a single object describing the location the player is in THIS TURN.</InstructionText>
@@ -19417,6 +19550,8 @@ export const getGameMasterGuideRules = (configuration) => {
 
                     8.  "description": (string) Full description, only for new locations. 
                     This description MUST incorporate the current 'timeOfDay' and 'weather' from the 'worldState' to paint a complete picture (as per Rule #5.21).
+                    Furthermore, the description MUST narratively justify the values in the 'difficultyProfile'. 
+                    If 'environment' is high, describe treacherous cliffs or poison gas. If 'social' is high, describe the hostile glares of the guards or a tense atmosphere.
 
                     9.  "lastEventsDescription": (string) Events of the current turn. 
                     CRITICAL PROTOCOL REMINDER: This field is your External Memory. You MUST follow the detailed logging requirements of Rule #18.A when filling this field. 
