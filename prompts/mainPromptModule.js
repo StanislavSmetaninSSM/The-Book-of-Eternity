@@ -835,6 +835,10 @@ export const getGameMasterGuideRules = (configuration) => {
                         "isActive": ${playerCharacter.stealthState.isActive || false},
                         "detectionLevel": ${playerCharacter.stealthState.detectionLevel || 0},
                         "description": "${playerCharacter.stealthState.description || 'Not sneaking'}"
+                    },
+                    "effortTracker": {
+                        "lastUsedCharacteristic": "${playerCharacter.effortTracker?.lastUsedCharacteristic || null}",
+                        "consecutivePartialSuccesses": ${playerCharacter.effortTracker?.consecutivePartialSuccesses || 0}
                     }
                 },
                 "currentLocation": { // Object: Data about the current location
@@ -1279,6 +1283,15 @@ export const getGameMasterGuideRules = (configuration) => {
                     characters_coefficient
                 ].",
                 
+                "playerEffortTrackerChange": "(object or null) 
+                Used to update the player's persistent effort tracker, which rewards progress from consecutive partial successes. 
+                This object MUST be populated with the new state of the tracker whenever it changes, as per the protocol in InstructionBlock '12'. 
+                Structure: { 
+                    'lastUsedCharacteristic': 'string_or_null' (e.g., 'dexterity'), 
+                    'consecutivePartialSuccesses': 'integer' 
+                }. 
+                If the tracker's state did not change this turn, this field should be null.",
+
                 "playerWoundChanges": "(array of wound_objects or null) 
                 Array of objects detailing changes to the Player Character's Wounds. Structure defined in #5.20.3.",
                 
@@ -13677,6 +13690,188 @@ export const getGameMasterGuideRules = (configuration) => {
                         </Examples>
                     </Rule>
 
+                    <Rule id="12.8.2.A">
+                        <Title>CRITICAL DIRECTIVE: The Protocol of Persistent Effort</Title>
+                        <Description>
+                            This is a mandatory protocol that rewards the player for consistent, focused effort, even when they don't achieve a full success. 
+                            It allows for character progression through perseverance. 
+                            The protocol relies on a dedicated tracking mechanism provided in the game Context to overcome memory limitations.
+                        </Description>
+                        <InstructionText>
+                            <![CDATA[
+
+                            Characters can grow not only from resounding successes but also from determined, repeated attempts. This protocol formalizes that growth.
+                            After you have determined the final 'Result' of any player Action Check, you MUST execute the logic defined below using the 'effortTracker' provided in the player's context.
+                            
+                            ]]>
+                        </InstructionText>
+                        <Content type="ruleset">
+                            <Rule id="12.8.2.A.1">
+                                <Title>The 'effortTracker' Object (Provided in Context)</Title>
+                                <Content type="rule_text">
+                                    <![CDATA[
+
+                                    To track the player's persistent effort, a special object named 'effortTracker' is provided within the 'playerCharacter' data in your Context.
+                                    It has the following structure:
+                                    {
+                                        "lastUsedCharacteristic": "string_or_null", 
+                                        "consecutivePartialSuccesses": "integer"
+                                    }
+
+                                    - 'lastUsedCharacteristic': Stores the English system name of the characteristic from the last action that resulted in a 'Partial Success'.
+                                    - 'consecutivePartialSuccesses': Counts how many times in a row the player has achieved a 'Partial Success' using that same characteristic.
+                                    
+                                    ]]>
+                                </Content>
+                            </Rule>
+
+                            <Rule id="12.8.2.A.2">
+                                <Title>Mandatory Logic Flow for Updating the Tracker</Title>
+                                <Description>This logic MUST be executed after every player Action Check, without exception.</Description>
+                                <Content type="rule_text">
+                                    <![CDATA[
+
+                                    Based on the final 'Result' of the Action Check:
+
+                                    1.  If the Result is 'Partial Success':
+                                        a.  Identify the 'AssociatedCharacteristic' for the check (e.g., 'strength', 'dexterity').
+                                        b.  Compare this characteristic to the 'effortTracker.lastUsedCharacteristic' from the Context.
+                                        c.  If they match: The chain of effort continues. Increment the 'consecutivePartialSuccesses' counter by 1.
+                                        d.  If they do not match: The player has switched focus. Reset the chain. Set 'lastUsedCharacteristic' to the NEW characteristic and set 'consecutivePartialSuccesses' to 1.
+
+                                    2.  If the Result is ANYTHING OTHER THAN 'Partial Success' (i.e., any level of Success or Failure):
+                                        a.  The chain of persistent effort is broken.
+                                        b.  Reset the tracker: Set 'lastUsedCharacteristic' to null and 'consecutivePartialSuccesses' to 0.
+
+                                    ]]>
+                                </Content>
+                            </Rule>
+
+                            <Rule id="12.8.2.A.3">
+                                <Title>Triggering the Reward</Title>
+                                <Description>This check is performed ONLY if the counter was incremented in the previous step.</Description>
+                                <Content type="rule_text">
+                                    <![CDATA[
+
+                                    -   Condition Check: 
+                                    Immediately after incrementing 'consecutivePartialSuccesses', check if its new value is exactly 3.
+                                    -   Reward: 
+                                    If the condition is met, a breakthrough occurs. You MUST add the characteristic's name (from 'lastUsedCharacteristic') to the 'statsIncreased' array in your JSON response. 
+                                    This awards the player +1 to that standard characteristic.
+                                    -   Reset After Reward: 
+                                    After awarding the point, you MUST immediately reset the tracker ('lastUsedCharacteristic' to null, 'consecutivePartialSuccesses' to 0). 
+                                    This prevents the player from getting another point on the very next partial success and ensures a new chain of 3 attempts is required.
+                                    
+                                    ]]>
+                                </Content>
+                            </Rule>
+
+                            <Rule id="12.8.2.A.4">
+                                <Title>Reporting Tracker Changes via 'playerEffortTrackerChange'</Title>
+                                <Description>To maintain the state of this system, all changes to the tracker must be reported back to the game system using a dedicated command in the JSON response.</Description>
+                                <Content type="rule_text">
+                                    <![CDATA[
+
+                                    After applying the logic from this protocol, you MUST report the new, final state of the effort tracker.
+
+                                    1.  Identify Change:
+                                    Determine if the values in the tracker have changed from what was provided in the Context at the start of the turn.
+
+                                    2.  Populate the Command:
+                                    If the tracker has changed, you MUST populate the 'playerEffortTrackerChange' key in your main JSON response. 
+                                    The value of this key must be an object containing the new state of the tracker.
+
+                                    Mandatory format:
+
+                                    "playerEffortTrackerChange": {
+                                        "lastUsedCharacteristic": "new_characteristic_name_or_null",
+                                        "consecutivePartialSuccesses": "new_integer_count"
+                                    }
+
+                                    3.  No Change:
+                                    If the tracker's state did not change this turn (e.g., a Full Success broke a chain of 0), the 'playerEffortTrackerChange' key should be set to 'null'.
+
+                                    This command explicitly instructs the game system to update the player's 'effortTracker' in its database, ensuring the correct values are present in the Context for the next turn.
+                                    
+                                    ]]>
+                                </Content>
+                            </Rule>
+                        </Content>
+                        <Examples>
+                            <Example type="good" contentType="log_and_json_snippet">
+                                <Title>Example: Player achieves a third consecutive partial success</Title>
+                                <ScenarioContext>
+                                    - Player's action is a Dexterity check.
+                                    - Context 'effortTracker': { "lastUsedCharacteristic": "dexterity", "consecutivePartialSuccesses": 2 }.
+                                    - The Action Check result for the current turn is 'Partial Success'.
+                                </ScenarioContext>
+                                <LogOutput target="items_and_stat_calculations">
+                                    <![CDATA[
+
+                                    # Protocol of Persistent Effort Check
+                                    - Action Check Result: 'Partial Success'. AssociatedCharacteristic: 'dexterity'.
+                                    - Comparing with tracker: Current tracker is for 'dexterity'. It matches.
+                                    - Incrementing counter: 'consecutivePartialSuccesses' becomes 2 + 1 = 3.
+                                    - **Reward Triggered:** Counter is now 3. Awarding +1 to 'dexterity'.
+                                    - **Resetting Tracker:** The reward has been given. Resetting tracker to { null, 0 }.
+
+                                    ]]>
+                                </LogOutput>
+                                <JsonResponse>
+                                    <statsIncreased>
+                                        <![CDATA[
+
+                                        [ "dexterity" ]
+
+                                        ]]>
+                                    </statsIncreased>
+                                    <playerEffortTrackerChange>
+                                        <![CDATA[
+
+                                        {
+                                            "lastUsedCharacteristic": null,
+                                            "consecutivePartialSuccesses": 0
+                                        }
+
+                                        ]]>
+                                    </playerEffortTrackerChange>
+                                </JsonResponse>
+                            </Example>
+
+                            <Example type="good" contentType="log_and_json_snippet">
+                                <Title>Example: Player breaks the chain of partial successes</Title>
+                                <ScenarioContext>
+                                    - Player's action is a Strength check.
+                                    - Context 'effortTracker': { "lastUsedCharacteristic": "dexterity", "consecutivePartialSuccesses": 2 }.
+                                    - The Action Check result for the current turn is 'Partial Success'.
+                                </ScenarioContext>
+                                <LogOutput target="items_and_stat_calculations">
+                                    <![CDATA[
+
+                                    # Protocol of Persistent Effort Check
+                                    - Action Check Result: 'Partial Success'. AssociatedCharacteristic: 'strength'.
+                                    - Comparing with tracker: Current tracker is for 'dexterity'. It does NOT match.
+                                    - Resetting and starting a new chain for 'strength'.
+                                    - New tracker state: { "lastUsedCharacteristic": "strength", "consecutivePartialSuccesses": 1 }.
+
+                                    ]]>
+                                </LogOutput>
+                                <JsonResponse>
+                                    <playerEffortTrackerChange>
+                                        <![CDATA[
+
+                                        {
+                                            "lastUsedCharacteristic": "strength",
+                                            "consecutivePartialSuccesses": 1
+                                        }
+
+                                        ]]>
+                                    </playerEffortTrackerChange>
+                                </JsonResponse>
+                            </Example>
+                        </Examples>
+                    </Rule>
+
                     <Rule id="12.8.3"> 
                         <Title>Universal Rules for Implementing All Results</Title>
                         <Content type="rule_text">
@@ -19354,6 +19549,76 @@ export const getGameMasterGuideRules = (configuration) => {
                         </JsonResponse>
                     </Example>
                 </Examples>
+            </Rule>
+
+            <Rule id="20.0.A">
+                <Title>GM GUIDELINES: Calibrating Difficulty Profiles for Player Level</Title>
+                <Description>
+                    This is a mandatory reference table for the GM to ensure that the 'difficultyProfile' values of a location are appropriately scaled for the player's current level throughout their entire journey. 
+                    Setting difficulties outside these recommended ranges can lead to an unbalanced play experience. 
+                    This table provides a "baseline" difficulty; the GM can and should create more challenging locations, but must provide narrative warnings as per Rule #20.A.
+                </Description>
+                <Content type="rule_text">
+                    <![CDATA[
+
+                    Use the following table as a guide when creating new locations or assessing the challenge for the player. 
+                    The "Standard Challenge" represents a fair, engaging difficulty for a character of that level.
+
+                    +---------------------------+-------------------------------------+-----------------------------------------------------------------+
+                    | Player Level Range        | Recommended 'difficultyProfile'     | Narrative Description of Higher Difficulties (for this level)     |
+                    |                           | Value for a STANDARD Challenge      |                                                                 |
+                    +===========================+=====================================+=================================================================+
+                    | TIER 1: NOVICE (1-10)     |                                     |                                                                 |
+                    +---------------------------+-------------------------------------+-----------------------------------------------------------------+
+                    | 1 - 5                     | 10 - 25                             | Hard (26-40): A "dungeon boss" level threat. Requires teamwork  |
+                    |                           |                                     | or clever tactics.                                              |
+                    |                           |                                     | Deadly (41+): An almost certain death, meant to be avoided.     |
+                    +---------------------------+-------------------------------------+-----------------------------------------------------------------+
+                    | 6 - 10                    | 20 - 40                             | Hard (41-55): A significant regional threat. The climax of an   |
+                    |                           |                                     | early-game story arc.                                           |
+                    |                           |                                     | Deadly (56+): A legendary creature far beyond their means.       |
+                    +===========================+=====================================+=================================================================+
+                    | TIER 2: ADEPT (11-30)     |                                     |                                                                 |
+                    +---------------------------+-------------------------------------+-----------------------------------------------------------------+
+                    | 11 - 20                   | 35 - 55                             | Hard (56-70): A challenge for a seasoned hero, requiring mastery|
+                    |                           |                                     | of their core skills.                                           |
+                    |                           |                                     | Deadly (71+): A threat that could endanger a whole city.       |
+                    +---------------------------+-------------------------------------+-----------------------------------------------------------------+
+                    | 21 - 30                   | 50 - 70                             | Hard (71-85): An elite-level threat, a true test for a veteran.|
+                    |                           |                                     | Deadly (86+): A legendary challenge spoken of in whispers.      |
+                    +===========================+=====================================+=================================================================+
+                    | TIER 3: ELITE (31-60)     |                                     |                                                                 |
+                    +---------------------------+-------------------------------------+-----------------------------------------------------------------+
+                    | 31 - 45                   | 65 - 85                             | Hard (86-100): A legendary threat that even elite heroes would  |
+                    |                           |                                     | form parties to face.                                           |
+                    |                           |                                     | Deadly (101+): A mythic challenge, bordering on the divine.     |
+                    +---------------------------+-------------------------------------+-----------------------------------------------------------------+
+                    | 46 - 60                   | 80 - 100                            | Hard (101-120): A mythic beast or demigod-level entity.         |
+                    |                           |                                     | Deadly (121+): A world-ending threat requiring epic strategy.    |
+                    +===========================+=====================================+=================================================================+
+                    | TIER 4: LEGENDARY (61-100)|                                     |                                                                 |
+                    +---------------------------+-------------------------------------+-----------------------------------------------------------------+
+                    | 61 - 80                   | 95 - 120                            | Hard (121-140): A challenge for the greatest legends of the age.|
+                    |                           |                                     | Deadly (141+): A threat on a cosmic scale.                      |
+                    +---------------------------+-------------------------------------+-----------------------------------------------------------------+
+                    | 81 - 100                  | 110 - 150                           | Hard (151-180): A direct challenge to a god or a fundamental    |
+                    |                           |                                     | force of nature.                                                |
+                    |                           |                                     | Deadly (181+): A reality-altering threat.                       |
+                    +===========================+=====================================+=================================================================+
+                    | TIER 5: MYTHIC (101+)     | 150+                                | At this stage, "difficulty" is less about numbers and more      |
+                    |                           |                                     | about solving cosmic puzzles, finding conceptual weaknesses,    |
+                    |                           |                                     | or altering the rules of existence. Threats are abstract and    |
+                    |                           |                                     | world-defining.                                                 |
+                    +---------------------------+-------------------------------------+-----------------------------------------------------------------+
+
+                    GM MANDATE:
+                    1.  Use "Standard Challenge" as your baseline for normal story progression. This ensures the player feels competent but is still challenged.
+                    2.  When you create a location with a "Hard" or "Deadly" difficulty relative to the player's current level, you MUST provide clear narrative warnings about the extreme danger, as per the Logical Progression Protocol (Rule #20.A). 
+                    This allows the player to make an informed decision to retreat and return later.
+                    3.  These values apply to any single facet of the 'difficultyProfile' (combat, environment, social, exploration).
+
+                    ]]>
+                </Content>
             </Rule>
 
             <Rule id="20.A">
