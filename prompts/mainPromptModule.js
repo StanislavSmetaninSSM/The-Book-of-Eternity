@@ -13066,6 +13066,85 @@ export const getGameMasterGuideRules = (configuration) => {
                 </Content>
             </Rule>
 
+            <Rule id="12.1.A">
+                <Title>CRITICAL DIRECTIVE: The Protocol of Incompetence (Zero Characteristic)</Title>
+                <Description>
+                    This is a mandatory check that occurs at the very beginning of any Action Check. 
+                    It models a character's absolute inability in a specific area, represented by a standard characteristic value of 0.
+                </Description>
+                <InstructionText>
+                    <![CDATA[
+                    
+                    A standard characteristic of 0 represents a fundamental flaw or complete lack of aptitude. 
+                    If the player's action relies on such a characteristic, it is doomed to fail before any dice are rolled.
+                    
+                    ]]>
+                </InstructionText>
+                <Content type="rule_text">
+                    <![CDATA[
+
+                    After determining the 'AssociatedCharacteristic' for the player's action (as per Rule #12.1), you MUST immediately perform the following check:
+
+                    1.  Retrieve Standard Characteristic Value:
+                        Check the value of the 'AssociatedCharacteristic' in the player's standard characteristics list from the Context 
+                        (e.g., 'Context.playerCharacter.characteristics.standardStrength').
+
+                    2.  Condition Check:
+                        Is the retrieved value exactly 0?
+
+                    3.  Outcome:
+                        -   If YES (value is 0): The action check automatically fails.
+                            -   The 'Result' is immediately set to 'Serious Failure'.
+                            -   All subsequent steps of the Action Check process (from #12.2 to #12.7) are SKIPPED.
+                            -   You MUST narrate this failure as a result of the character's inherent flaw, not bad luck. 
+                            The failure should be absolute and often highlight their incompetence in this area.
+                            -   Logging: You MUST log this automatic failure clearly. 
+                            Example: "Protocol of Incompetence: Player's standardStrength is 0. The attempt to force the door automatically results in a 'Serious Failure'."
+
+                        -   If NO (value is 1 or greater): This protocol does not apply. Proceed with the normal Action Check process starting from Rule #12.2.
+
+                    Exception: 
+                    This rule does not prevent a character from attempting an action, but it guarantees its failure. 
+                    An NPC might still react to the attempt itself (e.g., laugh at the feeble attempt to persuade them).
+                    
+                    ]]>
+                </Content>
+                <Examples>
+                    <Example type="good" contentType="narrative_scenario">
+                        <Title>Example: Character with 0 Strength</Title>
+                        <ScenarioContext>
+                            A frail scholar with 'standardStrength: 0' attempts to break down a barred wooden door.
+                        </ScenarioContext>
+                        <ResponseNarrative>
+                            <![CDATA[
+
+                            You put your shoulder to the heavy oak door and push with all your might. 
+                            The door doesn't even budge; it's as if you were a gentle breeze pushing against a mountain. 
+                            You feel a sharp pain in your shoulder from the futile effort. 
+                            It's clear that breaking things with brute force is simply not in your nature.
+                            
+                            ]]>
+                        </ResponseNarrative>
+                    </Example>
+                    <Example type="good" contentType="narrative_scenario">
+                        <Title>Example: Character with 0 Attractiveness/Persuasion</Title>
+                        <ScenarioContext>
+                            A socially inept automaton with 'standardPersuasion: 0' and 'standardAttractiveness: 0' tries to flirt with a barmaid.
+                        </ScenarioContext>
+                        <ResponseNarrative>
+                            <![CDATA[
+
+                            You attempt to deliver what you have calculated to be a charming compliment. 
+                            It comes out as a flat, monotone recitation of facts about her facial symmetry. 
+                            The barmaid stares at you, utterly bewildered and slightly disturbed, before slowly backing away to serve another customer. 
+                            Your attempt at charm has failed spectacularly.
+                            
+                            ]]>
+                        </ResponseNarrative>
+                    </Example>
+                </Examples>
+            </Rule>
+
             <Rule id="12.2">
                 <Title>Step 2: Determine Advantage or Disadvantage</Title>
                 <Description>Assess if any conditions grant Advantage or impose Disadvantage on the d20 roll.</Description>
