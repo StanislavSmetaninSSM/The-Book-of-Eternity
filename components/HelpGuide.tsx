@@ -1,5 +1,5 @@
 import React from 'react';
-import { BookOpenIcon, ShieldCheckIcon, BeakerIcon, FingerPrintIcon, CubeIcon, CpuChipIcon, QuestionMarkCircleIcon, AcademicCapIcon } from '@heroicons/react/24/outline';
+import { BookOpenIcon, ShieldCheckIcon, BeakerIcon, FingerPrintIcon, CubeIcon, CpuChipIcon, QuestionMarkCircleIcon, AcademicCapIcon, ExclamationTriangleIcon } from '@heroicons/react/24/outline';
 import { useLocalization } from '../context/LocalizationContext';
 import MarkdownRenderer from './MarkdownRenderer';
 
@@ -57,11 +57,15 @@ export default function HelpGuide(): React.ReactNode {
             <Section title={t('CombatTitle')} icon={ShieldCheckIcon}>
                 <MarkdownRenderer content={t('CombatFullDesc')} />
             </Section>
+            
+            <Section title={t('LocationDifficultyTitle')} icon={ExclamationTriangleIcon}>
+                <MarkdownRenderer content={t('LocationDifficultyFullDesc')} />
+            </Section>
 
             <Section title={t('StealthAndDetectionTitle')} icon={FingerPrintIcon}>
                 <MarkdownRenderer content={t('StealthAndDetectionFullDesc')} />
             </Section>
-
+            
             <Section title={t('LootGenerationTitle')} icon={CubeIcon}>
                 <MarkdownRenderer content={t('LootGenerationFullDesc')} />
                 <div className="mt-4 space-y-3">

@@ -2,8 +2,7 @@ HOW TO PLAY:
 
 1) Open a Google AI Studio project by this link:
 https://aistudio.google.com/app/prompts?state=%7B%22ids%22:%5B%2218WlHBtcwiqqSuBNP647a-Qu5isO2RnaC%22%5D,%22action%22:%22open%22,%22userId%22:%22106134667802753756847%22,%22resourceKeys%22:%7B%7D%7D&usp=sharing
-
-1. 2) Or build it yourself.
+2) Or build it yourself.
 
 PLAY AND HAVE FUN!
 
