@@ -1,4 +1,22 @@
-export const fantasyLoc = {
+import { humanLoc } from './fantasy/human_loc';
+import { elfLoc } from './fantasy/elf_loc';
+import { dwarfLoc } from './fantasy/dwarf_loc';
+import { orcLoc } from './fantasy/orc_loc';
+import { halflingLoc } from './fantasy/halfling_loc';
+import { gnomeLoc } from './fantasy/gnome_loc';
+import { tieflingLoc } from './fantasy/tiefling_loc';
+import { vampireLoc } from './fantasy/vampire_loc';
+import { werewolfLoc } from './fantasy/werewolf_loc';
+import { demonLoc } from './fantasy/demon_loc';
+import { angelLoc } from './fantasy/angel_loc';
+import { undeadLoc } from './fantasy/undead_loc';
+import { tarnishedLoc } from './fantasy/tarnished_loc';
+import { albinauricLoc } from './fantasy/albinauric_loc';
+import { aarakocraLoc } from './fantasy/aarakocra_loc';
+import { tabaxiLoc } from './fantasy/tabaxi_loc';
+import { changelingLoc } from './fantasy/changeling_loc';
+
+const fantasyBaseLoc = {
   en: {
     // Fantasy Races
     "Human": "Human",
@@ -77,6 +95,12 @@ export const fantasyLoc = {
     "A master of stealth, poison, and the killing blow. Operates from the shadows, a myth whispered in taverns and feared in castles. Bonus: +2 Dexterity, +1 Perception.": "A master of stealth, poison, and the killing blow. Operates from the shadows, a myth whispered in taverns and feared in castles. Bonus: +2 Dexterity, +1 Perception.",
     "Thief": "Thief",
     "A specialist in larceny and infiltration, adept at acquiring what isn't rightfully theirs. Bonus: +2 Dexterity, +1 Trade.": "A specialist in larceny and infiltration, adept at acquiring what isn't rightfully theirs. Bonus: +2 Dexterity, +1 Trade.",
+    "Alchemist": "Alchemist",
+    "A student of esoteric sciences who transmutes matter and brews potent elixirs. Bonus: +2 Intelligence, +1 Dexterity.": "A student of esoteric sciences who transmutes matter and brews potent elixirs. Bonus: +2 Intelligence, +1 Dexterity.",
+    "Runesmith": "Runesmith",
+    "A master smith who binds ancient runes into metal, creating artifacts of great power. Their craft is a blend of hammer-work and magic. Bonus: +2 Intelligence, +1 Strength.": "A master smith who binds ancient runes into metal, creating artifacts of great power. Their craft is a blend of hammer-work and magic. Bonus: +2 Intelligence, +1 Strength.",
+    "Artificer": "Artificer",
+    "A brilliant inventor who blends magic and mechanics to create wondrous and sometimes dangerous devices. Bonus: +2 Intelligence, +1 Trade.": "A brilliant inventor who blends magic and mechanics to create wondrous and sometimes dangerous devices. Bonus: +2 Intelligence, +1 Trade.",
   },
   ru: {
     // Fantasy Races
@@ -103,7 +127,7 @@ export const fantasyLoc = {
     "Angel": "Ангел",
     "A celestial being tasked with a divine purpose on the mortal plane, radiating a holy aura and possessing immense grace. +3 Faith, +2 Attractiveness.": "Небесное существо, посланное на смертный план с божественной целью, излучающее святую ауру и обладающее безмерной грацией. +3 к Вере, +2 к Привлекательности.",
     "Undead": "Нежить",
-    "Cursed to never truly die, an Undead rises again and again, their humanity slowly ebbing with each demise. They are incredibly resilient but often detached from the world. +3 Constitution, +1 Faith, +1 Luck.": "Проклятые никогда по-настоястоящему не умирать, Нежить восстает снова и снова, их человечность медленно угасает с каждой смертью. Они невероятно стойкие, но часто отстранены от мира. +3 к Телосложению, +1 к Вере, +1 к Удаче.",
+    "Cursed to never truly die, an Undead rises again and again, their humanity slowly ebbing with each demise. They are incredibly resilient but often detached from the world. +3 Constitution, +1 Faith, +1 Luck.": "Проклятые никогда по-настоящему не умирать, Нежить восстает снова и снова, их человечность медленно угасает с каждой смертью. Они невероятно стойкие, но часто отстранены от мира. +3 к Телосложению, +1 к Вере, +1 к Удаче.",
     "Tarnished": "Потускневший",
     "An exile stripped of grace, now returned to the world in pursuit of a lost destiny. Tarnished are defined by their unyielding will and adaptability. +2 Luck, +2 Strength, +1 Dexterity.": "Изгнанник, лишенный благодати, вернувшийся в мир в погоне за утерянной судьбой. Потускневшие определяются своей несгибаемой волей и адаптивностью. +2 к Удаче, +2 к Силе, +1 к Ловкости.",
     "Albinauric": "Альбинорец",
@@ -156,5 +180,54 @@ export const fantasyLoc = {
     "A master of stealth, poison, and the killing blow. Operates from the shadows, a myth whispered in taverns and feared in castles. Bonus: +2 Dexterity, +1 Perception.": "Мастер скрытности, ядов и смертельного удара. Действует из тени, миф, который шепчут в тавернах и боятся в замках. Бонус: +2 к Ловкости, +1 к Восприятию.",
     "Thief": "Вор",
     "A specialist in larceny and infiltration, adept at acquiring what isn't rightfully theirs. Bonus: +2 Dexterity, +1 Trade.": "Специалист по кражам и проникновению, искусный в приобретении того, что по праву ему не принадлежит. Бонус: +2 к Ловкости, +1 к Торговле.",
+    "Alchemist": "Алхимик",
+    "A student of esoteric sciences who transmutes matter and brews potent elixirs. Bonus: +2 Intelligence, +1 Dexterity.": "Ученик эзотерических наук, который преобразует материю и варит мощные эликсиры. Бонус: +2 к Интеллекту, +1 к Ловкости.",
+    "Runesmith": "Рунный кузнец",
+    "A master smith who binds ancient runes into metal, creating artifacts of great power. Their craft is a blend of hammer-work and magic. Bonus: +2 Intelligence, +1 Strength.": "Мастер-кузнец, вплетающий древние руны в металл, создавая артефакты великой силы. Его ремесло — это сплав работы молотом и магии. Бонус: +2 к Интеллекту, +1 к Силе.",
+    "Artificer": "Артифицер",
+    "A brilliant inventor who blends magic and mechanics to create wondrous and sometimes dangerous devices. Bonus: +2 Intelligence, +1 Trade.": "Гениальный изобретатель, сочетающий магию и механику для создания удивительных, а порой и опасных устройств. Бонус: +2 к Интеллекту, +1 к Торговле.",
+  }
+};
+
+export const fantasyLoc = {
+  en: {
+    ...fantasyBaseLoc.en,
+    ...humanLoc.en,
+    ...elfLoc.en,
+    ...dwarfLoc.en,
+    ...orcLoc.en,
+    ...halflingLoc.en,
+    ...gnomeLoc.en,
+    ...tieflingLoc.en,
+    ...vampireLoc.en,
+    ...werewolfLoc.en,
+    ...demonLoc.en,
+    ...angelLoc.en,
+    ...undeadLoc.en,
+    ...tarnishedLoc.en,
+    ...albinauricLoc.en,
+    ...aarakocraLoc.en,
+    ...tabaxiLoc.en,
+    ...changelingLoc.en,
+  },
+  ru: {
+    ...fantasyBaseLoc.ru,
+    ...humanLoc.ru,
+    ...elfLoc.ru,
+    ...dwarfLoc.ru,
+    ...orcLoc.ru,
+    ...halflingLoc.ru,
+    ...gnomeLoc.ru,
+    ...tieflingLoc.ru,
+    ...vampireLoc.ru,
+    ...werewolfLoc.ru,
+    ...demonLoc.ru,
+    ...angelLoc.ru,
+    ...undeadLoc.ru,
+    ...tarnishedLoc.ru,
+    ...albinauricLoc.ru,
+    ...aarakocraLoc.ru,
+    ...tabaxiLoc.ru,
+    ...changelingLoc.ru,
   }
 };

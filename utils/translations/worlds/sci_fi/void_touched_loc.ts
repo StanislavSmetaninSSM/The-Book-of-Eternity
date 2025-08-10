@@ -1,0 +1,35 @@
+
+export const voidTouchedLoc = {
+    en: {
+        "Psion": "Psion",
+        "A powerful telepath, bending minds to their will. Bonus: +3 Wisdom, +1 Persuasion.": "A powerful telepath, bending minds to their will. Bonus: +3 Wisdom, +1 Persuasion.",
+        "Star-Prophet": "Star-Prophet",
+        "A mystic who interprets cosmic phenomena—starlight, nebula patterns, black hole emissions—to divine the future and navigate fate. Bonus: +2 Faith, +1 Wisdom.": "A mystic who interprets cosmic phenomena—starlight, nebula patterns, black hole emissions—to divine the future and navigate fate. Bonus: +2 Faith, +1 Wisdom.",
+        "Meme-Weaver": "Meme-Weaver",
+        "A social engineer who understands and manipulates cultural symbols, information, and beliefs to influence entire populations. Their weapon is weaponized information. Bonus: +2 Persuasion, +1 Attractiveness.": "A social engineer who understands and manipulates cultural symbols, information, and beliefs to influence entire populations. Their weapon is weaponized information. Bonus: +2 Persuasion, +1 Attractiveness.",
+        "Xeno-Linguist": "Xeno-Linguist",
+        "A specialist in deciphering alien languages and understanding extraterrestrial cultures, making first contact possible. Bonus: +2 Intelligence, +1 Persuasion.": "A specialist in deciphering alien languages and understanding extraterrestrial cultures, making first contact possible. Bonus: +2 Intelligence, +1 Persuasion.",
+        "Reality Warper": "Reality Warper",
+        "Can subtly bend the laws of probability around them, creating minor illusions, convenient coincidences, or inexplicable bad luck for their enemies. Bonus: +2 Wisdom, +1 Luck.": "Can subtly bend the laws of probability around them, creating minor illusions, convenient coincidences, or inexplicable bad luck for their enemies. Bonus: +2 Wisdom, +1 Luck.",
+        "Thought Eater": "Thought Eater",
+        "A psychic vampire who can drain mental energy or even specific memories from their targets to sustain themselves. Bonus: +2 Faith, +1 Constitution.": "A psychic vampire who can drain mental energy or even specific memories from their targets to sustain themselves. Bonus: +2 Faith, +1 Constitution.",
+        "Oracle of the Void": "Oracle of the Void",
+        "Can gaze into the chaotic energies of hyperspace to glean forbidden knowledge or glimpse possible futures, at great risk to their sanity. Bonus: +2 Wisdom, +1 Intelligence.": "Can gaze into the chaotic energies of hyperspace to glean forbidden knowledge or glimpse possible futures, at great risk to their sanity. Bonus: +2 Wisdom, +1 Intelligence.",
+    },
+    ru: {
+        "Psion": "Псион",
+        "A powerful telepath, bending minds to their will. Bonus: +3 Wisdom, +1 Persuasion.": "Могущественный телепат, подчиняющий умы своей воле. Бонус: +3 к Мудрости, +1 к Убеждению.",
+        "Star-Prophet": "Звездный пророк",
+        "A mystic who interprets cosmic phenomena—starlight, nebula patterns, black hole emissions—to divine the future and navigate fate. Bonus: +2 Faith, +1 Wisdom.": "Мистик, который интерпретирует космические явления — звездный свет, узоры туманностей, излучения черных дыр — чтобы предсказывать будущее и управлять судьбой. Бонус: +2 к Вере, +1 к Мудрости.",
+        "Meme-Weaver": "Ткач мемов",
+        "A social engineer who understands and manipulates cultural symbols, information, and beliefs to influence entire populations. Their weapon is weaponized information. Bonus: +2 Persuasion, +1 Attractiveness.": "Социальный инженер, который понимает и манипулирует культурными символами, информацией и верованиями, чтобы влиять на целые народы. Их оружие — информация. Бонус: +2 к Убеждению, +1 к Привлекательности.",
+        "Xeno-Linguist": "Ксенолингвист",
+        "A specialist in deciphering alien languages and understanding extraterrestrial cultures, making first contact possible. Bonus: +2 Intelligence, +1 Persuasion.": "Специалист по расшифровке инопланетных языков и пониманию внеземных культур, делающий возможным первый контакт. Бонус: +2 к Интеллекту, +1 к Убеждению.",
+        "Reality Warper": "Исказитель реальности",
+        "Can subtly bend the laws of probability around them, creating minor illusions, convenient coincidences, or inexplicable bad luck for their enemies. Bonus: +2 Wisdom, +1 Luck.": "Может тонко искажать законы вероятности вокруг себя, создавая незначительные иллюзии, удобные совпадения или необъяснимую неудачу для своих врагов. Бонус: +2 к Мудрости, +1 к Удаче.",
+        "Thought Eater": "Пожиратель мыслей",
+        "A psychic vampire who can drain mental energy or even specific memories from their targets to sustain themselves. Bonus: +2 Faith, +1 Constitution.": "Психический вампир, который может высасывать ментальную энергию или даже конкретные воспоминания из своих целей, чтобы поддерживать себя. Бонус: +2 к Вере, +1 к Телосложению.",
+        "Oracle of the Void": "Оракул Пустоты",
+        "Can gaze into the chaotic energies of hyperspace to glean forbidden knowledge or glimpse possible futures, at great risk to their sanity. Bonus: +2 Wisdom, +1 Intelligence.": "Может вглядываться в хаотические энергии гиперпространства, чтобы почерпнуть запретные знания или увидеть возможные будущие, с большим риском для своего здравомыслия. Бонус: +2 к Мудрости, +1 к Интеллекту.",
+    }
+};

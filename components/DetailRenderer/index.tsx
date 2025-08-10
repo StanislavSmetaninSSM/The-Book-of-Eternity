@@ -1,9 +1,4 @@
 
-
-
-
-
-
 import React, { useState } from 'react';
 import { Item, Quest, ActiveSkill, PassiveSkill, Effect, Wound, NPC, Location, PlayerCharacter, CombatAction, Faction, CustomState } from '../../types';
 import { DetailRendererProps } from './types';
@@ -71,7 +66,7 @@ const isWound = (data: any): data is Wound => data && typeof data.woundName === 
 const isNpc = (data: any): data is NPC => data && (data.relationshipLevel !== undefined || data.NPCId !== undefined) && data.attitude !== undefined;
 const isCharacteristic = (data: any): data is { type: 'characteristic', name: string, value: number, description?: string } => data && data.type === 'characteristic';
 const isPrimaryStat = (data: any): data is { type: 'primaryStat', name: string, description: string } => data && data.type === 'primaryStat';
-const isLocation = (data: any): data is Location & { type: 'location' } => data && data.type === 'location' && typeof data.difficulty === 'number';
+const isLocation = (data: any): data is Location & { type: 'location' } => data && data.type === 'location' && data.difficultyProfile !== undefined;
 const isPlayerCharacter = (data: any): data is PlayerCharacter & { type: 'playerCharacter' } => data && data.type === 'playerCharacter';
 const isDerivedStat = (data: any): data is { type: 'derivedStat', name: string, value: string, breakdown: { label: string, value: string }[], description: string } => data && data.type === 'derivedStat';
 const isCombatAction = (data: any): data is CombatAction => data && Array.isArray(data.effects) && data.actionName !== undefined && data.quality === undefined && data.skillName === undefined;

@@ -1,0 +1,35 @@
+
+export const highGravityHumanLoc = {
+    en: {
+        "Soldier": "Soldier",
+        "A veteran of stellar warfare. Bonus: +2 Dexterity, +1 Constitution.": "A veteran of stellar warfare. Bonus: +2 Dexterity, +1 Constitution.",
+        "Grav-Brawler": "Grav-Brawler",
+        "A warrior who utilizes personal gravity manipulators for bone-crushing strength and surprising mobility on the battlefield. Bonus: +2 Strength, +1 Speed.": "A warrior who utilizes personal gravity manipulators for bone-crushing strength and surprising mobility on the battlefield. Bonus: +2 Strength, +1 Speed.",
+        "Corporate Enforcer": "Corporate Enforcer",
+        "A heavily-armed and armored agent of a mega-corporation, tasked with protecting assets and eliminating rivals by any means necessary. Bonus: +2 Strength, +1 Constitution.": "A heavily-armed and armored agent of a mega-corporation, tasked with protecting assets and eliminating rivals by any means necessary. Bonus: +2 Strength, +1 Constitution.",
+        "Zero-G Brawler": "Zero-G Brawler",
+        "A warrior who has mastered combat in the disorienting environment of zero gravity, using momentum and anchor points to their advantage. Bonus: +2 Dexterity, +1 Speed.": "A warrior who has mastered combat in the disorienting environment of zero gravity, using momentum and anchor points to their advantage. Bonus: +2 Dexterity, +1 Speed.",
+        "Kinetic Juggernaut": "Kinetic Juggernaut",
+        "Can absorb and store kinetic energy from impacts, then release it in a single, devastating blow. Bonus: +2 Strength, +1 Constitution.": "Can absorb and store kinetic energy from impacts, then release it in a single, devastating blow. Bonus: +2 Strength, +1 Constitution.",
+        "Anchor Guard": "Anchor Guard",
+        "Excels at holding a single position against all odds, their high-gravity physiology making them nearly immovable. Bonus: +2 Constitution, +1 Wisdom.": "Excels at holding a single position against all odds, their high-gravity physiology making them nearly immovable. Bonus: +2 Constitution, +1 Wisdom.",
+        "Asteroid Miner": "Asteroid Miner",
+        "Accustomed to the crushing forces and hard labor of mining in high-gravity asteroid belts, they are incredibly strong and resilient. Bonus: +2 Strength, +1 Trade.": "Accustomed to the crushing forces and hard labor of mining in high-gravity asteroid belts, they are incredibly strong and resilient. Bonus: +2 Strength, +1 Trade.",
+    },
+    ru: {
+        "Soldier": "Солдат",
+        "A veteran of stellar warfare. Bonus: +2 Dexterity, +1 Constitution.": "Ветеран звездных войн. Бонус: +2 к Ловкости, +1 к Телосложению.",
+        "Grav-Brawler": "Грав-боец",
+        "A warrior who utilizes personal gravity manipulators for bone-crushing strength and surprising mobility on the battlefield. Bonus: +2 Strength, +1 Speed.": "Воин, использующий персональные гравитационные манипуляторы для сокрушительной силы и удивительной мобильности на поле боя. Бонус: +2 к Силе, +1 к Скорости.",
+        "Corporate Enforcer": "Корпоративный силовик",
+        "A heavily-armed and armored agent of a mega-corporation, tasked with protecting assets and eliminating rivals by any means necessary. Bonus: +2 Strength, +1 Constitution.": "Тяжеловооруженный и бронированный агент мегакорпорации, которому поручено защищать активы и устранять конкурентов любыми средствами. Бонус: +2 к Силе, +1 к Телосложению.",
+        "Zero-G Brawler": "Боец невесомости",
+        "A warrior who has mastered combat in the disorienting environment of zero gravity, using momentum and anchor points to their advantage. Bonus: +2 Dexterity, +1 Speed.": "Воин, овладевший боем в дезориентирующей среде невесомости, используя импульс и точки опоры в своих интересах. Бонус: +2 к Ловкости, +1 к Скорости.",
+        "Kinetic Juggernaut": "Кинетический джаггернаут",
+        "Can absorb and store kinetic energy from impacts, then release it in a single, devastating blow. Bonus: +2 Strength, +1 Constitution.": "Может поглощать и накапливать кинетическую энергию от ударов, а затем высвобождать ее одним разрушительным ударом. Бонус: +2 к Силе, +1 к Телосложению.",
+        "Anchor Guard": "Якорный страж",
+        "Excels at holding a single position against all odds, their high-gravity physiology making them nearly immovable. Bonus: +2 Constitution, +1 Wisdom.": "Превосходно удерживает одну позицию вопреки всему, их физиология высокой гравитации делает их почти неподвижными. Бонус: +2 к Телосложению, +1 к Мудрости.",
+        "Asteroid Miner": "Астероидный шахтер",
+        "Accustomed to the crushing forces and hard labor of mining in high-gravity asteroid belts, they are incredibly strong and resilient. Bonus: +2 Strength, +1 Trade.": "Привыкшие к сокрушительным силам и тяжелому труду добычи в астероидных поясах с высокой гравитацией, они невероятно сильны и выносливы. Бонус: +2 к Силе, +1 к Торговле.",
+    }
+};

@@ -1,4 +1,27 @@
-export const postApocalypseLoc = {
+
+// Import race-specific class localizations
+import { survivorLoc } from './post_apocalypse/survivor_loc';
+import { mutantLoc } from './post_apocalypse/mutant_loc';
+import { synthLoc } from './post_apocalypse/synth_loc';
+import { ghoulLoc } from './post_apocalypse/ghoul_loc';
+import { purebloodLoc } from './post_apocalypse/pureblood_loc';
+import { beastkinLoc } from './post_apocalypse/beastkin_loc';
+import { molePeopleLoc } from './post_apocalypse/mole_people_loc';
+import { theBlightedLoc } from './post_apocalypse/the_blighted_loc';
+import { theSunScorchedLoc } from './post_apocalypse/the_sun_scorched_loc';
+import { theForgedLoc } from './post_apocalypse/the_forged_loc';
+import { crystallineLoc } from './post_apocalypse/crystalline_loc';
+import { fungaloidLoc } from './post_apocalypse/fungaloid_loc';
+import { scrapperGuilderLoc } from './post_apocalypse/scrapper_guilder_loc';
+import { theMorphedLoc } from './post_apocalypse/the_morphed_loc';
+import { chitinoidLoc } from './post_apocalypse/chitinoid_loc';
+import { verdantLoc } from './post_apocalypse/verdant_loc';
+import { theIrradiatedLoc } from './post_apocalypse/the_irradiated_loc';
+import { theSunkenLoc } from './post_apocalypse/the_sunken_loc';
+import { echoLoc } from './post_apocalypse/echo_loc';
+import { sandSwimmerLoc } from './post_apocalypse/sand_swimmer_loc';
+
+const postApocalypseBaseLoc = {
   en: {
     // Post-Apocalypse Races
     "Survivor": "Survivor",
@@ -41,58 +64,6 @@ export const postApocalypseLoc = {
     "Semi-corporeal beings born from a psychic cataclysm or a rogue AI's death cry. They are insubstantial and perceptive, able to phase through small objects and sense emotional residues. +3 Wisdom, +2 Perception.": "Semi-corporeal beings born from a psychic cataclysm or a rogue AI's death cry. They are insubstantial and perceptive, able to phase through small objects and sense emotional residues. +3 Wisdom, +2 Perception.",
     "Sand-Swimmer": "Sand-Swimmer",
     "A human offshoot adapted to life in vast, irradiated sand seas. They have sleek bodies, excellent heat resistance, and an uncanny ability to navigate and move through loose sand and dunes. +3 Dexterity, +2 Constitution.": "A human offshoot adapted to life in vast, irradiated sand seas. They have sleek bodies, excellent heat resistance, and an uncanny ability to navigate and move through loose sand and dunes. +3 Dexterity, +2 Constitution.",
-
-    // Post-Apocalypse Classes
-    "Scavenger": "Scavenger",
-    "An expert at finding useful things in the ruins. Bonus: +2 Perception, +1 Luck.": "An expert at finding useful things in the ruins. Bonus: +2 Perception, +1 Luck.",
-    "Raider Boss": "Raider Boss",
-    "Leads through fear and strength. Bonus: +2 Strength, +1 Persuasion.": "Leads through fear and strength. Bonus: +2 Strength, +1 Persuasion.",
-    "Wasteland Doctor": "Wasteland Doctor",
-    "Knows how to patch up wounds with limited supplies. Bonus: +3 Wisdom.": "Knows how to patch up wounds with limited supplies. Bonus: +3 Wisdom.",
-    "Cultist": "Cultist",
-    "A fervent believer in a wasteland deity or ideology, charismatic and dangerous. Bonus: +2 Faith, +1 Persuasion.": "A fervent believer in a wasteland deity or ideology, charismatic and dangerous. Bonus: +2 Faith, +1 Persuasion.",
-    "Mechanic": "Mechanic",
-    "A gearhead who can coax life back into ancient machinery. Bonus: +2 Intelligence, +1 Trade.": "A gearhead who can coax life back into ancient machinery. Bonus: +2 Intelligence, +1 Trade.",
-    "Stalker": "Stalker",
-    "A grim survivalist who ventures into the most irradiated and dangerous zones for profit and knowledge. Bonus: +2 Perception, +1 Luck.": "A grim survivalist who ventures into the most irradiated and dangerous zones for profit and knowledge. Bonus: +2 Perception, +1 Luck.",
-    "Nomad": "Nomad",
-    "A master of the desolate highways, skilled in both vehicle combat and long-range survival. Bonus: +2 Speed, +1 Perception.": "A master of the desolate highways, skilled in both vehicle combat and long-range survival. Bonus: +2 Speed, +1 Perception.",
-    "Scrap-Smith": "Scrap-Smith",
-    "A master artisan of the wasteland, able to turn heaps of junk into functional, often deadly, weapons and armor. Bonus: +2 Trade, +1 Intelligence.": "A master artisan of the wasteland, able to turn heaps of junk into functional, often deadly, weapons and armor. Bonus: +2 Trade, +1 Intelligence.",
-    "Beast Master": "Beast Master",
-    "A survivor who has formed an almost supernatural bond with the mutated creatures of the wastes, able to tame and command them. Bonus: +2 Wisdom, +1 Persuasion.": "A survivor who has formed an almost supernatural bond with the mutated creatures of the wastes, able to tame and command them. Bonus: +2 Wisdom, +1 Persuasion.",
-    "Nomad Chronicler": "Nomad Chronicler",
-    "A wanderer who travels the wastes to collect and share the scattered stories of the old and new worlds, a living library of what was and is. Bonus: +2 Wisdom, +1 Persuasion.": "A wanderer who travels the wastes to collect and share the scattered stories of the old and new worlds, a living library of what was and is. Bonus: +2 Wisdom, +1 Persuasion.",
-    "Vulture": "Vulture",
-    "A master of salvage who preys on the weak, using cunning and jury-rigged tools to survive. Bonus: +2 Trade, +2 Perception.": "A master of salvage who preys on the weak, using cunning and jury-rigged tools to survive. Bonus: +2 Trade, +2 Perception.",
-    "Irradiated Monk": "Irradiated Monk",
-    "A warrior who finds peace in the radioactive Glow, using radiation as a weapon and shield. Bonus: +2 Faith, +2 Constitution.": "A warrior who finds peace in the radioactive Glow, using radiation as a weapon and shield. Bonus: +2 Faith, +2 Constitution.",
-    "Pit Fighter": "Pit Fighter",
-    "A champion of gladiatorial pits, specialized in brutal, unarmed combat and improvisation. Bonus: +3 Strength, +1 Constitution.": "A champion of gladiatorial pits, specialized in brutal, unarmed combat and improvisation. Bonus: +3 Strength, +1 Constitution.",
-    "Psion": "Psion",
-    "A rare individual whose mind was unlocked by the apocalypse, wielding telekinetic and telepathic powers. Bonus: +3 Wisdom, +1 Intelligence.": "A rare individual whose mind was unlocked by the apocalypse, wielding telekinetic and telepathic powers. Bonus: +3 Wisdom, +1 Intelligence.",
-    "Chronicle Keeper": "Chronicle Keeper",
-    "A wandering historian and archivist, preserving fragments of the 'Before-Times'. They use knowledge as a weapon and a tool. Bonus: +2 Wisdom, +1 Intelligence.": "A wandering historian and archivist, preserving fragments of the 'Before-Times'. They use knowledge as a weapon and a tool. Bonus: +2 Wisdom, +1 Intelligence.",
-    "Road-Warden": "Road-Warden",
-    "A grim protector of wasteland caravans and fledgling settlements. They are expert trackers and marksmen, enforcing their own brand of justice. Bonus: +2 Perception, +1 Dexterity.": "A grim protector of wasteland caravans and fledgling settlements. They are expert trackers and marksmen, enforcing their own brand of justice. Bonus: +2 Perception, +1 Dexterity.",
-    "Junk-Shaman": "Junk-Shaman",
-    "A mystic who sees spirits in the ruined machines of the old world. Through ritual and intuition, they can coax ancient technology back to life. Bonus: +2 Faith, +1 Intelligence.": "A mystic who sees spirits in the ruined machines of the old world. Through ritual and intuition, they can coax ancient technology back to life. Bonus: +2 Faith, +1 Intelligence.",
-    "Tunnel Rat": "Tunnel Rat",
-    "An expert at navigating the claustrophobic metro tunnels and sewer systems beneath the ruins, specializing in stealth and close-quarters combat. Bonus: +2 Dexterity, +1 Perception.": "An expert at navigating the claustrophobic metro tunnels and sewer systems beneath the ruins, specializing in stealth and close-quarters combat. Bonus: +2 Dexterity, +1 Perception.",
-    "Hydro-Farmer": "Hydro-Farmer",
-    "A vital member of any community, this survivor knows the secrets of cultivating mutated plants and managing precious water in the arid wastes. Bonus: +2 Wisdom, +1 Constitution.": "A vital member of any community, this survivor knows the secrets of cultivating mutated plants and managing precious water in the arid wastes. Bonus: +2 Wisdom, +1 Constitution.",
-    "Voice of the Wastes": "Voice of the Wastes",
-    "A charismatic radio operator, using salvaged broadcast towers to spread hope, propaganda, or music across the lonely airwaves. Bonus: +2 Persuasion, +1 Intelligence.": "A charismatic radio operator, using salvaged broadcast towers to spread hope, propaganda, or music across the lonely airwaves. Bonus: +2 Persuasion, +1 Intelligence.",
-    "Boomer": "Boomer",
-    "An expert in all things that go 'boom'. They craft and disarm explosives with an almost artistic flair, seeing demolition as a solution to most problems. Bonus: +2 Intelligence, +1 Dexterity.": "An expert in all things that go 'boom'. They craft and disarm explosives with an almost artistic flair, seeing demolition as a solution to most problems. Bonus: +2 Intelligence, +1 Dexterity.",
-    "Beast-Rider": "Beast-Rider",
-    "Having formed a bond with a wasteland mount, this warrior is a master of mounted combat, excelling at hit-and-run tactics and high-speed travel. Bonus: +2 Speed, +1 Luck.": "Having formed a bond with a wasteland mount, this warrior is a master of mounted combat, excelling at hit-and-run tactics and high-speed travel. Bonus: +2 Speed, +1 Luck.",
-    "Corrosion Cultist": "Corrosion Cultist",
-    "A worshipper of rust and entropy. They use acids, toxins, and debilitating concoctions to weaken their foes and break down their equipment. Bonus: +2 Faith, +1 Wisdom.": "A worshipper of rust and entropy. They use acids, toxins, and debilitating concoctions to weaken their foes and break down their equipment. Bonus: +2 Faith, +1 Wisdom.",
-    "Pain-Dealer": "Pain-Dealer",
-    "A battlefield medic who understands that sometimes the best cure is a powerful, dangerous stimulant. They heal allies and push them beyond their limits with combat chems. Bonus: +2 Wisdom, +1 Trade.": "A battlefield medic who understands that sometimes the best cure is a powerful, dangerous stimulant. They heal allies and push them beyond their limits with combat chems. Bonus: +2 Wisdom, +1 Trade.",
-    "Ghost": "Ghost",
-    "A legend of the wastes, a predator who hunts the most dangerous game: man. They are masters of ambush, traps, and turning the rubble of the old world into a weapon. They strike without warning and vanish like a mirage. Bonus: +2 Perception, +1 Dexterity.": "A legend of the wastes, a predator who hunts the most dangerous game: man. They are masters of ambush, traps, and turning the rubble of the old world into a weapon. They strike without warning and vanish like a mirage. Bonus: +2 Perception, +1 Dexterity.",
   },
   ru: {
     // Post-Apocalypse Races
@@ -136,57 +107,54 @@ export const postApocalypseLoc = {
     "Semi-corporeal beings born from a psychic cataclysm or a rogue AI's death cry. They are insubstantial and perceptive, able to phase through small objects and sense emotional residues. +3 Wisdom, +2 Perception.": "Полу-телесные существа, рожденные в результате психического катаклизма или предсмертного крика блуждающего ИИ. Они нематериальны и проницательны, способны проходить сквозь небольшие объекты и ощущать эмоциональные остатки. +3 к Мудрости, +2 к Восприятию.",
     "Sand-Swimmer": "Песчаный Пловец",
     "A human offshoot adapted to life in vast, irradiated sand seas. They have sleek bodies, excellent heat resistance, and an uncanny ability to navigate and move through loose sand and dunes. +3 Dexterity, +2 Constitution.": "Человеческий подвид, приспособленный к жизни в обширных, облученных песчаных морях. У них гладкие тела, отличная термостойкость и поразительная способность ориентироваться и передвигаться по рыхлому песку и дюнам. +3 к Ловкости, +2 к Телосложению.",
+  }
+};
 
-    // Post-Apocalypse Classes
-    "Scavenger": "Мусорщик",
-    "An expert at finding useful things in the ruins. Bonus: +2 Perception, +1 Luck.": "Эксперт по поиску полезных вещей в руинах. Бонус: +2 к Восприятию, +1 к Удаче.",
-    "Raider Boss": "Босс рейдеров",
-    "Leads through fear and strength. Bonus: +2 Strength, +1 Persuasion.": "Возглавляет через страх и силу. Бонус: +2 к Силе, +1 к Убеждению.",
-    "Wasteland Doctor": "Доктор пустошей",
-    "Knows how to patch up wounds with limited supplies. Bonus: +3 Wisdom.": "Знает, как залатать раны с ограниченными припасами. Бонус: +3 к Мудрости.",
-    "Cultist": "Култист",
-    "A fervent believer in a wasteland deity or ideology, charismatic and dangerous. Bonus: +2 Faith, +1 Persuasion.": "Пламенный верующий в божество пустошей или идеологию, харизматичный и опасный. Бонус: +2 к Вере, +1 к Убеждению.",
-    "Mechanic": "Механик",
-    "A gearhead who can coax life back into ancient machinery. Bonus: +2 Intelligence, +1 Trade.": "Технарь, который может вернуть к жизни древние механизмы. Бонус: +2 к Интеллекту, +1 к Торговле.",
-    "Stalker": "Сталкер",
-    "A grim survivalist who ventures into the most irradiated and dangerous zones for profit and knowledge. Bonus: +2 Perception, +1 Luck.": "Мрачный выживальщик, который отправляется в самые облученные и опасные зоны ради прибыли и знаний. Бонус: +2 к Восприятию, +1 к Удаче.",
-    "Nomad": "Кочевник",
-    "A master of the desolate highways, skilled in both vehicle combat and long-range survival. Bonus: +2 Speed, +1 Perception.": "Мастер пустынных дорог, умелый как в бою на транспорте, так и в выживании на дальних дистанциях. Бонус: +2 к Скорости, +1 к Восприятию.",
-    "Scrap-Smith": "Кузнец-мусорщик",
-    "A master artisan of the wasteland, able to turn heaps of junk into functional, often deadly, weapons and armor. Bonus: +2 Trade, +1 Intelligence.": "Мастер-ремесленник пустошей, способный превращать горы хлама в функциональное, часто смертоносное, оружие и броню. Бонус: +2 к Торговле, +1 к Интеллекту.",
-    "Beast Master": "Повелитель зверей",
-    "A survivor who has formed an almost supernatural bond with the mutated creatures of the wastes, able to tame and command them. Bonus: +2 Wisdom, +1 Persuasion.": "Выживший, который установил почти сверхъестественную связь с мутировавшими существами пустошей, способный их приручать и командовать ими. Бонус: +2 к Мудрости, +1 к Убеждению.",
-    "Nomad Chronicler": "Кочевник-летописец",
-    "A wanderer who travels the wastes to collect and share the scattered stories of the old and new worlds, a living library of what was and is. Bonus: +2 Wisdom, +1 Persuasion.": "Странник, путешествующий по пустошам, чтобы собирать и делиться разрозненными историями старого и нового миров, живая библиотека того, что было и есть. Бонус: +2 к Мудрости, +1 к Убеждению.",
-    "Vulture": "Стервятник",
-    "A master of salvage who preys on the weak, using cunning and jury-rigged tools to survive. Bonus: +2 Trade, +2 Perception.": "Мастер утилизации, который охотится на слабых, используя хитрость и самодельные инструменты для выживания. Бонус: +2 к Торговле, +2 к Восприятию.",
-    "Irradiated Monk": "Облученный монах",
-    "A warrior who finds peace in the radioactive Glow, using radiation as a weapon and shield. Bonus: +2 Faith, +2 Constitution.": "Воин, который находит покой в радиоактивном Сиянии, используя радиацию как оружие и щит. Бонус: +2 к Вере, +2 к Телосложению.",
-    "Pit Fighter": "Боец ямы",
-    "A champion of gladiatorial pits, specialized in brutal, unarmed combat and improvisation. Bonus: +3 Strength, +1 Constitution.": "Чемпион гладиаторских ям, специализирующийся на жестоком рукопашном бою и импровизации. Бонус: +3 к Силе, +1 к Телосложению.",
-    "Psion": "Псион",
-    "A rare individual whose mind was unlocked by the apocalypse, wielding telekinetic and telepathic powers. Bonus: +3 Wisdom, +1 Intelligence.": "Редкий индивидуум, чей разум был раскрыт апокалипсисом, владеющий телекинетическими и телепатическими способностями. Бонус: +3 к Мудрости, +1 к Интеллекту.",
-    "Chronicle Keeper": "Хранитель хроник",
-    "A wandering historian and archivist, preserving fragments of the 'Before-Times'. They use knowledge as a weapon and a tool. Bonus: +2 Wisdom, +1 Intelligence.": "Странствующий историк и архивариус, сохраняющий фрагменты 'До-Времен'. Они используют знание как оружие и инструмент. Бонус: +2 к Мудрости, +1 к Интеллекту.",
-    "Road-Warden": "Дорожный страж",
-    "A grim protector of wasteland caravans and fledgling settlements. They are expert trackers and marksmen, enforcing their own brand of justice. Bonus: +2 Perception, +1 Dexterity.": "Мрачный защитник караванов пустошей и зарождающихся поселений. Они — эксперты-следопыты и меткие стрелки, устанавливающие свой собственный закон. Бонус: +2 к Восприятию, +1 к Ловкости.",
-    "Junk-Shaman": "Шаман хлама",
-    "A mystic who sees spirits in the ruined machines of the old world. Through ritual and intuition, they can coax ancient technology back to life. Bonus: +2 Faith, +1 Intelligence.": "Мистик, который видит духов в разрушенных машинах старого мира. С помощью ритуалов и интуиции они могут вернуть к жизни древние технологии. Бонус: +2 к Вере, +1 к Интеллекту.",
-    "Tunnel Rat": "Туннельная крыса",
-    "An expert at navigating the claustrophobic metro tunnels and sewer systems beneath the ruins, specializing in stealth and close-quarters combat. Bonus: +2 Dexterity, +1 Perception.": "Эксперт по навигации в клаустрофобных тоннелях метро и канализационных системах под руинами, специализирующийся на скрытности и ближнем бою. Бонус: +2 к Ловкости, +1 к Восприятию.",
-    "Hydro-Farmer": "Гидро-фермер",
-    "A vital member of any community, this survivor knows the secrets of cultivating mutated plants and managing precious water in the arid wastes. Bonus: +2 Wisdom, +1 Constitution.": "Жизненно важный член любого сообщества, этот выживший знает секреты выращивания мутировавших растений и управления драгоценной водой в засушливых пустошах. Бонус: +2 к Мудрости, +1 к Телосложению.",
-    "Voice of the Wastes": "Голос пустошей",
-    "A charismatic radio operator, using salvaged broadcast towers to spread hope, propaganda, or music across the lonely airwaves. Bonus: +2 Persuasion, +1 Intelligence.": "Харизматичный радиооператор, использующий спасенные радиовышки для распространения надежды, пропаганды или музыки по одиноким эфирам. Бонус: +2 к Убеждению, +1 к Интеллекту.",
-    "Boomer": "Подрывник",
-    "An expert in all things that go 'boom'. They craft and disarm explosives with an almost artistic flair, seeing demolition as a solution to most problems. Bonus: +2 Intelligence, +1 Dexterity.": "Эксперт во всем, что 'бумкает'. Они создают и обезвреживают взрывчатку с почти художественным чутьем, видя в подрыве решение большинства проблем. Бонус: +2 к Интеллекту, +1 к Ловкости.",
-    "Beast-Rider": "Наездник на звере",
-    "Having formed a bond with a wasteland mount, this warrior is a master of mounted combat, excelling at hit-and-run tactics and high-speed travel. Bonus: +2 Speed, +1 Luck.": "Создав связь с животным пустошей, этот воин является мастером верхового боя, преуспевая в тактике 'бей-и-беги' и скоростных перемещениях. Бонус: +2 к Скорости, +1 к Удаче.",
-    "Corrosion Cultist": "Култист коррозии",
-    "A worshipper of rust and entropy. They use acids, toxins, and debilitating concoctions to weaken their foes and break down their equipment. Bonus: +2 Faith, +1 Wisdom.": "Поклонник ржавчины и энтропии. Они используют кислоты, токсины и ослабляющие смеси, чтобы ослабить своих врагов и разрушить их снаряжение. Бонус: +2 к Вере, +1 к Мудрости.",
-    "Pain-Dealer": "Торговец болью",
-    "A battlefield medic who understands that sometimes the best cure is a powerful, dangerous stimulant. They heal allies and push them beyond their limits with combat chems. Bonus: +2 Wisdom, +1 Trade.": "Полевой медик, который понимает, что иногда лучшее лекарство — это мощный, опасный стимулятор. Они лечат союзников и толкают их за пределы их возможностей с помощью боевых химикатов. Бонус: +2 к Мудрости, +1 к Торговле.",
-    "Ghost": "Призрак",
-    "A legend of the wastes, a predator who hunts the most dangerous game: man. They are masters of ambush, traps, and turning the rubble of the old world into a weapon. They strike without warning and vanish like a mirage. Bonus: +2 Perception, +1 Dexterity.": "Легенда пустошей, хищник, охотящийся на самую опасную дичь — человека. Они мастера засад, ловушек и превращения обломков старого мира в оружие. Они наносят удар без предупреждения и исчезают, как мираж. Бонус: +2 к Восприятию, +1 к Ловкости.",
+export const postApocalypseLoc = {
+  en: {
+    ...postApocalypseBaseLoc.en,
+    ...survivorLoc.en,
+    ...mutantLoc.en,
+    ...synthLoc.en,
+    ...ghoulLoc.en,
+    ...purebloodLoc.en,
+    ...beastkinLoc.en,
+    ...molePeopleLoc.en,
+    ...theBlightedLoc.en,
+    ...theSunScorchedLoc.en,
+    ...theForgedLoc.en,
+    ...crystallineLoc.en,
+    ...fungaloidLoc.en,
+    ...scrapperGuilderLoc.en,
+    ...theMorphedLoc.en,
+    ...chitinoidLoc.en,
+    ...verdantLoc.en,
+    ...theIrradiatedLoc.en,
+    ...theSunkenLoc.en,
+    ...echoLoc.en,
+    ...sandSwimmerLoc.en,
+  },
+  ru: {
+    ...postApocalypseBaseLoc.ru,
+    ...survivorLoc.ru,
+    ...mutantLoc.ru,
+    ...synthLoc.ru,
+    ...ghoulLoc.ru,
+    ...purebloodLoc.ru,
+    ...beastkinLoc.ru,
+    ...molePeopleLoc.ru,
+    ...theBlightedLoc.ru,
+    ...theSunScorchedLoc.ru,
+    ...theForgedLoc.ru,
+    ...crystallineLoc.ru,
+    ...fungaloidLoc.ru,
+    ...scrapperGuilderLoc.ru,
+    ...theMorphedLoc.ru,
+    ...chitinoidLoc.ru,
+    ...verdantLoc.ru,
+    ...theIrradiatedLoc.ru,
+    ...theSunkenLoc.ru,
+    ...echoLoc.ru,
+    ...sandSwimmerLoc.ru,
   }
 };

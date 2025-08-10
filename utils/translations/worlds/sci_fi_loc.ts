@@ -1,4 +1,26 @@
-export const sciFiLoc = {
+
+import { humanLoc } from './sci_fi/human_loc';
+import { cyborgLoc } from './sci_fi/cyborg_loc';
+import { zoltanLoc } from './sci_fi/zoltan_loc';
+import { ktharrLoc } from './sci_fi/ktharr_loc';
+import { rockmanLoc } from './sci_fi/rockman_loc';
+import { mantisLoc } from './sci_fi/mantis_loc';
+import { engiLoc } from './sci_fi/engi_loc';
+import { voidTouchedLoc } from './sci_fi/void_touched_loc';
+import { symbioteLoc } from './sci_fi/symbiote_loc';
+import { archivistLoc } from './sci_fi/archivist_loc';
+import { upliftedCephalopodLoc } from './sci_fi/uplifted_cephalopod_loc';
+import { naniteCollectiveLoc } from './sci_fi/nanite_collective_loc';
+import { highGravityHumanLoc } from './sci_fi/high_gravity_human_loc';
+import { phaseWalkerLoc } from './sci_fi/phase_walker_loc';
+import { dominionSymbioteLoc } from './sci_fi/dominion_symbiote_loc';
+import { geodeLoc } from './sci_fi/geode_loc';
+import { thranHivemindLoc } from './sci_fi/thran_hivemind_loc';
+import { luminLoc } from './sci_fi/lumin_loc';
+import { nautilidLoc } from './sci_fi/nautilid_loc';
+import { silvaniteLoc } from './sci_fi/silvanite_loc';
+
+const sciFiBaseLoc = {
   en: {
     // Sci-Fi Races
     "Human": "Human",
@@ -41,54 +63,6 @@ export const sciFiLoc = {
     "Amphibious humanoids evolved in the crushing depths of high-pressure oceans. Their bodies are dense and powerful, built to withstand extreme environments. +3 Constitution, +2 Strength.": "Amphibious humanoids evolved in the crushing depths of high-pressure oceans. Their bodies are dense and powerful, built to withstand extreme environments. +3 Constitution, +2 Strength.",
     "Silvanite": "Silvanite",
     "Mobile, sentient plant-based organisms. They have a deep, almost spiritual connection to the life cycles of the galaxy and possess immense patience and insight. +3 Faith, +2 Wisdom.": "Mobile, sentient plant-based organisms. They have a deep, almost spiritual connection to the life cycles of the galaxy and possess immense patience and insight. +3 Faith, +2 Wisdom.",
-
-    // Sci-Fi Classes
-    "Soldier": "Soldier",
-    "A veteran of stellar warfare. Bonus: +2 Dexterity, +1 Constitution.": "A veteran of stellar warfare. Bonus: +2 Dexterity, +1 Constitution.",
-    "Psion": "Psion",
-    "A powerful telepath, bending minds to their will. Bonus: +3 Wisdom, +1 Persuasion.": "A powerful telepath, bending minds to their will. Bonus: +3 Wisdom, +1 Persuasion.",
-    "Tech-Scrapper": "Tech-Scrapper",
-    "A resourceful engineer who can fix anything. Bonus: +3 Intelligence.": "A resourceful engineer who can fix anything. Bonus: +3 Intelligence.",
-    "Starship Pilot": "Starship Pilot",
-    "An ace navigator with nerves of steel, at home in the cockpit of a starfighter. Bonus: +2 Speed, +1 Perception.": "An ace navigator with nerves of steel, at home in the cockpit of a starfighter. Bonus: +2 Speed, +1 Perception.",
-    "Smuggler": "Smuggler",
-    "A crafty operator who knows how to move goods and people under the radar. Bonus: +2 Luck, +1 Trade.": "A crafty operator who knows how to move goods and people under the radar. Bonus: +2 Luck, +1 Trade.",
-    "Xeno-biologist": "Xeno-biologist",
-    "A scientist dedicated to the study of alien life, from microbes to megafauna. Bonus: +2 Wisdom, +1 Intelligence.": "A scientist dedicated to the study of alien life, from microbes to megafauna. Bonus: +2 Wisdom, +1 Intelligence.",
-    "Envoy": "Envoy",
-    "A galactic diplomat, trained in negotiation, protocol, and interstellar law. Bonus: +2 Persuasion, +1 Intelligence.": "A galactic diplomat, trained in negotiation, protocol, and interstellar law. Bonus: +2 Persuasion, +1 Intelligence.",
-    "Rogue Trader": "Rogue Trader",
-    "A freelance explorer, merchant, and sometimes-privateer with a warrant to operate beyond the fringes of civilized space. Bonus: +2 Trade, +1 Persuasion.": "A freelance explorer, merchant, and sometimes-privateer with a warrant to operate beyond the fringes of civilized space. Bonus: +2 Trade, +1 Persuasion.",
-    "Xenohunter": "Xenohunter",
-    "A specialist in tracking and capturing or eliminating dangerous alien megafauna for research, profit, or safety. Bonus: +2 Perception, +1 Dexterity.": "A specialist in tracking and capturing or eliminating dangerous alien megafauna for research, profit, or safety. Bonus: +2 Perception, +1 Dexterity.",
-    "Grav-Brawler": "Grav-Brawler",
-    "A warrior who utilizes personal gravity manipulators for bone-crushing strength and surprising mobility on the battlefield. Bonus: +2 Strength, +1 Speed.": "A warrior who utilizes personal gravity manipulators for bone-crushing strength and surprising mobility on the battlefield. Bonus: +2 Strength, +1 Speed.",
-    "Astro-Archaeologist": "Astro-Archaeologist",
-    "A scholar who delves into the ruins of precursor civilizations, seeking knowledge and lost technology. They are experts in history, xeno-linguistics, and spotting hidden details. Bonus: +2 Perception, +1 Intelligence.": "A scholar who delves into the ruins of precursor civilizations, seeking knowledge and lost technology. They are experts in history, xeno-linguistics, and spotting hidden details. Bonus: +2 Perception, +1 Intelligence.",
-    "Bio-Tinker": "Bio-Tinker",
-    "A rogue scientist who manipulates genetics and biology, often with little regard for ethics. They can create biological concoctions and perform field surgery with makeshift tools. Bonus: +2 Intelligence, +1 Wisdom.": "A rogue scientist who manipulates genetics and biology, often with little regard for ethics. They can create biological concoctions and perform field surgery with makeshift tools. Bonus: +2 Intelligence, +1 Wisdom.",
-    "Meme-Weaver": "Meme-Weaver",
-    "A social engineer who understands and manipulates cultural symbols, information, and beliefs to influence entire populations. Their weapon is weaponized information. Bonus: +2 Persuasion, +1 Attractiveness.": "A social engineer who understands and manipulates cultural symbols, information, and beliefs to influence entire populations. Their weapon is weaponized information. Bonus: +2 Persuasion, +1 Attractiveness.",
-    "Void-Dancer": "Void-Dancer",
-    "A zero-g combat specialist, graceful and deadly in three-dimensional space. They utilize micro-thrusters and grappling hooks to turn any environment into their personal playground. Bonus: +2 Speed, +1 Dexterity.": "A zero-g combat specialist, graceful and deadly in three-dimensional space. They utilize micro-thrusters and grappling hooks to turn any environment into their personal playground. Bonus: +2 Speed, +1 Dexterity.",
-    "Xeno-Linguist": "Xeno-Linguist",
-    "A specialist in deciphering alien languages and understanding extraterrestrial cultures, making first contact possible. Bonus: +2 Intelligence, +1 Persuasion.": "A specialist in deciphering alien languages and understanding extraterrestrial cultures, making first contact possible. Bonus: +2 Intelligence, +1 Persuasion.",
-    "Corporate Enforcer": "Corporate Enforcer",
-    "A heavily-armed and armored agent of a mega-corporation, tasked with protecting assets and eliminating rivals by any means necessary. Bonus: +2 Strength, +1 Constitution.": "A heavily-armed and armored agent of a mega-corporation, tasked with protecting assets and eliminating rivals by any means necessary. Bonus: +2 Strength, +1 Constitution.",
-    "Star-Prophet": "Star-Prophet",
-    "A mystic who interprets cosmic phenomena—starlight, nebula patterns, black hole emissions—to divine the future and navigate fate. Bonus: +2 Faith, +1 Wisdom.": "A mystic who interprets cosmic phenomena—starlight, nebula patterns, black hole emissions—to divine the future and navigate fate. Bonus: +2 Faith, +1 Wisdom.",
-    "Data Broker": "Data Broker",
-    "An information trafficker who operates in the grey markets of the galaxy, buying and selling secrets, access codes, and classified intel. Bonus: +2 Trade, +1 Luck.": "An information trafficker who operates in the grey markets of the galaxy, buying and selling secrets, access codes, and classified intel. Bonus: +2 Trade, +1 Luck.",
-    "Terraformer": "Terraformer",
-    "An exo-engineer who wields planetary-scale technology to reshape worlds, from adjusting atmospheres to redirecting rivers. Bonus: +2 Intelligence, +1 Wisdom.": "An exo-engineer who wields planetary-scale technology to reshape worlds, from adjusting atmospheres to redirecting rivers. Bonus: +2 Intelligence, +1 Wisdom.",
-    "Zero-G Brawler": "Zero-G Brawler",
-    "A warrior who has mastered combat in the disorienting environment of zero gravity, using momentum and anchor points to their advantage. Bonus: +2 Dexterity, +1 Speed.": "A warrior who has mastered combat in the disorienting environment of zero gravity, using momentum and anchor points to their advantage. Bonus: +2 Dexterity, +1 Speed.",
-    "Cyber-Slinger": "Cyber-Slinger",
-    "A charismatic outlaw blending fast-draw cybernetic weapons with social hacking skills to get out of—and into—trouble. Bonus: +2 Attractiveness, +1 Dexterity.": "A charismatic outlaw blending fast-draw cybernetic weapons with social hacking skills to get out of—and into—trouble. Bonus: +2 Attractiveness, +1 Dexterity.",
-    "Ship's Surgeon": "Ship's Surgeon",
-    "A medic specializing in the unique traumas of space: cybernetic rejection, alien parasites, explosive decompression, and advanced field surgery. Bonus: +2 Wisdom, +1 Intelligence.": "A medic specializing in the unique traumas of space: cybernetic rejection, alien parasites, explosive decompression, and advanced field surgery. Bonus: +2 Wisdom, +1 Intelligence.",
-    "Spectre": "Spectre",
-    "An augmented ghost in the machine. Utilizes advanced cloaking technology, cybernetic enhancements, and silenced energy weapons to eliminate targets with cold, digital precision. They are corporate phantoms and political tools. Bonus: +2 Dexterity, +1 Speed.": "An augmented ghost in the machine. Utilizes advanced cloaking technology, cybernetic enhancements, and silenced energy weapons to eliminate targets with cold, digital precision. They are corporate phantoms and political tools. Bonus: +2 Dexterity, +1 Speed.",
   },
   ru: {
     // Sci-Fi Races
@@ -132,53 +106,54 @@ export const sciFiLoc = {
     "Amphibious humanoids evolved in the crushing depths of high-pressure oceans. Their bodies are dense and powerful, built to withstand extreme environments. +3 Constitution, +2 Strength.": "Земноводные гуманоиды, эволюционировавшие в сокрушительных глубинах океанов с высоким давлением. Их тела плотные и мощные, созданные для выживания в экстремальных условиях. +3 к Телосложению, +2 к Силе.",
     "Silvanite": "Сильванит",
     "Mobile, sentient plant-based organisms. They have a deep, almost spiritual connection to the life cycles of the galaxy and possess immense patience and insight. +3 Faith, +2 Wisdom.": "Подвижные, разумные организмы на основе растений. У них глубокая, почти духовная связь с жизненными циклами галактики, и они обладают огромным терпением и проницательностью. +3 к Вере, +2 к Мудрости.",
+  }
+};
 
-    // Sci-Fi Classes
-    "Soldier": "Солдат",
-    "A veteran of stellar warfare. Bonus: +2 Dexterity, +1 Constitution.": "Ветеран звездных войн. Бонус: +2 к Ловкости, +1 к Телосложению.",
-    "Psion": "Псион",
-    "A powerful telepath, bending minds to their will. Bonus: +3 Wisdom, +1 Persuasion.": "Могущественный телепат, подчиняющий умы своей воле. Бонус: +3 к Мудрости, +1 к Убеждению.",
-    "Tech-Scrapper": "Техно-мусорщик",
-    "A resourceful engineer who can fix anything. Bonus: +3 Intelligence.": "Находчивый инженер, который может починить все, что угодно. Бонус: +3 к Интеллекту.",
-    "Starship Pilot": "Пилот звездолета",
-    "An ace navigator with nerves of steel, at home in the cockpit of a starfighter. Bonus: +2 Speed, +1 Perception.": "Ас-навигатор со стальными нервами, чувствующий себя как дома в кабине истребителя. Бонус: +2 к Скорости, +1 к Восприятию.",
-    "Smuggler": "Контрабандист",
-    "A crafty operator who knows how to move goods and people under the radar. Bonus: +2 Luck, +1 Trade.": "Хитрый делец, который знает, как незаметно перевозить товары и людей. Бонус: +2 к Удаче, +1 к Торговле.",
-    "Xeno-biologist": "Ксенобиолог",
-    "A scientist dedicated to the study of alien life, from microbes to megafauna. Bonus: +2 Wisdom, +1 Intelligence.": "Ученый, посвятивший себя изучению инопланетной жизни, от микробов до мегафауны. Бонус: +2 к Мудрости, +1 к Интеллекту.",
-    "Envoy": "Посланник",
-    "A galactic diplomat, trained in negotiation, protocol, and interstellar law. Bonus: +2 Persuasion, +1 Intelligence.": "Галактический дипломат, обученный переговорам, протоколу и межзвездным законам. Бонус: +2 к Убеждению, +1 к Интеллекту.",
-    "Rogue Trader": "Вольный торговец",
-    "A freelance explorer, merchant, and sometimes-privateer with a warrant to operate beyond the fringes of civilized space. Bonus: +2 Trade, +1 Persuasion.": "Вольный исследователь, торговец, а иногда и капер с разрешением действовать за пределами цивилизованного космоса. Бонус: +2 к Торговле, +1 к Убеждению.",
-    "Xenohunter": "Ксеноохотник",
-    "A specialist in tracking and capturing or eliminating dangerous alien megafauna for research, profit, or safety. Bonus: +2 Perception, +1 Dexterity.": "Специалист по отслеживанию и поимке или уничтожению опасной инопланетной мегафауны для исследований, прибыли или безопасности. Бонус: +2 к Восприятию, +1 к Ловкости.",
-    "Grav-Brawler": "Грав-боец",
-    "A warrior who utilizes personal gravity manipulators for bone-crushing strength and surprising mobility on the battlefield. Bonus: +2 Strength, +1 Speed.": "Воин, использующий персональные гравитационные манипуляторы для сокрушительной силы и удивительной мобильности на поле боя. Бонус: +2 к Силе, +1 к Скорости.",
-    "Astro-Archaeologist": "Астро-археолог",
-    "A scholar who delves into the ruins of precursor civilizations, seeking knowledge and lost technology. They are experts in history, xeno-linguistics, and spotting hidden details. Bonus: +2 Perception, +1 Intelligence.": "Ученый, который исследует руины предтеч, ища знания и утерянные технологии. Они эксперты в истории, ксенолингвистике и обнаружении скрытых деталей. Бонус: +2 к Восприятию, +1 к Интеллекту.",
-    "Bio-Tinker": "Био-механик",
-    "A rogue scientist who manipulates genetics and biology, often with little regard for ethics. They can create biological concoctions and perform field surgery with makeshift tools. Bonus: +2 Intelligence, +1 Wisdom.": "Ученый-изгой, который манипулирует генетикой и биологией, часто пренебрегая этикой. Они могут создавать биологические смеси и проводить полевую хирургию с помощью подручных инструментов. Бонус: +2 к Интеллекту, +1 к Мудрости.",
-    "Meme-Weaver": "Ткач мемов",
-    "A social engineer who understands and manipulates cultural symbols, information, and beliefs to influence entire populations. Their weapon is weaponized information. Bonus: +2 Persuasion, +1 Attractiveness.": "Социальный инженер, который понимает и манипулирует культурными символами, информацией и верованиями, чтобы влиять на целые народы. Их оружие — информация. Бонус: +2 к Убеждению, +1 к Привлекательности.",
-    "Void-Dancer": "Танцор Пустоты",
-    "A zero-g combat specialist, graceful and deadly in three-dimensional space. They utilize micro-thrusters and grappling hooks to turn any environment into their personal playground. Bonus: +2 Speed, +1 Dexterity.": "Специалист по бою в невесомости, изящный и смертоносный в трехмерном пространстве. Они используют микро-ускорители и грэпплинговые крюки, чтобы превратить любую среду в свою личную игровую площадку. Бонус: +2 к Скорости, +1 к Ловкости.",
-    "Xeno-Linguist": "Ксенолингвист",
-    "A specialist in deciphering alien languages and understanding extraterrestrial cultures, making first contact possible. Bonus: +2 Intelligence, +1 Persuasion.": "Специалист по расшифровке инопланетных языков и пониманию внеземных культур, делающий возможным первый контакт. Бонус: +2 к Интеллекту, +1 к Убеждению.",
-    "Corporate Enforcer": "Корпоративный силовик",
-    "A heavily-armed and armored agent of a mega-corporation, tasked with protecting assets and eliminating rivals by any means necessary. Bonus: +2 Strength, +1 Constitution.": "Тяжеловооруженный и бронированный агент мегакорпорации, которому поручено защищать активы и устранять конкурентов любыми средствами. Бонус: +2 к Силе, +1 к Телосложению.",
-    "Star-Prophet": "Звездный пророк",
-    "A mystic who interprets cosmic phenomena—starlight, nebula patterns, black hole emissions—to divine the future and navigate fate. Bonus: +2 Faith, +1 Wisdom.": "Мистик, который интерпретирует космические явления — звездный свет, узоры туманностей, излучения черных дыр — чтобы предсказывать будущее и управлять судьбой. Бонус: +2 к Вере, +1 к Мудрости.",
-    "Data Broker": "Информационный брокер",
-    "An information trafficker who operates in the grey markets of the galaxy, buying and selling secrets, access codes, and classified intel. Bonus: +2 Trade, +1 Luck.": "Торговец информацией, действующий на серых рынках галактики, покупая и продавая секреты, коды доступа и секретную информацию. Бонус: +2 к Торговле, +1 к Удаче.",
-    "Terraformer": "Терраформер",
-    "An exo-engineer who wields planetary-scale technology to reshape worlds, from adjusting atmospheres to redirecting rivers. Bonus: +2 Intelligence, +1 Wisdom.": "Экзо-инженер, который владеет технологиями планетарного масштаба для преобразования миров, от изменения атмосферы до перенаправления рек. Бонус: +2 к Интеллекту, +1 к Мудрости.",
-    "Zero-G Brawler": "Боец невесомости",
-    "A warrior who has mastered combat in the disorienting environment of zero gravity, using momentum and anchor points to their advantage. Bonus: +2 Dexterity, +1 Speed.": "Воин, овладевший боем в дезориентирующей среде невесомости, используя импульс и точки опоры в своих интересах. Бонус: +2 к Ловкости, +1 к Скорости.",
-    "Cyber-Slinger": "Кибер-стрелок",
-    "A charismatic outlaw blending fast-draw cybernetic weapons with social hacking skills to get out of—and into—trouble. Bonus: +2 Attractiveness, +1 Dexterity.": "Харизматичный преступник, сочетающий быстрое извлечение кибернетического оружия с навыками социального хакинга, чтобы выпутываться из неприятностей и попадать в них. Бонус: +2 к Привлекательности, +1 к Ловкости.",
-    "Ship's Surgeon": "Корабельный хирург",
-    "A medic specializing in the unique traumas of space: cybernetic rejection, alien parasites, explosive decompression, and advanced field surgery. Bonus: +2 Wisdom, +1 Intelligence.": "Медик, специализирующийся на уникальных травмах космоса: отторжение кибернетики, инопланетные паразиты, взрывная декомпрессия и продвинутая полевая хирургия. Бонус: +2 к Мудрости, +1 к Интеллекту.",
-    "Spectre": "Спектр",
-    "An augmented ghost in the machine. Utilizes advanced cloaking technology, cybernetic enhancements, and silenced energy weapons to eliminate targets with cold, digital precision. They are corporate phantoms and political tools. Bonus: +2 Dexterity, +1 Speed.": "Усовершенствованный призрак в машине. Использует передовые технологии маскировки, кибернетические улучшения и бесшумное энергетическое оружие, чтобы устранять цели с холодной, цифровой точностью. Они — корпоративные фантомы и политические инструменты. Бонус: +2 к Ловкости, +1 к Скорости.",
+export const sciFiLoc = {
+  en: {
+    ...sciFiBaseLoc.en,
+    ...humanLoc.en,
+    ...cyborgLoc.en,
+    ...zoltanLoc.en,
+    ...ktharrLoc.en,
+    ...rockmanLoc.en,
+    ...mantisLoc.en,
+    ...engiLoc.en,
+    ...voidTouchedLoc.en,
+    ...symbioteLoc.en,
+    ...archivistLoc.en,
+    ...upliftedCephalopodLoc.en,
+    ...naniteCollectiveLoc.en,
+    ...highGravityHumanLoc.en,
+    ...phaseWalkerLoc.en,
+    ...dominionSymbioteLoc.en,
+    ...geodeLoc.en,
+    ...thranHivemindLoc.en,
+    ...luminLoc.en,
+    ...nautilidLoc.en,
+    ...silvaniteLoc.en,
+  },
+  ru: {
+    ...sciFiBaseLoc.ru,
+    ...humanLoc.ru,
+    ...cyborgLoc.ru,
+    ...zoltanLoc.ru,
+    ...ktharrLoc.ru,
+    ...rockmanLoc.ru,
+    ...mantisLoc.ru,
+    ...engiLoc.ru,
+    ...voidTouchedLoc.ru,
+    ...symbioteLoc.ru,
+    ...archivistLoc.ru,
+    ...upliftedCephalopodLoc.ru,
+    ...naniteCollectiveLoc.ru,
+    ...highGravityHumanLoc.ru,
+    ...phaseWalkerLoc.ru,
+    ...dominionSymbioteLoc.ru,
+    ...geodeLoc.ru,
+    ...thranHivemindLoc.ru,
+    ...luminLoc.ru,
+    ...nautilidLoc.ru,
+    ...silvaniteLoc.ru,
   }
 };

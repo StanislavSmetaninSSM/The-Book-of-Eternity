@@ -1,4 +1,9 @@
 
+
+
+
+
+
 import { GameContext, GameResponse } from '../types';
 // @ts-ignore
 import * as mainPromptModule from '../prompts/mainPromptModule.js';
@@ -46,6 +51,31 @@ function recursivelyRemoveTildes(obj: any): any {
     return obj;
 }
 
+export const getModelForStep = (stepName: string, context: GameContext): string => {
+    // Hybrid mode is only for the Gemini provider with the specific hybrid model name.
+    if (context.gameSettings.aiProvider !== 'gemini' || context.gameSettings.modelName !== 'gemini-hybrid-pro-flash') {
+        // If not in hybrid mode, return the model from settings.
+        return context.gameSettings.modelName;
+    }
+
+    // In Hybrid mode, select model based on step.
+    const proSteps = [
+        'Step0_AnalysisAndPlanning',
+        'Step0_5_Verification',
+        'Step1_NarrativeGeneration',
+        'StepSimpleFullResponse',
+        'StepQuestion_CorrectionAndClarification'
+    ];
+
+    if (proSteps.includes(stepName)) {
+        return 'gemini-2.5-pro';
+    }
+    
+    // All other steps use Flash for speed.
+    return 'gemini-2.5-flash';
+};
+
+
 const executeApiStep = async (
     stepName: string,
     getPromptFunc: () => string,
@@ -53,19 +83,36 @@ const executeApiStep = async (
     context: GameContext,
     currentPartialResponse: any,
     abortSignal: AbortSignal,
-    onPartialResponse: (response: any) => void,
     onStreamingChunk: (text: string) => void
 ): Promise<any> => {
-    const { modelName, aiProvider, geminiApiKey, openRouterApiKey } = context.gameSettings;
+    // Extract API keys for authorization before sanitizing the context for the prompt.
+    const { aiProvider, geminiApiKey, openRouterApiKey } = context.gameSettings;
+    const modelName = getModelForStep(stepName, context);
     const apiKey = aiProvider === 'gemini' ? geminiApiKey : openRouterApiKey;
+    
+    // **SECURITY FIX**: Create a sanitized version of the context to be sent to the AI.
+    // This removes API keys from the object that will be stringified into the prompt.
+    const { 
+        geminiApiKey: _g, 
+        openRouterApiKey: _o, 
+        youtubeApiKey: _y, 
+        ...sanitizedGameSettings 
+    } = context.gameSettings;
+
+    const sanitizedContextForPrompt = {
+        ...context,
+        gameSettings: sanitizedGameSettings,
+    };
+    
     const MAX_STEP_RETRIES = 5;
     let isRegen = false;
     let reason = '';
 
     for (let i = 0; i < MAX_STEP_RETRIES; i++) {
         try {
+            // Use the sanitized context to build the prompt context.
             const stepContext = {
-                ...context,
+                ...sanitizedContextForPrompt,
                 currentStepFocus: stepName,
                 partiallyGeneratedResponse: currentPartialResponse ? JSON.stringify(currentPartialResponse, null, 2) : null,
                 isRegenerationAttempt: isRegen,
@@ -97,69 +144,57 @@ const executeApiStep = async (
 export async function executeTurn(
     context: GameContext, 
     abortSignal: AbortSignal,
-    onPartialResponse: (response: any) => void,
-    onStreamingChunk: (text: string) => void
+    onPartialResponse: (response: any, stepName: string, modelName: string) => void,
+    onStreamingChunk: (text: string) => void,
+    onStepStart: (stepName: string, modelName: string) => void
 ): Promise<GameResponse> {
-    const { useMultiStepRequests } = context.gameSettings;
-
-    if (useMultiStepRequests === false) {
-        let response = await executeApiStep(
-            'StepSimpleFullResponse',
-            mainPromptModule.getStepSimpleFullResponse,
-            worldLogic + narrativeStyle,
-            context,
-            null,
-            abortSignal,
-            onPartialResponse,
-            onStreamingChunk
-        );
-        if (context.gameSettings.adultMode) {
-            response = recursivelyRemoveTildes(response);
-        }
-        return response;
-    }
-
-    // --- Multi-Step Path (default behavior) ---
+    const step0Name = 'Step0_AnalysisAndPlanning';
+    const model0 = getModelForStep(step0Name, context);
+    onStepStart(step0Name, model0);
     let partialResponse: PartialResponseWithFlags = await executeApiStep(
-        'Step0_AnalysisAndPlanning',
+        step0Name,
         mainPromptModule.getStep0,
         worldLogic,
         context,
         null,
         abortSignal,
-        onPartialResponse,
         onStreamingChunk
     );
-    onPartialResponse(partialResponse);
+    onPartialResponse(partialResponse, step0Name, model0);
     
     if (partialResponse._internal_flags_?.needsSelfCorrection) {
+        const step05Name = 'Step0_5_Verification';
+        const model05 = getModelForStep(step05Name, context);
+        onStepStart(step05Name, model05);
         partialResponse = await executeApiStep(
-            'Step0_5_Verification',
+            step05Name,
             mainPromptModule.getStep0_5,
             worldLogic,
             context,
             partialResponse,
             abortSignal,
-            onPartialResponse,
             onStreamingChunk
         );
-        onPartialResponse(partialResponse);
+        onPartialResponse(partialResponse, step05Name, model05);
     }
 
     let finalResponse: GameResponse;
     const flags = partialResponse._internal_flags_;
     
     if (flags?.isSimpleTurn) {
+        const stepSimpleName = 'StepSimpleFullResponse';
+        const modelSimple = getModelForStep(stepSimpleName, context);
+        onStepStart(stepSimpleName, modelSimple);
         finalResponse = await executeApiStep(
-            'StepSimpleFullResponse',
+            stepSimpleName,
             mainPromptModule.getStepSimpleFullResponse,
             narrativeStyle,
             context,
             partialResponse,
             abortSignal,
-            onPartialResponse,
             onStreamingChunk
         );
+        onPartialResponse(finalResponse, stepSimpleName, modelSimple);
     } else {
         const steps = [
             { name: 'Step1_NarrativeGeneration', getPrompt: mainPromptModule.getStep1, guide: narrativeStyle, condition: () => true },
@@ -176,6 +211,8 @@ export async function executeTurn(
         for (const step of stepsToRun) {
             if (abortSignal.aborted) throw new Error('Aborted');
             
+            const modelForStep = getModelForStep(step.name, context);
+            onStepStart(step.name, modelForStep);
             const stepResponse = await executeApiStep(
                 step.name,
                 step.getPrompt,
@@ -183,12 +220,11 @@ export async function executeTurn(
                 context,
                 accumulatedResponse,
                 abortSignal,
-                onPartialResponse,
                 onStreamingChunk
             );
             
             accumulatedResponse = { ...accumulatedResponse, ...stepResponse };
-            onPartialResponse(accumulatedResponse);
+            onPartialResponse(accumulatedResponse, step.name, modelForStep);
         }
         
         finalResponse = accumulatedResponse as GameResponse;
@@ -204,16 +240,19 @@ export async function executeTurn(
 export async function askGmQuestion(
     context: GameContext, 
     abortSignal: AbortSignal,
-    onStreamingChunk: (text: string) => void
+    onStreamingChunk: (text: string) => void,
+    onStepStart: (stepName: string, modelName: string) => void
 ): Promise<GameResponse> {
+    const stepName = 'StepQuestion_CorrectionAndClarification';
+    const modelName = getModelForStep(stepName, context);
+    onStepStart(stepName, modelName);
     let response: GameResponse = await executeApiStep(
-        'StepQuestion_CorrectionAndClarification',
+        stepName,
         mainPromptModule.getStepQuestion,
         worldLogic,
         context,
         null,
         abortSignal,
-        () => {}, // No partial responses for single-step question
         onStreamingChunk
     );
     

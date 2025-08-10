@@ -210,6 +210,12 @@ export async function callGenerativeApi(
                     if (context.gameSettings?.adultMode) {
                         config.systemInstruction = getAdultPrompt();
                     }
+                    
+                    if (context.gameSettings?.aiProvider === 'gemini' && modelForAttempt.includes('flash')) {
+                        if (context.gameSettings.useDynamicThinkingBudget === false) {
+                            config.thinkingConfig = { thinkingBudget: context.gameSettings.geminiThinkingBudget };
+                        }
+                    }
 
                     const streamResult = await ai.models.generateContentStream({
                         model: modelForAttempt,

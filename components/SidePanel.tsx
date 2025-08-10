@@ -54,6 +54,9 @@ interface SidePanelProps {
   deleteGameSlot: (slotId: number) => Promise<void>;
   dbSaveSlots: DBSaveSlotInfo[];
   refreshDbSaveSlots: () => Promise<void>;
+  currentStep: string | null;
+  currentModel: string | null;
+  turnTime: number | null;
 }
 
 type Tab = 'Character' | 'Quests' | 'Factions' | 'NPCs' | 'Locations' | 'Map' | 'Combat' | 'Log' | 'Guide' | 'Debug' | 'Game' | 'Stash' | 'Crafting' | 'World';
@@ -144,6 +147,9 @@ export default function SidePanel({
     deleteGameSlot,
     dbSaveSlots,
     refreshDbSaveSlots,
+    currentStep,
+    currentModel,
+    turnTime,
 }: SidePanelProps): React.ReactNode {
   const [activeTab, setActiveTab] = useState<Tab>('Character');
   const { language, t } = useLocalization();
@@ -261,7 +267,7 @@ export default function SidePanel({
           )}
 
           {activeTab === 'Log' && <GameLogView gameLog={gameLog} onDeleteLogs={onDeleteLogs} />}
-          {activeTab === 'Debug' && <JsonDebugView jsonString={lastJsonResponse} requestJsonString={lastRequestJsonForDebug} plotOutline={gameState?.plotOutline || null} />}
+          {activeTab === 'Debug' && <JsonDebugView jsonString={lastJsonResponse} requestJsonString={lastRequestJsonForDebug} plotOutline={gameState?.plotOutline || null} currentStep={currentStep} currentModel={currentModel} turnTime={turnTime} />}
           {activeTab === 'Game' && 
             <GameMenuView 
               onSave={onSaveGame} 

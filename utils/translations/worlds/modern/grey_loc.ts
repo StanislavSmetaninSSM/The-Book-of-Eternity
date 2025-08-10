@@ -1,0 +1,22 @@
+export const greyLoc = {
+    en: {
+        'The Observer': "The Observer",
+        "This class is about non-confrontational problem-solving. They use their superior intellect and psychic abilities to manipulate technology and minds, gather data, and achieve their objectives without direct conflict whenever possible. They are analysts and manipulators, not fighters. Bonus: +2 Intelligence, +1 Perception.": "This class is about non-confrontational problem-solving. They use their superior intellect and psychic abilities to manipulate technology and minds, gather data, and achieve their objectives without direct conflict whenever possible. They are analysts and manipulators, not fighters. Bonus: +2 Intelligence, +1 Perception.",
+        'Psion': 'Psion',
+        "You are one of the Awakened who has learned to consciously access the 'null-space'. To others, it looks like magic or miracles, but for you, it is the manipulation of unseen energies and probabilities, a power that strains the mind and draws unwanted attention. Bonus: +2 Wisdom, +1 Faith.": "You are one of the Awakened who has learned to consciously access the 'null-space'. To others, it looks like magic or miracles, but for you, it is the manipulation of unseen energies and probabilities, a power that strains the mind and draws unwanted attention. Bonus: +2 Wisdom, +1 Faith.",
+        'Bio-Hacker': 'Bio-Hacker',
+        "A spiritual successor to Enki, you are a back-alley geneticist, a cyber-doc, or a renegade corporate scientist. You see DNA as code and the human body as a platform to be upgraded, using a mixture of bleeding-edge tech and salvaged Anunnaki artifacts. Bonus: +2 Intelligence, +1 Trade.": "A spiritual successor to Enki, you are a back-alley geneticist, a cyber-doc, or a renegade corporate scientist. You see DNA as code and the human body as a platform to be upgraded, using a mixture of bleeding-edge tech and salvaged Anunnaki artifacts. Bonus: +2 Intelligence, +1 Trade.",
+        'Hacker': "Hacker",
+        "A master of code and networks, capable of bypassing the most advanced digital security. Bonus: +2 Intelligence, +1 Luck.": "A master of code and networks, capable of bypassing the most advanced digital security. Bonus: +2 Intelligence, +1 Luck.",
+    },
+    ru: {
+        'The Observer': "Наблюдатель",
+        "This class is about non-confrontational problem-solving. They use their superior intellect and psychic abilities to manipulate technology and minds, gather data, and achieve their objectives without direct conflict whenever possible. They are analysts and manipulators, not fighters. Bonus: +2 Intelligence, +1 Perception.": "Этот класс посвящен неконфронтационному решению проблем. Он использует свой превосходный интеллект и психические способности для манипулирования технологиями и умами, сбора данных и достижения своих целей, по возможности избегая прямого конфликта. Он — аналитик и манипулятор, а не боец. Бонус: +2 к Интеллекту, +1 к Восприятию.",
+        'Psion': 'Псион',
+        "You are one of the Awakened who has learned to consciously access the 'null-space'. To others, it looks like magic or miracles, but for you, it is the manipulation of unseen energies and probabilities, a power that strains the mind and draws unwanted attention. Bonus: +2 Wisdom, +1 Faith.": "Вы один из Пробуждённых, научившийся сознательно входить в «нуль-пространство». Для других это выглядит как магия или чудеса, но для вас это манипуляция невидимыми энергиями и вероятностями — сила, которая напрягает разум и привлекает нежелательное внимание. Бонус: +2 к Мудрости, +1 к Вере.",
+        'Bio-Hacker': 'Био-Хакер',
+        "A spiritual successor to Enki, you are a back-alley geneticist, a cyber-doc, or a renegade corporate scientist. You see DNA as code and the human body as a platform to be upgraded, using a mixture of bleeding-edge tech and salvaged Anunnaki artifacts. Bonus: +2 Intelligence, +1 Trade.": "Духовный наследник Энки, вы — подпольный генетик, кибер-доктор или беглый корпоративный учёный. Вы видите ДНК как код, а человеческое тело — как платформу для апгрейда, используя смесь передовых технологий и спасённых артефактов Аннунаков. Бонус: +2 к Интеллекту, +1 к Торговле.",
+        'Hacker': "Хакер",
+        "A master of code and networks, capable of bypassing the most advanced digital security. Bonus: +2 Intelligence, +1 Luck.": "Мастер кода и сетей, способный обойти самые передовые цифровые защиты. Бонус: +2 к Интеллекту, +1 к Удаче.",
+    }
+};

@@ -9,7 +9,7 @@ import ImageRenderer from '../ImageRenderer';
 import { useLocalization } from '../../context/LocalizationContext';
 import {
     InformationCircleIcon, MapPinIcon, ExclamationTriangleIcon, GlobeAltIcon, SunIcon, BuildingOfficeIcon,
-    HomeModernIcon, ClockIcon, LinkIcon, CogIcon, TrashIcon, BookOpenIcon
+    HomeModernIcon, ClockIcon, LinkIcon, CogIcon, TrashIcon, BookOpenIcon, FireIcon, UserGroupIcon
 } from '@heroicons/react/24/outline';
 import LocationEventsModal from './Shared/LocationEventsModal';
 
@@ -66,8 +66,16 @@ const LocationDetailsRenderer: React.FC<LocationDetailsProps> = ({ location, onO
                 
                 <Section title={t("Information")} icon={InformationCircleIcon}>
                     <DetailRow label={t("Coordinates")} value={`(${location.coordinates?.x}, ${location.coordinates?.y})`} icon={MapPinIcon} />
-                    <DetailRow label={t("Difficulty")} value={location.difficulty} icon={ExclamationTriangleIcon} />
                 </Section>
+                
+                {location.difficultyProfile && (
+                    <Section title={t("Difficulty Profile")} icon={ExclamationTriangleIcon}>
+                        <DetailRow label={<span title={t('DifficultyCombatTooltip')}>{t("Combat")}</span>} value={location.difficultyProfile.combat} icon={FireIcon} />
+                        <DetailRow label={<span title={t('DifficultyEnvironmentTooltip')}>{t("Environment")}</span>} value={location.difficultyProfile.environment} icon={GlobeAltIcon} />
+                        <DetailRow label={<span title={t('DifficultySocialTooltip')}>{t("Social")}</span>} value={location.difficultyProfile.social} icon={UserGroupIcon} />
+                        <DetailRow label={<span title={t('DifficultyExplorationTooltip')}>{t("Exploration")}</span>} value={location.difficultyProfile.exploration} icon={MapPinIcon} />
+                    </Section>
+                )}
 
                 <Section title={t("Environment")} icon={GlobeAltIcon}>
                      <DetailRow 
@@ -109,8 +117,18 @@ const LocationDetailsRenderer: React.FC<LocationDetailsProps> = ({ location, onO
                                         <span><strong className="text-gray-400">{t("Type")}:</strong> {t(link.linkType as any)}</span>
                                         <span><strong className="text-gray-400">{t("State")}:</strong> {t(link.linkState as any)}</span>
                                         <span><strong className="text-gray-400">{t("Coordinates")}:</strong> ({link.targetCoordinates.x}, {link.targetCoordinates.y})</span>
-                                        <span><strong className="text-gray-400">{t("Difficulty")}:</strong> {link.estimatedDifficulty}</span>
                                     </div>
+                                    {link.estimatedDifficultyProfile && (
+                                        <div className="text-xs text-gray-400 border-t border-gray-700/50 pt-2 mt-2">
+                                            <h5 className="font-semibold mb-1">{t("Estimated Difficulty")}</h5>
+                                            <div className="grid grid-cols-2 gap-x-4 gap-y-1">
+                                                <span className="flex items-center gap-1" title={t('DifficultyCombatTooltip')}><FireIcon className="w-3 h-3 text-red-500"/>{t('Combat')}: {link.estimatedDifficultyProfile.combat}</span>
+                                                <span className="flex items-center gap-1" title={t('DifficultyEnvironmentTooltip')}><GlobeAltIcon className="w-3 h-3 text-green-500"/>{t('Environment')}: {link.estimatedDifficultyProfile.environment}</span>
+                                                <span className="flex items-center gap-1" title={t('DifficultySocialTooltip')}><UserGroupIcon className="w-3 h-3 text-blue-500"/>{t('Social')}: {link.estimatedDifficultyProfile.social}</span>
+                                                <span className="flex items-center gap-1" title={t('DifficultyExplorationTooltip')}><MapPinIcon className="w-3 h-3 text-yellow-500"/>{t('Exploration')}: {link.estimatedDifficultyProfile.exploration}</span>
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
                             ))}
                         </div>

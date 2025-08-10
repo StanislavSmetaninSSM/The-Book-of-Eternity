@@ -1,0 +1,35 @@
+
+export const nautilidLoc = {
+    en: {
+        "Soldier": "Soldier",
+        "A veteran of stellar warfare. Bonus: +2 Dexterity, +1 Constitution.": "A veteran of stellar warfare. Bonus: +2 Dexterity, +1 Constitution.",
+        "Corporate Enforcer": "Corporate Enforcer",
+        "A heavily-armed and armored agent of a mega-corporation, tasked with protecting assets and eliminating rivals by any means necessary. Bonus: +2 Strength, +1 Constitution.": "A heavily-armed and armored agent of a mega-corporation, tasked with protecting assets and eliminating rivals by any means necessary. Bonus: +2 Strength, +1 Constitution.",
+        "Grav-Brawler": "Grav-Brawler",
+        "A warrior who utilizes personal gravity manipulators for bone-crushing strength and surprising mobility on the battlefield. Bonus: +2 Strength, +1 Speed.": "A warrior who utilizes personal gravity manipulators for bone-crushing strength and surprising mobility on the battlefield. Bonus: +2 Strength, +1 Speed.",
+        "Terraformer": "Terraformer",
+        "An exo-engineer who wields planetary-scale technology to reshape worlds, from adjusting atmospheres to redirecting rivers. Bonus: +2 Intelligence, +1 Wisdom.": "An exo-engineer who wields planetary-scale technology to reshape worlds, from adjusting atmospheres to redirecting rivers. Bonus: +2 Intelligence, +1 Wisdom.",
+        "Abyssal Knight": "Abyssal Knight",
+        "A heavily armored warrior adapted to the crushing pressures of the deep sea, their armor serving as a personal submersible. Bonus: +2 Constitution, +1 Strength.": "A heavily armored warrior adapted to the crushing pressures of the deep sea, their armor serving as a personal submersible. Bonus: +2 Constitution, +1 Strength.",
+        "Bioluminescent Mystic": "Bioluminescent Mystic",
+        "Uses bioluminescence to communicate, hypnotize, or channel psionic energy. Bonus: +2 Attractiveness, +1 Faith.": "Uses bioluminescence to communicate, hypnotize, or channel psionic energy. Bonus: +2 Attractiveness, +1 Faith.",
+        "Hydromancer": "Hydromancer",
+        "Can psionically manipulate water and pressure, creating crushing currents or protective barriers. Bonus: +2 Wisdom, +1 Intelligence.": "Can psionically manipulate water and pressure, creating crushing currents or protective barriers. Bonus: +2 Wisdom, +1 Intelligence.",
+    },
+    ru: {
+        "Soldier": "Солдат",
+        "A veteran of stellar warfare. Bonus: +2 Dexterity, +1 Constitution.": "Ветеран звездных войн. Бонус: +2 к Ловкости, +1 к Телосложению.",
+        "Corporate Enforcer": "Корпоративный силовик",
+        "A heavily-armed and armored agent of a mega-corporation, tasked with protecting assets and eliminating rivals by any means necessary. Bonus: +2 Strength, +1 Constitution.": "Тяжеловооруженный и бронированный агент мегакорпорации, которому поручено защищать активы и устранять конкурентов любыми средствами. Бонус: +2 к Силе, +1 к Телосложению.",
+        "Grav-Brawler": "Грав-боец",
+        "A warrior who utilizes personal gravity manipulators for bone-crushing strength and surprising mobility on the battlefield. Bonus: +2 Strength, +1 Speed.": "Воин, использующий персональные гравитационные манипуляторы для сокрушительной силы и удивительной мобильности на поле боя. Бонус: +2 к Силе, +1 к Скорости.",
+        "Terraformer": "Терраформер",
+        "An exo-engineer who wields planetary-scale technology to reshape worlds, from adjusting atmospheres to redirecting rivers. Bonus: +2 Intelligence, +1 Wisdom.": "Экзо-инженер, который владеет технологиями планетарного масштаба для преобразования миров, от изменения атмосферы до перенаправления рек. Бонус: +2 к Интеллекту, +1 к Мудрости.",
+        "Abyssal Knight": "Рыцарь бездны",
+        "A heavily armored warrior adapted to the crushing pressures of the deep sea, their armor serving as a personal submersible. Bonus: +2 Constitution, +1 Strength.": "Тяжелобронированный воин, приспособленный к сокрушительным давлениям глубокого моря, чья броня служит личным подводным аппаратом. Бонус: +2 к Телосложению, +1 к Силе.",
+        "Bioluminescent Mystic": "Биолюминесцентный мистик",
+        "Uses bioluminescence to communicate, hypnotize, or channel psionic energy. Bonus: +2 Attractiveness, +1 Faith.": "Использует биолюминесценцию для общения, гипноза или направления псионической энергии. Бонус: +2 к Привлекательности, +1 к Вере.",
+        "Hydromancer": "Гидромант",
+        "Can psionically manipulate water and pressure, creating crushing currents or protective barriers. Bonus: +2 Wisdom, +1 Intelligence.": "Может псионически манипулировать водой и давлением, создавая сокрушительные течения или защитные барьеры. Бонус: +2 к Мудрости, +1 к Интеллекту.",
+    }
+};

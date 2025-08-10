@@ -1,3 +1,4 @@
+
 import { general } from './general';
 import { itemQualities } from './itemQualities';
 import { damageTypes } from './damageTypes';
@@ -10,6 +11,8 @@ import { fantasyLoc } from './worlds/fantasy_loc';
 import { sciFiLoc } from './worlds/sci_fi_loc';
 import { postApocalypseLoc } from './worlds/post_apocalypse_loc';
 import { modernLoc } from './worlds/modern_loc';
+import { historyLoc } from './worlds/history_loc';
+import { mythsLoc } from './worlds/myths_loc';
 
 export const translations: Record<string, Record<string, string>> = {
   en: {
@@ -25,6 +28,8 @@ export const translations: Record<string, Record<string, string>> = {
     ...sciFiLoc.en,
     ...postApocalypseLoc.en,
     ...modernLoc.en,
+    ...historyLoc.en,
+    ...mythsLoc.en,
   },
   ru: {
     ...general.ru,
@@ -39,5 +44,7 @@ export const translations: Record<string, Record<string, string>> = {
     ...sciFiLoc.ru,
     ...postApocalypseLoc.ru,
     ...modernLoc.ru,
+    ...historyLoc.ru,
+    ...mythsLoc.ru,
   }
 };

@@ -1,3 +1,7 @@
+
+
+
+
 import { GameState, GameContext, ChatMessage, GameResponse, PlayerCharacter, LocationData, Characteristics, Location, Faction, Language, LootTemplate, UnlockedMemory, Recipe, Item, WorldStateFlag } from '../types';
 import { gameData } from './localizationGameData';
 import { generateLootTemplates } from './lootGenerator';
@@ -147,6 +151,7 @@ export const createInitialContext = (creationData: any, language: Language): Gam
       characterDescription,
       initialPrompt,
       universe,
+      selectedEra,
       race,
       charClass,
       age,
@@ -165,22 +170,57 @@ export const createInitialContext = (creationData: any, language: Language): Gam
       modelName,
       correctionModelName,
       aiProvider,
+      isCustomModel,
+      customModelName,
+      openRouterModelName,
       geminiThinkingBudget,
+      useDynamicThinkingBudget,
       nonMagicMode,
-      useMultiStepRequests,
       adultMode,
       geminiApiKey,
       openRouterApiKey,
       youtubeApiKey,
       allowHistoryManipulation,
-      currencyName: customCurrencyName,
+      currencyName,
       hardMode,
   } = creationData;
 
   const standardCharacteristics: any = {};
-  const currentWorld = gameData[universe as keyof typeof gameData];
-  const { currencyName: defaultCurrencyName, currencyOptions, ...baseInfo } = currentWorld;
-  const finalCurrencyName = (customCurrencyName && customCurrencyName.trim() !== '') ? customCurrencyName.trim() : defaultCurrencyName;
+  
+  const isCustomWorld = (universe === 'history' && !gameData.history[selectedEra as keyof typeof gameData.history]) 
+                   || (universe === 'myths' && !gameData.myths[selectedEra as keyof typeof gameData.myths]);
+
+  const currentWorld = (() => {
+    if (isCustomWorld) {
+        return {
+            name: selectedEra, // The custom name from the form
+            description: "A custom world created by the player.",
+            currencyName: "Coins", // Generic fallback
+            currencyOptions: [],
+            races: {},
+            classes: {}
+        };
+    }
+    if (universe === 'history') {
+      return gameData.history[selectedEra as keyof typeof gameData.history];
+    }
+    if (universe === 'myths') {
+      return gameData.myths[selectedEra as keyof typeof gameData.myths];
+    }
+    return gameData[universe as keyof Omit<typeof gameData, 'history' | 'myths'>];
+  })();
+
+  const defaultCurrencyName = (() => {
+    if ((universe === 'history' || universe === 'myths') && !isCustomRace && !isCustomWorld) {
+        return (currentWorld.races as any)[race].currencyName;
+    }
+    return (currentWorld as any).currencyName;
+  })();
+
+  const { currencyName: ignored, ...baseInfo } = currentWorld as any;
+
+  const finalCurrencyName = currencyName || defaultCurrencyName;
+  const finalNonMagicMode = universe === 'history' ? true : (universe === 'myths' ? false : (nonMagicMode ?? false));
 
   const raceBonuses = isCustomRace ? {} : currentWorld.races[race]!.bonuses;
   const classBonuses = isCustomClass ? customClassAttributes : currentWorld.classes[charClass]!.bonuses;
@@ -259,6 +299,10 @@ export const createInitialContext = (creationData: any, language: Language): Gam
         detectionLevel: 0,
         description: 'Not sneaking'
     },
+    effortTracker: {
+        lastUsedCharacteristic: null,
+        consecutivePartialSuccesses: 0,
+    },
   };
   
   const [startHour, startMinute] = (startTime || '08:00').split(':').map(Number);
@@ -284,7 +328,7 @@ export const createInitialContext = (creationData: any, language: Language): Gam
 
   const initialLocationPlaceholder: Location = {
     name: "Unknown",
-    difficulty: 1,
+    difficultyProfile: { combat: 1, environment: 1, social: 1, exploration: 1 },
     description: "",
     lastEventsDescription: "",
     image_prompt: "",
@@ -301,7 +345,7 @@ export const createInitialContext = (creationData: any, language: Language): Gam
     superInstructions: superInstructions || "No special rules provided by the player.",
     currentTurnNumber: 1,
     gameSettings: {
-      nonMagicMode: nonMagicMode ?? false,
+      nonMagicMode: finalNonMagicMode,
       language: language,
       gameWorldInformation: {
         currencyName: finalCurrencyName,
@@ -310,8 +354,8 @@ export const createInitialContext = (creationData: any, language: Language): Gam
       },
       modelName: modelName || 'gemini-2.5-flash',
       aiProvider: aiProvider || 'gemini',
-      geminiThinkingBudget: geminiThinkingBudget ?? 60,
-      useMultiStepRequests: useMultiStepRequests ?? true,
+      geminiThinkingBudget: geminiThinkingBudget ?? 512,
+      useDynamicThinkingBudget: useDynamicThinkingBudget ?? true,
       adultMode: adultMode ?? false,
       geminiApiKey: geminiApiKey || '',
       openRouterApiKey: openRouterApiKey || '',
@@ -319,6 +363,9 @@ export const createInitialContext = (creationData: any, language: Language): Gam
       allowHistoryManipulation: allowHistoryManipulation ?? false,
       correctionModelName: correctionModelName || '',
       hardMode: hardMode ?? false,
+      isCustomModel: isCustomModel ?? false,
+      customModelName: customModelName || '',
+      openRouterModelName: openRouterModelName || 'google/gemini-flash-1.5',
     },
     playerCharacter: initialPlayerCharacter,
     currentLocation: initialLocationPlaceholder,

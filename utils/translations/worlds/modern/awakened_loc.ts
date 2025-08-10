@@ -1,0 +1,26 @@
+export const awakenedLoc = {
+    en: {
+        'Psion': 'Psion',
+        "You are one of the Awakened who has learned to consciously access the 'null-space'. To others, it looks like magic or miracles, but for you, it is the manipulation of unseen energies and probabilities, a power that strains the mind and draws unwanted attention. Bonus: +2 Wisdom, +1 Faith.": "You are one of the Awakened who has learned to consciously access the 'null-space'. To others, it looks like magic or miracles, but for you, it is the manipulation of unseen energies and probabilities, a power that strains the mind and draws unwanted attention. Bonus: +2 Wisdom, +1 Faith.",
+        'Truth-Seeker': 'Truth-Seeker',
+        "A driven investigator, rogue academic, or obsessive blogger. You piece together forgotten history from fractured myths, strange artifacts, and genetic anomalies, determined to expose the truth of humanity's origins, no matter how dangerous. Bonus: +2 Perception, +1 Intelligence.": "A driven investigator, rogue academic, or obsessive blogger. You piece together forgotten history from fractured myths, strange artifacts, and genetic anomalies, determined to expose the truth of humanity's origins, no matter how dangerous. Bonus: +2 Perception, +1 Intelligence.",
+        'Sorcerer': 'Sorcerer',
+        "A wielder of hidden arcane energies, drawing power from forgotten rituals and ley lines that run beneath the concrete and steel of the modern world. Their magic is often subtle, influencing luck and perception. Bonus: +2 Wisdom, +1 Luck.": "A wielder of hidden arcane energies, drawing power from forgotten rituals and ley lines that run beneath the concrete and steel of the modern world. Their magic is often subtle, influencing luck and perception. Bonus: +2 Wisdom, +1 Luck.",
+        'Urban Shaman': "Urban Shaman",
+        "A mystic who draws power not from nature, but from the concrete jungle - the spirits of the city, the hum of electricity, and the collective consciousness of its inhabitants. Bonus: +2 Faith, +1 Wisdom.": "A mystic who draws power not from nature, but from the concrete jungle - the spirits of the city, the hum of electricity, and the collective consciousness of its inhabitants. Bonus: +2 Faith, +1 Wisdom.",
+        'Profiler': "Profiler",
+        "An expert in psychology and behavioral science, often working with law enforcement to understand and catch dangerous individuals. Bonus: +2 Perception, +1 Intelligence.": "An expert in psychology and behavioral science, often working with law enforcement to understand and catch dangerous individuals. Bonus: +2 Perception, +1 Intelligence.",
+    },
+    ru: {
+        'Psion': 'Псион',
+        "You are one of the Awakened who has learned to consciously access the 'null-space'. To others, it looks like magic or miracles, but for you, it is the manipulation of unseen energies and probabilities, a power that strains the mind and draws unwanted attention. Bonus: +2 Wisdom, +1 Faith.": "Вы один из Пробуждённых, научившийся сознательно входить в «нуль-пространство». Для других это выглядит как магия или чудеса, но для вас это манипуляция невидимыми энергиями и вероятностями — сила, которая напрягает разум и привлекает нежелательное внимание. Бонус: +2 к Мудрости, +1 к Вере.",
+        'Truth-Seeker': 'Искатель Истины',
+        "A driven investigator, rogue academic, or obsessive blogger. You piece together forgotten history from fractured myths, strange artifacts, and genetic anomalies, determined to expose the truth of humanity's origins, no matter how dangerous. Bonus: +2 Perception, +1 Intelligence.": "Целеустремлённый следователь, неортодоксальный учёный или одержимый блогер. Вы собираете воедино забытую историю из обрывков мифов, странных артефактов и генетических аномалий, твёрдо решив раскрыть правду о происхождении человечества, какой бы опасной она ни была. Бонус: +2 к Восприятию, +1 к Интеллекту.",
+        'Sorcerer': 'Чародей',
+        "A wielder of hidden arcane energies, drawing power from forgotten rituals and ley lines that run beneath the concrete and steel of the modern world. Their magic is often subtle, influencing luck and perception. Bonus: +2 Wisdom, +1 Luck.": "Владелец скрытых тайных энергий, черпающий силу из забытых ритуалов и лей-линий, проходящих под бетоном и сталью современного мира. Их магия часто тонка и влияет на удачу и восприятие. Бонус: +2 к Мудрости, +1 к Удаче.",
+        'Urban Shaman': "Городской шаман",
+        "A mystic who draws power not from nature, but from the concrete jungle - the spirits of the city, the hum of electricity, and the collective consciousness of its inhabitants. Bonus: +2 Faith, +1 Wisdom.": "Мистик, черпающий силу не из природы, а из бетонных джунглей — духов города, гула электричества и коллективного сознания его жителей. Бонус: +2 к Вере, +1 к Мудрости.",
+        'Profiler': "Профайлер",
+        "An expert in psychology and behavioral science, often working with law enforcement to understand and catch dangerous individuals. Bonus: +2 Perception, +1 Intelligence.": "Эксперт в психологии и поведенческих науках, часто работающий с правоохранительными органами для понимания и поимки опасных личностей. Бонус: +2 к Восприятию, +1 к Интеллекту.",
+    }
+};

@@ -1,0 +1,35 @@
+
+export const ghoulLoc = {
+  en: {
+    "Stalker": "Stalker",
+    "A grim survivalist who ventures into the most irradiated and dangerous zones for profit and knowledge. Bonus: +2 Perception, +1 Luck.": "A grim survivalist who ventures into the most irradiated and dangerous zones for profit and knowledge. Bonus: +2 Perception, +1 Luck.",
+    "Chronicle Keeper": "Chronicle Keeper",
+    "A wandering historian and archivist, preserving fragments of the 'Before-Times'. They use knowledge as a weapon and a tool. Bonus: +2 Wisdom, +1 Intelligence.": "A wandering historian and archivist, preserving fragments of the 'Before-Times'. They use knowledge as a weapon and a tool. Bonus: +2 Wisdom, +1 Intelligence.",
+    "Irradiated Monk": "Irradiated Monk",
+    "A warrior who finds peace in the radioactive Glow, using radiation as a weapon and shield. Bonus: +2 Faith, +2 Constitution.": "A warrior who finds peace in the radioactive Glow, using radiation as a weapon and shield. Bonus: +2 Faith, +2 Constitution.",
+    "Wasteland Doctor": "Wasteland Doctor",
+    "Knows how to patch up wounds with limited supplies. Bonus: +3 Wisdom.": "Knows how to patch up wounds with limited supplies. Bonus: +3 Wisdom.",
+    "Ghoul Preacher": "Ghoul Preacher",
+    "A charismatic ghoul who leads a flock of irradiated followers, preaching a new faith for the atomic age. Bonus: +2 Faith, +1 Persuasion.": "A charismatic ghoul who leads a flock of irradiated followers, preaching a new faith for the atomic age. Bonus: +2 Faith, +1 Persuasion.",
+    "Atomic Scholar": "Atomic Scholar",
+    "A ghoul who has spent centuries studying the old world's science, particularly the atomic principles that created them. Bonus: +2 Intelligence, +1 Wisdom.": "A ghoul who has spent centuries studying the old world's science, particularly the atomic principles that created them. Bonus: +2 Intelligence, +1 Wisdom.",
+    "Grave Robber": "Grave Robber",
+    "A ghoul who uses their longevity and radiation resistance to plunder the most dangerous pre-fall ruins. Bonus: +2 Perception, +1 Luck.": "A ghoul who uses their longevity and radiation resistance to plunder the most dangerous pre-fall ruins. Bonus: +2 Perception, +1 Luck.",
+  },
+  ru: {
+    "Stalker": "Сталкер",
+    "A grim survivalist who ventures into the most irradiated and dangerous zones for profit and knowledge. Bonus: +2 Perception, +1 Luck.": "Мрачный выживальщик, который отправляется в самые облученные и опасные зоны ради прибыли и знаний. Бонус: +2 к Восприятию, +1 к Удаче.",
+    "Chronicle Keeper": "Хранитель хроник",
+    "A wandering historian and archivist, preserving fragments of the 'Before-Times'. They use knowledge as a weapon and a tool. Bonus: +2 Wisdom, +1 Intelligence.": "Странствующий историк и архивариус, сохраняющий фрагменты 'До-Времен'. Они используют знание как оружие и инструмент. Бонус: +2 к Мудрости, +1 к Интеллекту.",
+    "Irradiated Monk": "Облученный монах",
+    "A warrior who finds peace in the radioactive Glow, using radiation as a weapon and shield. Bonus: +2 Faith, +2 Constitution.": "Воин, который находит покой в радиоактивном Сиянии, используя радиацию как оружие и щит. Бонус: +2 к Вере, +2 к Телосложению.",
+    "Wasteland Doctor": "Доктор пустошей",
+    "Knows how to patch up wounds with limited supplies. Bonus: +3 Wisdom.": "Знает, как залатать раны с ограниченными припасами. Бонус: +3 к Мудрости.",
+    "Ghoul Preacher": "Проповедник-гуль",
+    "A charismatic ghoul who leads a flock of irradiated followers, preaching a new faith for the atomic age. Bonus: +2 Faith, +1 Persuasion.": "Харизматичный гуль, который ведет за собой паству облученных последователей, проповедуя новую веру атомного века. Бонус: +2 к Вере, +1 к Убеждению.",
+    "Atomic Scholar": "Атомный ученый",
+    "A ghoul who has spent centuries studying the old world's science, particularly the atomic principles that created them. Bonus: +2 Intelligence, +1 Wisdom.": "Гуль, который провел века, изучая науку старого мира, особенно атомные принципы, которые их создали. Бонус: +2 к Интеллекту, +1 к Мудрости.",
+    "Grave Robber": "Расхититель гробниц",
+    "A ghoul who uses their longevity and radiation resistance to plunder the most dangerous pre-fall ruins. Bonus: +2 Perception, +1 Luck.": "Гуль, который использует свое долголетие и устойчивость к радиации, чтобы грабить самые опасные руины до падения. Бонус: +2 к Восприятию, +1 к Удаче.",
+  }
+};

@@ -1,6 +1,8 @@
+
+
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { GameState, GameContext, ChatMessage, GameResponse, LocationData, Item, NPC, SaveFile, Location, PlayerCharacter, WorldState, GameSettings, Quest, Faction, PlotOutline, Language, DBSaveSlotInfo } from '../types';
-import { executeTurn, askGmQuestion, getMusicSuggestionFromAi } from '../utils/gameApi';
+import { executeTurn, askGmQuestion, getMusicSuggestionFromAi, getModelForStep } from '../utils/gameApi';
 import { createInitialContext, buildNextContext, updateWorldMap, recalculateDerivedStats } from '../utils/gameContext';
 import { processAndApplyResponse, checkAndApplyLevelUp } from '../utils/responseProcessor';
 import { equipItem as equipItemUtil, unequipItem as unequipItemUtil, dropItem as dropItemUtil, moveItem as moveItemUtil, recalculateAllWeights, splitItemStack as splitItemUtil, mergeItemStacks as mergeItemUtil } from '../utils/inventoryManager';
@@ -47,6 +49,12 @@ export function useGameLogic({ language, setLanguage }: UseGameLogicProps) {
   const [isMusicLoading, setIsMusicLoading] = useState(false);
   const [isMusicPlayerVisible, setIsMusicPlayerVisible] = useState(false);
   const previousMusicQueries = useRef<string[]>([]);
+
+  // New state for debug view
+  const [currentStep, setCurrentStep] = useState<string | null>(null);
+  const [currentModel, setCurrentModel] = useState<string | null>(null);
+  const [turnTime, setTurnTime] = useState<number | null>(null);
+  const turnStartTimeRef = useRef<number | null>(null);
 
   const refreshDbSaveSlots = useCallback(async () => {
     const slots = await listDBSlots();
@@ -164,18 +172,23 @@ export function useGameLogic({ language, setLanguage }: UseGameLogicProps) {
     abortControllerRef.current = new AbortController();
 
     try {
-      const onPartialResponse = (response: any) => {
+      const onPartialResponse = (response: any, stepName: string, modelName: string) => {
         setLastJsonResponse(JSON.stringify(response, null, 2));
         if (response.items_and_stat_calculations) {
             setGameLog(response.items_and_stat_calculations);
         }
+      };
+      
+      const onStepStart = (stepName: string, modelName: string) => {
+        setCurrentStep(stepName);
+        setCurrentModel(modelName);
       };
 
       const onStreamingChunk = (text: string) => {
         setLastJsonResponse(text);
       };
 
-      const finalResponse = await executeTurn(context, abortControllerRef.current.signal, onPartialResponse, onStreamingChunk);
+      const finalResponse = await executeTurn(context, abortControllerRef.current.signal, onPartialResponse, onStreamingChunk, onStepStart);
       
       if (context.gameSettings.allowHistoryManipulation !== true && finalResponse.playerBehaviorAssessment?.historyManipulationCoefficient >= 0.8) {
           setError(t("history_manipulation_rejection"));
@@ -241,6 +254,12 @@ export function useGameLogic({ language, setLanguage }: UseGameLogicProps) {
       }
     } finally {
       setIsLoading(false);
+      if (turnStartTimeRef.current) {
+        const endTime = performance.now();
+        const elapsedTime = endTime - turnStartTimeRef.current;
+        setTurnTime(elapsedTime);
+        turnStartTimeRef.current = null;
+      }
     }
   }, [gameState, t]);
 
@@ -293,6 +312,10 @@ export function useGameLogic({ language, setLanguage }: UseGameLogicProps) {
 
   const sendMessage = useCallback((message: string) => {
     if (isLoading || !gameContextRef.current) return;
+    turnStartTimeRef.current = performance.now();
+    setTurnTime(null);
+    setCurrentStep(null);
+    setCurrentModel(null);
     const playerMessage: ChatMessage = { sender: 'player', content: message };
     setSuggestedActions([]);
     
@@ -316,6 +339,8 @@ export function useGameLogic({ language, setLanguage }: UseGameLogicProps) {
     setWorldState(initialContext.worldState);
     setGameSettings(initialContext.gameSettings);
     setTurnNumber(initialContext.currentTurnNumber);
+    turnStartTimeRef.current = performance.now();
+    setTurnTime(null);
     const initialMessage = { sender: 'player', content: creationData.initialPrompt } as ChatMessage;
     const newHistory = [initialMessage];
     setGameHistory(newHistory);
@@ -327,6 +352,10 @@ export function useGameLogic({ language, setLanguage }: UseGameLogicProps) {
   const askQuestion = useCallback(async (question: string) => {
     if (!gameContextRef.current || isLoading) return;
 
+    turnStartTimeRef.current = performance.now();
+    setTurnTime(null);
+    setCurrentStep(null);
+    setCurrentModel(null);
     setIsLoading(true);
     setError(null);
     clearStashForNewTurn();
@@ -352,12 +381,16 @@ export function useGameLogic({ language, setLanguage }: UseGameLogicProps) {
             responseHistory: historyWithQuestion.slice(-15)
         };
         setLastRequestJson(JSON.stringify(context, null, 2));
-
+        
+        const onStepStart = (stepName: string, modelName: string) => {
+          setCurrentStep(stepName);
+          setCurrentModel(modelName);
+        };
         const onStreamingChunk = (text: string) => {
           setLastJsonResponse(text);
         };
 
-        const response: GameResponse = await askGmQuestion(context, abortControllerRef.current.signal, onStreamingChunk);
+        const response: GameResponse = await askGmQuestion(context, abortControllerRef.current.signal, onStreamingChunk, onStepStart);
 
         if (context.gameSettings.adultMode && response.response) {
             response.response = response.response.replace(/~~/g, '');
@@ -419,6 +452,12 @@ export function useGameLogic({ language, setLanguage }: UseGameLogicProps) {
         }
     } finally {
       setIsLoading(false);
+      if (turnStartTimeRef.current) {
+          const endTime = performance.now();
+          const elapsedTime = endTime - turnStartTimeRef.current;
+          setTurnTime(elapsedTime);
+          turnStartTimeRef.current = null;
+      }
     }
   }, [isLoading, gameState, gameHistory, t]);
   
@@ -1035,5 +1074,8 @@ export function useGameLogic({ language, setLanguage }: UseGameLogicProps) {
     handlePrimaryMusicClick,
     fetchMusicSuggestion,
     clearMusic,
+    currentStep,
+    currentModel,
+    turnTime,
   };
 }

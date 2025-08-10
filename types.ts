@@ -83,7 +83,7 @@ export interface GameSettings {
   modelName: string;
   aiProvider: string;
   geminiThinkingBudget: number;
-  useMultiStepRequests: boolean;
+  useDynamicThinkingBudget: boolean;
   adultMode: boolean;
   geminiApiKey?: string;
   openRouterApiKey?: string;
@@ -91,6 +91,9 @@ export interface GameSettings {
   allowHistoryManipulation: boolean;
   correctionModelName?: string;
   hardMode?: boolean;
+  isCustomModel?: boolean;
+  customModelName?: string;
+  openRouterModelName?: string;
 }
 
 export interface RecipeMaterial {
@@ -152,6 +155,10 @@ export interface PlayerCharacter {
     isActive: boolean;
     detectionLevel: number;
     description: string;
+  } | null;
+  effortTracker?: {
+    lastUsedCharacteristic: string | null;
+    consecutivePartialSuccesses: number;
   } | null;
 }
 
@@ -256,7 +263,7 @@ export interface CustomProperty {
 
 export interface Location {
   name: string;
-  difficulty: number;
+  difficultyProfile: { combat: number; environment: number; social: number; exploration: number; };
   description: string;
   lastEventsDescription: string;
   image_prompt: string;
@@ -274,7 +281,7 @@ export interface AdjacencyMapEntry {
   linkType: string;
   linkState: string;
   targetCoordinates: { x: number; y: number };
-  estimatedDifficulty: number;
+  estimatedDifficultyProfile: { combat: number; environment: number; social: number; exploration: number; };
 }
 
 
@@ -580,6 +587,10 @@ export interface GameResponse {
     description: string;
   } | null;
   multipliers: number[];
+  playerEffortTrackerChange: {
+    lastUsedCharacteristic: string | null;
+    consecutivePartialSuccesses: number;
+  } | null;
   playerWoundChanges: Wound[] | null;
   NPCWoundChanges: any[] | null;
   NPCInventoryResourcesChanges?: any[] | null;

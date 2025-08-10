@@ -367,6 +367,11 @@ export const processAndApplyResponse = (response: GameResponse, baseState: GameS
         }
     });
 
+    // --- Effort Tracker ---
+    if (response.playerEffortTrackerChange) {
+        pc.effortTracker = response.playerEffortTrackerChange;
+    }
+
     // --- Inventory Management ---
     const potentialNewItems: Item[] = [];
     asArray(response.inventoryItemsData)
@@ -879,7 +884,7 @@ export const processAndApplyResponse = (response: GameResponse, baseState: GameS
     newState.encounteredFactions = upsertEntities(newState.encounteredFactions, asArray(response.factionDataChanges), 'factionId', 'name');
     newState.enemiesData = response.enemiesData || [];
     newState.alliesData = response.alliesData || [];
-    newState.playerCustomStates = response.customStateChanges || newState.playerCustomStates;
+    newState.playerCustomStates = upsertEntities(newState.playerCustomStates || [], asArray(response.customStateChanges), 'stateId', 'stateName');
     newState.playerCharacter.playerCustomStates = newState.playerCustomStates; // SYNC THE TWO
     newState.plotOutline = response.plotOutline || newState.plotOutline;
     if (response.playerStatus) {

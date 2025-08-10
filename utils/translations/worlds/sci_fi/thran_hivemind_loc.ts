@@ -1,0 +1,35 @@
+
+export const thranHivemindLoc = {
+    en: {
+        "Tech-Scrapper": "Tech-Scrapper",
+        "A resourceful engineer who can fix anything. Bonus: +3 Intelligence.": "A resourceful engineer who can fix anything. Bonus: +3 Intelligence.",
+        "Data Broker": "Data Broker",
+        "An information trafficker who operates in the grey markets of the galaxy, buying and selling secrets, access codes, and classified intel. Bonus: +2 Trade, +1 Luck.": "An information trafficker who operates in the grey markets of the galaxy, buying and selling secrets, access codes, and classified intel. Bonus: +2 Trade, +1 Luck.",
+        "Envoy": "Envoy",
+        "A galactic diplomat, trained in negotiation, protocol, and interstellar law. Bonus: +2 Persuasion, +1 Intelligence.": "A galactic diplomat, trained in negotiation, protocol, and interstellar law. Bonus: +2 Persuasion, +1 Intelligence.",
+        "Soldier": "Soldier",
+        "A veteran of stellar warfare. Bonus: +2 Dexterity, +1 Constitution.": "A veteran of stellar warfare. Bonus: +2 Dexterity, +1 Constitution.",
+        "Swarm Tactician": "Swarm Tactician",
+        "A drone specialized in coordinating the actions of the entire hive in battle, serving as a nexus for the hivemind. Bonus: +2 Intelligence, +1 Perception.": "A drone specialized in coordinating the actions of the entire hive in battle, serving as a nexus for the hivemind. Bonus: +2 Intelligence, +1 Perception.",
+        "Builder Drone": "Builder Drone",
+        "Can rapidly construct defensive structures or bridges from a hardened, secreted resin. Bonus: +2 Constitution, +1 Intelligence.": "Can rapidly construct defensive structures or bridges from a hardened, secreted resin. Bonus: +2 Constitution, +1 Intelligence.",
+        "Queen's Guard": "Queen's Guard",
+        "An oversized, heavily armored drone bred for the sole purpose of defending the hive's queen. Bonus: +2 Strength, +1 Constitution.": "An oversized, heavily armored drone bred for the sole purpose of defending the hive's queen. Bonus: +2 Strength, +1 Constitution.",
+    },
+    ru: {
+        "Tech-Scrapper": "Техно-мусорщик",
+        "A resourceful engineer who can fix anything. Bonus: +3 Intelligence.": "Находчивый инженер, который может починить все, что угодно. Бонус: +3 к Интеллекту.",
+        "Data Broker": "Информационный брокер",
+        "An information trafficker who operates in the grey markets of the galaxy, buying and selling secrets, access codes, and classified intel. Bonus: +2 Trade, +1 Luck.": "Торговец информацией, действующий на серых рынках галактики, покупая и продавая секреты, коды доступа и секретную информацию. Бонус: +2 к Торговле, +1 к Удаче.",
+        "Envoy": "Посланник",
+        "A galactic diplomat, trained in negotiation, protocol, and interstellar law. Bonus: +2 Persuasion, +1 Intelligence.": "Галактический дипломат, обученный переговорам, протоколу и межзвездным законам. Бонус: +2 к Убеждению, +1 к Интеллекту.",
+        "Soldier": "Солдат",
+        "A veteran of stellar warfare. Bonus: +2 Dexterity, +1 Constitution.": "Ветеран звездных войн. Бонус: +2 к Ловкости, +1 к Телосложению.",
+        "Swarm Tactician": "Тактик роя",
+        "A drone specialized in coordinating the actions of the entire hive in battle, serving as a nexus for the hivemind. Bonus: +2 Intelligence, +1 Perception.": "Дрон, специализирующийся на координации действий всего улья в бою, служащий связующим звеном для коллективного разума. Бонус: +2 к Интеллекту, +1 к Восприятию.",
+        "Builder Drone": "Дрон-строитель",
+        "Can rapidly construct defensive structures or bridges from a hardened, secreted resin. Bonus: +2 Constitution, +1 Intelligence.": "Может быстро строить оборонительные сооружения или мосты из затвердевшей, выделяемой смолы. Бонус: +2 к Телосложению, +1 к Интеллекту.",
+        "Queen's Guard": "Страж королевы",
+        "An oversized, heavily armored drone bred for the sole purpose of defending the hive's queen. Bonus: +2 Strength, +1 Constitution.": "Крупногабаритный, тяжелобронированный дрон, выведенный с единственной целью — защищать королеву улья. Бонус: +2 к Силе, +1 к Телосложению.",
+    }
+};

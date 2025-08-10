@@ -1,0 +1,22 @@
+export const slenderLoc = {
+    en: {
+        'Mind-Bender': "Mind-Bender",
+        "A being who subtly manipulates the perceptions and thoughts of others, often without them ever realizing. A specialization for The Slender. Bonus: +2 Wisdom, +1 Persuasion.": "A being who subtly manipulates the perceptions and thoughts of others, often without them ever realizing. A specialization for The Slender. Bonus: +2 Wisdom, +1 Persuasion.",
+        'Psion': 'Psion',
+        "You are one of the Awakened who has learned to consciously access the 'null-space'. To others, it looks like magic or miracles, but for you, it is the manipulation of unseen energies and probabilities, a power that strains the mind and draws unwanted attention. Bonus: +2 Wisdom, +1 Faith.": "You are one of the Awakened who has learned to consciously access the 'null-space'. To others, it looks like magic or miracles, but for you, it is the manipulation of unseen energies and probabilities, a power that strains the mind and draws unwanted attention. Bonus: +2 Wisdom, +1 Faith.",
+        'Controller': 'Controller',
+        "An agent of the old guard, the modern inheritors of Enlil's mission to maintain order and secrecy. You work for a shadow organization, using manipulation, misinformation, and targeted enforcement to keep humanity blissfully unaware of its true nature and masters. Bonus: +2 Persuasion, +1 Perception.": "An agent of the old guard, the modern inheritors of Enlil's mission to maintain order and secrecy. You work for a shadow organization, using manipulation, misinformation, and targeted enforcement to keep humanity blissfully unaware of its true nature and masters. Bonus: +2 Persuasion, +1 Perception.",
+        'Urban Shaman': "Urban Shaman",
+        "A mystic who draws power not from nature, but from the concrete jungle - the spirits of the city, the hum of electricity, and the collective consciousness of its inhabitants. Bonus: +2 Faith, +1 Wisdom.": "A mystic who draws power not from nature, but from the concrete jungle - the spirits of the city, the hum of electricity, and the collective consciousness of its inhabitants. Bonus: +2 Faith, +1 Wisdom.",
+    },
+    ru: {
+        'Mind-Bender': "Манипулятор сознанием",
+        "A being who subtly manipulates the perceptions and thoughts of others, often without them ever realizing. A specialization for The Slender. Bonus: +2 Wisdom, +1 Persuasion.": "Существо, которое тонко манипулирует восприятием и мыслями других, часто без их ведома. Специализация для Слендера. Бонус: +2 к Мудрости, +1 к Убеждению.",
+        'Psion': 'Псион',
+        "You are one of the Awakened who has learned to consciously access the 'null-space'. To others, it looks like magic or miracles, but for you, it is the manipulation of unseen energies and probabilities, a power that strains the mind and draws unwanted attention. Bonus: +2 Wisdom, +1 Faith.": "Вы один из Пробуждённых, научившийся сознательно входить в «нуль-пространство». Для других это выглядит как магия или чудеса, но для вас это манипуляция невидимыми энергиями и вероятностями — сила, которая напрягает разум и привлекает нежелательное внимание. Бонус: +2 к Мудрости, +1 к Вере.",
+        'Controller': 'Контролёр',
+        "An agent of the old guard, the modern inheritors of Enlil's mission to maintain order and secrecy. You work for a shadow organization, using manipulation, misinformation, and targeted enforcement to keep humanity blissfully unaware of its true nature and masters. Bonus: +2 Persuasion, +1 Perception.": "Агент старой гвардии, современный наследник миссии Энлиля по поддержанию порядка и секретности. Вы работаете на теневую организацию, используя манипуляции, дезинформацию и точечные силовые акции, чтобы человечество оставалось в блаженном неведении о своей истинной природе и хозяевах. Бонус: +2 к Убеждению, +1 к Восприятию.",
+        'Urban Shaman': "Городской шаман",
+        "A mystic who draws power not from nature, but from the concrete jungle - the spirits of the city, the hum of electricity, and the collective consciousness of its inhabitants. Bonus: +2 Faith, +1 Wisdom.": "Мистик, черпающий силу не из природы, а из бетонных джунглей — духов города, гула электричества и коллективного сознания его жителей. Бонус: +2 к Вере, +1 к Мудрости.",
+    }
+};

@@ -4,7 +4,7 @@ import ReactDOM from 'react-dom';
 import { Location, LocationData } from '../types';
 import { 
     MapPinIcon, QuestionMarkCircleIcon, HomeModernIcon, BuildingStorefrontIcon, 
-    FireIcon, GlobeAltIcon, SunIcon, PlusIcon, MinusIcon, ArrowPathIcon
+    FireIcon, GlobeAltIcon, SunIcon, PlusIcon, MinusIcon, ArrowPathIcon, UserGroupIcon
 } from '@heroicons/react/24/outline';
 import { useLocalization } from '../context/LocalizationContext';
 
@@ -13,6 +13,8 @@ const Tooltip = ({ location, position }: { location: Location | null; position: 
     const { t } = useLocalization();
     if (!location) return null;
     
+    const profile = location.difficultyProfile || (location as any).estimatedDifficultyProfile;
+
     const modalRoot = document.getElementById('modal-root');
     if (!modalRoot) return null;
 
@@ -23,7 +25,14 @@ const Tooltip = ({ location, position }: { location: Location | null; position: 
         >
             <div className="map-tooltip-title">{location.name}</div>
             {location.description && <p className="map-tooltip-desc">{location.description}</p>}
-            {location.difficulty && <p className="map-tooltip-difficulty">{t('Difficulty')}: {location.difficulty}</p>}
+            {profile && (
+                <div className="map-tooltip-difficulty grid grid-cols-2 gap-x-4 mt-2 text-xs">
+                    <span className="flex items-center gap-1" title={t('DifficultyCombatTooltip')}><FireIcon className="w-3 h-3 text-red-500"/>{t('Combat')}: {profile.combat}</span>
+                    <span className="flex items-center gap-1" title={t('DifficultyEnvironmentTooltip')}><GlobeAltIcon className="w-3 h-3 text-green-500"/>{t('Environment')}: {profile.environment}</span>
+                    <span className="flex items-center gap-1" title={t('DifficultySocialTooltip')}><UserGroupIcon className="w-3 h-3 text-blue-500"/>{t('Social')}: {profile.social}</span>
+                    <span className="flex items-center gap-1" title={t('DifficultyExplorationTooltip')}><MapPinIcon className="w-3 h-3 text-yellow-500"/>{t('Exploration')}: {profile.exploration}</span>
+                </div>
+            )}
         </div>,
         modalRoot
     );
@@ -188,7 +197,7 @@ export default function LocationViewer({ visitedLocations, currentLocation, onOp
                         const unvisitedLoc: Location & { isVisited: boolean } = {
                             name: link.name,
                             description: link.shortDescription,
-                            difficulty: link.estimatedDifficulty,
+                            difficultyProfile: link.estimatedDifficultyProfile,
                             coordinates: link.targetCoordinates,
                             isVisited: false,
                             locationId: `undiscovered-${key}`,

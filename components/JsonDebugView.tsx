@@ -1,5 +1,4 @@
 
-
 import React, { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import { useLocalization } from '../context/LocalizationContext';
 import { PlotOutline } from '../types';
@@ -10,6 +9,9 @@ interface JsonDebugViewProps {
   jsonString: string | null;
   requestJsonString: string | null;
   plotOutline: PlotOutline | null;
+  currentStep: string | null;
+  currentModel: string | null;
+  turnTime: number | null;
 }
 
 const Section: React.FC<{ title: string; children: React.ReactNode }> = ({ title, children }) => (
@@ -19,7 +21,7 @@ const Section: React.FC<{ title: string; children: React.ReactNode }> = ({ title
     </div>
 );
 
-export default function JsonDebugView({ jsonString, requestJsonString, plotOutline }: JsonDebugViewProps): React.ReactNode {
+export default function JsonDebugView({ jsonString, requestJsonString, plotOutline, currentStep, currentModel, turnTime }: JsonDebugViewProps): React.ReactNode {
   const [view, setView] = useState<'formatted' | 'raw'>('formatted');
   const [jsonViewMode, setJsonViewMode] = useState<'response' | 'request'>('response');
   const { t } = useLocalization();
@@ -91,12 +93,30 @@ export default function JsonDebugView({ jsonString, requestJsonString, plotOutli
       window.removeEventListener("mouseup", stopResizing);
     };
   }, [resize, stopResizing]);
+  
+  const formatTime = (ms: number | null) => {
+    if (ms === null) return '';
+    return (ms / 1000).toFixed(2) + 's';
+  };
 
   return (
     <div className="h-full flex flex-col" ref={containerRef}>
       <h3 className="text-xl font-bold text-cyan-400 narrative-text mb-4">{t("Debug View")}</h3>
       
       <div className="flex-1 overflow-y-auto pr-2 min-h-0">
+        {currentStep && (
+          <Section title={t("Current AI Step")}>
+              <div className="text-sm space-y-1">
+                  <p><span className="font-semibold text-gray-400 w-16 inline-block">{t("Step")}:</span> <span className="font-mono text-cyan-300">{currentStep}</span></p>
+                  <p><span className="font-semibold text-gray-400 w-16 inline-block">{t("Model")}:</span> <span className="font-mono text-cyan-300">{currentModel}</span></p>
+              </div>
+          </Section>
+        )}
+        {turnTime !== null && (
+             <Section title={t("Turn Processing Time")}>
+                 <p className="text-lg font-mono text-cyan-300">{formatTime(turnTime)}</p>
+             </Section>
+        )}
         {plotOutline && (
           <Section title={t("Plot Outline")}>
               <div className="space-y-3 text-sm">
@@ -149,7 +169,7 @@ export default function JsonDebugView({ jsonString, requestJsonString, plotOutli
           </Section>
         )}
       
-        {!plotOutline && !multipliers && !assessment && !jsonString && (
+        {!plotOutline && !multipliers && !assessment && !jsonString && !currentStep && turnTime === null && (
           <div className="text-center text-gray-500 p-6 flex flex-col items-center justify-center h-full">
               <p>{t("No debug data received yet.")}</p>
           </div>

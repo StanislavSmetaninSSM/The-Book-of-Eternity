@@ -1,0 +1,35 @@
+
+export const purebloodLoc = {
+  en: {
+    "Wasteland Doctor": "Wasteland Doctor",
+    "Knows how to patch up wounds with limited supplies. Bonus: +3 Wisdom.": "Knows how to patch up wounds with limited supplies. Bonus: +3 Wisdom.",
+    "Mechanic": "Mechanic",
+    "A gearhead who can coax life back into ancient machinery. Bonus: +2 Intelligence, +1 Trade.": "A gearhead who can coax life back into ancient machinery. Bonus: +2 Intelligence, +1 Trade.",
+    "Chronicle Keeper": "Chronicle Keeper",
+    "A wandering historian and archivist, preserving fragments of the 'Before-Times'. They use knowledge as a weapon and a tool. Bonus: +2 Wisdom, +1 Intelligence.": "A wandering historian and archivist, preserving fragments of the 'Before-Times'. They use knowledge as a weapon and a tool. Bonus: +2 Wisdom, +1 Intelligence.",
+    "Voice of the Wastes": "Voice of the Wastes",
+    "A charismatic radio operator, using salvaged broadcast towers to spread hope, propaganda, or music across the lonely airwaves. Bonus: +2 Persuasion, +1 Intelligence.": "A charismatic radio operator, using salvaged broadcast towers to spread hope, propaganda, or music across the lonely airwaves. Bonus: +2 Persuasion, +1 Intelligence.",
+    "Vault Diplomat": "Vault Diplomat",
+    "A pureblood trained in the art of negotiation, tasked with making contact with the surface world. Bonus: +3 Persuasion.": "A pureblood trained in the art of negotiation, tasked with making contact with the surface world. Bonus: +3 Persuasion.",
+    "Geneticist": "Geneticist",
+    "A pureblood scientist who studies the mutations of the wasteland, seeking to preserve humanity's 'purity'. Bonus: +3 Intelligence.": "A pureblood scientist who studies the mutations of the wasteland, seeking to preserve humanity's 'purity'. Bonus: +3 Intelligence.",
+    "Hydro-Farmer": "Hydro-Farmer",
+    "A vital member of any community, this survivor knows the secrets of cultivating mutated plants and managing precious water in the arid wastes. Bonus: +2 Wisdom, +1 Constitution.": "A vital member of any community, this survivor knows the secrets of cultivating mutated plants and managing precious water in the arid wastes. Bonus: +2 Wisdom, +1 Constitution.",
+  },
+  ru: {
+    "Wasteland Doctor": "Доктор пустошей",
+    "Knows how to patch up wounds with limited supplies. Bonus: +3 Wisdom.": "Знает, как залатать раны с ограниченными припасами. Бонус: +3 к Мудрости.",
+    "Mechanic": "Механик",
+    "A gearhead who can coax life back into ancient machinery. Bonus: +2 Intelligence, +1 Trade.": "Технарь, который может вернуть к жизни древние механизмы. Бонус: +2 к Интеллекту, +1 к Торговле.",
+    "Chronicle Keeper": "Хранитель хроник",
+    "A wandering historian and archivist, preserving fragments of the 'Before-Times'. They use knowledge as a weapon and a tool. Bonus: +2 Wisdom, +1 Intelligence.": "Странствующий историк и архивариус, сохраняющий фрагменты 'До-Времен'. Они используют знание как оружие и инструмент. Бонус: +2 к Мудрости, +1 к Интеллекту.",
+    "Voice of the Wastes": "Голос пустошей",
+    "A charismatic radio operator, using salvaged broadcast towers to spread hope, propaganda, or music across the lonely airwaves. Bonus: +2 Persuasion, +1 Intelligence.": "Харизматичный радиооператор, использующий спасенные радиовышки для распространения надежды, пропаганды или музыки по одиноким эфирам. Бонус: +2 к Убеждению, +1 к Интеллекту.",
+    "Vault Diplomat": "Дипломат Убежища",
+    "A pureblood trained in the art of negotiation, tasked with making contact with the surface world. Bonus: +3 Persuasion.": "Чистокровный, обученный искусству переговоров, которому поручено установить контакт с поверхностным миром. Бонус: +3 к Убеждению.",
+    "Geneticist": "Генетик",
+    "A pureblood scientist who studies the mutations of the wasteland, seeking to preserve humanity's 'purity'. Bonus: +3 Intelligence.": "Чистокровный ученый, который изучает мутации пустоши, стремясь сохранить 'чистоту' человечества. Бонус: +3 к Интеллекту.",
+    "Hydro-Farmer": "Гидро-фермер",
+    "A vital member of any community, this survivor knows the secrets of cultivating mutated plants and managing precious water in the arid wastes. Bonus: +2 Wisdom, +1 Constitution.": "Жизненно важный член любого сообщества, этот выживший знает секреты выращивания мутировавших растений и управления драгоценной водой в засушливых пустошах. Бонус: +2 к Мудрости, +1 к Телосложению.",
+  }
+};

@@ -1,11 +1,12 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { ChatMessage } from '../types';
 import { BookOpenIcon, ArrowPathIcon, PencilSquareIcon, SpeakerWaveIcon, StopCircleIcon } from '@heroicons/react/24/solid';
 import { XCircleIcon } from '@heroicons/react/24/outline';
 import MarkdownRenderer from './MarkdownRenderer';
 import { useLocalization } from '../context/LocalizationContext';
 import { useSpeech } from '../context/SpeechContext';
+import ConfirmationModal from './ConfirmationModal';
 
 interface ChatWindowProps {
   history: ChatMessage[];
@@ -34,10 +35,22 @@ export default function ChatWindow({ history, error, onDeleteMessage, onShowMess
   const { t } = useLocalization();
   const { speak, isSpeaking, currentlySpeakingText } = useSpeech();
   const chatEndRef = React.useRef<HTMLDivElement>(null);
+  const [deleteIndex, setDeleteIndex] = useState<number | null>(null);
 
   React.useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [history]);
+  
+  const handleDeleteConfirm = () => {
+    if (deleteIndex !== null) {
+      onDeleteMessage(deleteIndex);
+      setDeleteIndex(null);
+    }
+  };
+
+  const handleDeleteCancel = () => {
+    setDeleteIndex(null);
+  };
 
   return (
     <div className="space-y-6">
@@ -61,7 +74,7 @@ export default function ChatWindow({ history, error, onDeleteMessage, onShowMess
                     </button>
                 )}
                 <button 
-                  onClick={() => onDeleteMessage(index)} 
+                  onClick={() => setDeleteIndex(index)} 
                   className="p-1 rounded-full text-gray-400 hover:bg-gray-700 hover:text-white"
                   aria-label={t("Delete message")}
                 >
@@ -114,7 +127,7 @@ export default function ChatWindow({ history, error, onDeleteMessage, onShowMess
                     </button>
                 )}
                 <button 
-                  onClick={() => onDeleteMessage(index)} 
+                  onClick={() => setDeleteIndex(index)} 
                   className="p-1 rounded-full text-gray-400 hover:bg-gray-700 hover:text-white"
                   aria-label={t("Delete message")}
                 >
@@ -146,6 +159,14 @@ export default function ChatWindow({ history, error, onDeleteMessage, onShowMess
          </div>
       )}
       <div ref={chatEndRef} />
+      <ConfirmationModal
+        isOpen={deleteIndex !== null}
+        onClose={handleDeleteCancel}
+        onConfirm={handleDeleteConfirm}
+        title={t("Delete message")}
+      >
+        <p>{t("Are you sure you want to delete this message?")}</p>
+      </ConfirmationModal>
     </div>
   );
 }

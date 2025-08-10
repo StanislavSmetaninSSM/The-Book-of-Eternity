@@ -1,0 +1,35 @@
+
+export const luminLoc = {
+    en: {
+        "Starship Pilot": "Starship Pilot",
+        "An ace navigator with nerves of steel, at home in the cockpit of a starfighter. Bonus: +2 Speed, +1 Perception.": "An ace navigator with nerves of steel, at home in the cockpit of a starfighter. Bonus: +2 Speed, +1 Perception.",
+        "Void-Dancer": "Void-Dancer",
+        "A zero-g combat specialist, graceful and deadly in three-dimensional space. They utilize micro-thrusters and grappling hooks to turn any environment into their personal playground. Bonus: +2 Speed, +1 Dexterity.": "A zero-g combat specialist, graceful and deadly in three-dimensional space. They utilize micro-thrusters and grappling hooks to turn any environment into their personal playground. Bonus: +2 Speed, +1 Dexterity.",
+        "Psion": "Psion",
+        "A powerful telepath, bending minds to their will. Bonus: +3 Wisdom, +1 Persuasion.": "A powerful telepath, bending minds to their will. Bonus: +3 Wisdom, +1 Persuasion.",
+        "Smuggler": "Smuggler",
+        "A crafty operator who knows how to move goods and people under the radar. Bonus: +2 Luck, +1 Trade.": "A crafty operator who knows how to move goods and people under the radar. Bonus: +2 Luck, +1 Trade.",
+        "Solar Flare": "Solar Flare",
+        "Can release a burst of intense plasma energy, damaging and temporarily blinding nearby foes. Bonus: +2 Strength, +1 Faith.": "Can release a burst of intense plasma energy, damaging and temporarily blinding nearby foes. Bonus: +2 Strength, +1 Faith.",
+        "Starlight Weaver": "Starlight Weaver",
+        "Can manipulate their plasma form to create intricate, hard-light constructs or convincing illusions. Bonus: +2 Intelligence, +1 Dexterity.": "Can manipulate their plasma form to create intricate, hard-light constructs or convincing illusions. Bonus: +2 Intelligence, +1 Dexterity.",
+        "Gravity Well": "Gravity Well",
+        "Can momentarily alter their own density to create a localized gravity field, slowing enemies or pulling them closer. Bonus: +2 Constitution, +1 Wisdom.": "Can momentarily alter their own density to create a localized gravity field, slowing enemies or pulling them closer. Bonus: +2 Constitution, +1 Wisdom.",
+    },
+    ru: {
+        "Starship Pilot": "Пилот звездолета",
+        "An ace navigator with nerves of steel, at home in the cockpit of a starfighter. Bonus: +2 Speed, +1 Perception.": "Ас-навигатор со стальными нервами, чувствующий себя как дома в кабине истребителя. Бонус: +2 к Скорости, +1 к Восприятию.",
+        "Void-Dancer": "Танцор Пустоты",
+        "A zero-g combat specialist, graceful and deadly in three-dimensional space. They utilize micro-thrusters and grappling hooks to turn any environment into their personal playground. Bonus: +2 Speed, +1 Dexterity.": "Специалист по бою в невесомости, изящный и смертоносный в трехмерном пространстве. Они используют микро-ускорители и грэпплинговые крюки, чтобы превратить любую среду в свою личную игровую площадку. Бонус: +2 к Скорости, +1 к Ловкости.",
+        "Psion": "Псион",
+        "A powerful telepath, bending minds to their will. Bonus: +3 Wisdom, +1 Persuasion.": "Могущественный телепат, подчиняющий умы своей воле. Бонус: +3 к Мудрости, +1 к Убеждению.",
+        "Smuggler": "Контрабандист",
+        "A crafty operator who knows how to move goods and people under the radar. Bonus: +2 Luck, +1 Trade.": "Хитрый делец, который знает, как незаметно перевозить товары и людей. Бонус: +2 к Удаче, +1 к Торговле.",
+        "Solar Flare": "Солнечная вспышка",
+        "Can release a burst of intense plasma energy, damaging and temporarily blinding nearby foes. Bonus: +2 Strength, +1 Faith.": "Может высвобождать вспышку интенсивной плазменной энергии, нанося урон и временно ослепляя ближайших врагов. Бонус: +2 к Силе, +1 к Вере.",
+        "Starlight Weaver": "Ткач звездного света",
+        "Can manipulate their plasma form to create intricate, hard-light constructs or convincing illusions. Bonus: +2 Intelligence, +1 Dexterity.": "Может манипулировать своей плазменной формой для создания сложных конструкций из твердого света или убедительных иллюзий. Бонус: +2 к Интеллекту, +1 к Ловкости.",
+        "Gravity Well": "Гравитационный колодец",
+        "Can momentarily alter their own density to create a localized gravity field, slowing enemies or pulling them closer. Bonus: +2 Constitution, +1 Wisdom.": "Может на мгновение изменять собственную плотность для создания локального гравитационного поля, замедляя врагов или притягивая их ближе. Бонус: +2 к Телосложению, +1 к Мудрости.",
+    }
+};

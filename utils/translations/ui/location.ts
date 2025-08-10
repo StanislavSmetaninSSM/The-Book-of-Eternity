@@ -1,4 +1,7 @@
 
+
+
+
 export const location = {
   en: {
     // Location Details & Map
@@ -62,7 +65,24 @@ export const location = {
     "Dangerous": "Dangerous",
     "Hidden": "Hidden",
     "Blocked": "Blocked",
-    "Requires Key": "Requires Key"
+    "Requires Key": "Requires Key",
+
+    // Event Types
+    "Exploration": "Exploration",
+    "Social": "Social",
+    "Quest": "Quest",
+    "Travel": "Travel",
+    "Crafting": "Crafting",
+    "Trade": "Trade",
+    "Estimated Difficulty": "Estimated Difficulty",
+
+    // Difficulty Profile
+    "Difficulty Profile": "Difficulty Profile",
+    "Combat": "Combat",
+    "DifficultyCombatTooltip": "Combat: Danger from enemies and direct confrontations.",
+    "DifficultyEnvironmentTooltip": "Environment: Danger from traps, weather, and natural threats.",
+    "DifficultySocialTooltip": "Social: Difficulty of persuasion, trade, and interaction with NPCs.",
+    "DifficultyExplorationTooltip": "Exploration: Difficulty of finding secrets, solving puzzles, and navigation.",
   },
   ru: {
     // Location Details & Map
@@ -126,6 +146,23 @@ export const location = {
     "Dangerous": "Опасно",
     "Hidden": "Скрыто",
     "Blocked": "Заблокировано",
-    "Requires Key": "Требуется ключ"
+    "Requires Key": "Требуется ключ",
+
+    // Event Types
+    "Exploration": "Исследование",
+    "Social": "Социальное",
+    "Quest": "Квест",
+    "Travel": "Путешествие",
+    "Crafting": "Ремесло",
+    "Trade": "Торговля",
+    "Estimated Difficulty": "Примерная сложность",
+    
+    // Difficulty Profile
+    "Difficulty Profile": "Профиль сложности",
+    "Combat": "Бой",
+    "DifficultyCombatTooltip": "Бой: Опасность от врагов и прямых столкновений.",
+    "DifficultyEnvironmentTooltip": "Окружение: Опасность от ловушек, погоды и природных угроз.",
+    "DifficultySocialTooltip": "Социальное: Сложность убеждения, торговли и взаимодействия с NPC.",
+    "DifficultyExplorationTooltip": "Исследование: Сложность поиска секретов, решения головоломок и навигации.",
   }
 };

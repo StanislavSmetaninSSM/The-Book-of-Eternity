@@ -1,0 +1,26 @@
+export const rogueDroneLoc = {
+    en: {
+        'Hacker': "Hacker",
+        "A master of code and networks, capable of bypassing the most advanced digital security. Bonus: +2 Intelligence, +1 Luck.": "A master of code and networks, capable of bypassing the most advanced digital security. Bonus: +2 Intelligence, +1 Luck.",
+        'Controller': 'Controller',
+        "An agent of the old guard, the modern inheritors of Enlil's mission to maintain order and secrecy. You work for a shadow organization, using manipulation, misinformation, and targeted enforcement to keep humanity blissfully unaware of its true nature and masters. Bonus: +2 Persuasion, +1 Perception.": "An agent of the old guard, the modern inheritors of Enlil's mission to maintain order and secrecy. You work for a shadow organization, using manipulation, misinformation, and targeted enforcement to keep humanity blissfully unaware of its true nature and masters. Bonus: +2 Persuasion, +1 Perception.",
+        'Bio-Hacker': 'Bio-Hacker',
+        "A spiritual successor to Enki, you are a back-alley geneticist, a cyber-doc, or a renegade corporate scientist. You see DNA as code and the human body as a platform to be upgraded, using a mixture of bleeding-edge tech and salvaged Anunnaki artifacts. Bonus: +2 Intelligence, +1 Trade.": "A spiritual successor to Enki, you are a back-alley geneticist, a cyber-doc, or a renegade corporate scientist. You see DNA as code and the human body as a platform to be upgraded, using a mixture of bleeding-edge tech and salvaged Anunnaki artifacts. Bonus: +2 Intelligence, +1 Trade.",
+        'Whisper': "Whisper",
+        "A ghost in the system, an urban legend among intelligence agencies. Whispers are masters of untraceable assassinations, using silenced weapons, social engineering, and a deep understanding of modern forensics to erase targets and then themselves from the scene. They are the ultimate deniable asset. Bonus: +2 Dexterity, +1 Intelligence.": "A ghost in the system, an urban legend among intelligence agencies. Whispers are masters of untraceable assassinations, using silenced weapons, social engineering, and a deep understanding of modern forensics to erase targets and then themselves from the scene. They are the ultimate deniable asset. Bonus: +2 Dexterity, +1 Intelligence.",
+        'Soldier': "Soldier",
+        "A master of modern firearms and tactics. Bonus: +2 Dexterity, +1 Perception.": "A master of modern firearms and tactics. Bonus: +2 Dexterity, +1 Perception.",
+    },
+    ru: {
+        'Hacker': "Хакер",
+        "A master of code and networks, capable of bypassing the most advanced digital security. Bonus: +2 Intelligence, +1 Luck.": "Мастер кода и сетей, способный обойти самые передовые цифровые защиты. Бонус: +2 к Интеллекту, +1 к Удаче.",
+        'Controller': 'Контролёр',
+        "An agent of the old guard, the modern inheritors of Enlil's mission to maintain order and secrecy. You work for a shadow organization, using manipulation, misinformation, and targeted enforcement to keep humanity blissfully unaware of its true nature and masters. Bonus: +2 Persuasion, +1 Perception.": "Агент старой гвардии, современный наследник миссии Энлиля по поддержанию порядка и секретности. Вы работаете на теневую организацию, используя манипуляции, дезинформацию и точечные силовые акции, чтобы человечество оставалось в блаженном неведении о своей истинной природе и хозяевах. Бонус: +2 к Убеждению, +1 к Восприятию.",
+        'Bio-Hacker': 'Био-Хакер',
+        "A spiritual successor to Enki, you are a back-alley geneticist, a cyber-doc, or a renegade corporate scientist. You see DNA as code and the human body as a platform to be upgraded, using a mixture of bleeding-edge tech and salvaged Anunnaki artifacts. Bonus: +2 Intelligence, +1 Trade.": "Духовный наследник Энки, вы — подпольный генетик, кибер-доктор или беглый корпоративный учёный. Вы видите ДНК как код, а человеческое тело — как платформу для апгрейда, используя смесь передовых технологий и спасённых артефактов Аннунаков. Бонус: +2 к Интеллекту, +1 к Торговле.",
+        'Whisper': "Шепот",
+        "A ghost in the system, an urban legend among intelligence agencies. Whispers are masters of untraceable assassinations, using silenced weapons, social engineering, and a deep understanding of modern forensics to erase targets and then themselves from the scene. They are the ultimate deniable asset. Bonus: +2 Dexterity, +1 Intelligence.": "Призрак в системе, городская легенда среди спецслужб. Шепоты — мастера неотслеживаемых убийств, использующие бесшумное оружие, социальную инженерию и глубокое понимание современной криминалистики, чтобы стереть цели, а затем и себя со сцены. Они — идеальный актив, от которого можно отречься. Бонус: +2 к Ловкости, +1 к Интеллекту.",
+        'Soldier': "Солдат",
+        "A master of modern firearms and tactics. Bonus: +2 Dexterity, +1 Perception.": "Мастер современного огнестрельного оружия и тактики. Бонус: +2 к Ловкости, +1 к Восприятию.",
+    }
+};

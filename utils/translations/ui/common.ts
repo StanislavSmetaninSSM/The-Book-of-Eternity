@@ -1,3 +1,4 @@
+
 export const common = {
   en: {
     "Edit": "Edit",
@@ -117,6 +118,11 @@ export const common = {
     "No factions encountered yet.": "No factions encountered yet.",
     "equipmentBonusTooltip": "Bonus from equipment",
     "EQ": "EQ",
+    "Current AI Step": "Current AI Step",
+    "Step": "Step",
+    "Model": "Model",
+    "Turn Processing Time": "Turn Processing Time",
+    "Are you sure you want to delete this message?": "Are you sure you want to delete this message?",
   },
   ru: {
     "Edit": "Редактировать",
@@ -236,5 +242,10 @@ export const common = {
     "No factions encountered yet.": "Вы еще не сталкивались с фракциями.",
     "equipmentBonusTooltip": "Бонус от снаряжения",
     "EQ": "СН",
+    "Current AI Step": "Текущий шаг ИИ",
+    "Step": "Шаг",
+    "Model": "Модель",
+    "Turn Processing Time": "Время обработки хода",
+    "Are you sure you want to delete this message?": "Вы уверены, что хотите удалить это сообщение?",
   }
 };

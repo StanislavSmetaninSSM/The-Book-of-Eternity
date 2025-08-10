@@ -1,0 +1,35 @@
+
+export const symbioteLoc = {
+    en: {
+        "Grav-Brawler": "Grav-Brawler",
+        "A warrior who utilizes personal gravity manipulators for bone-crushing strength and surprising mobility on the battlefield. Bonus: +2 Strength, +1 Speed.": "A warrior who utilizes personal gravity manipulators for bone-crushing strength and surprising mobility on the battlefield. Bonus: +2 Strength, +1 Speed.",
+        "Psion": "Psion",
+        "A powerful telepath, bending minds to their will. Bonus: +3 Wisdom, +1 Persuasion.": "A powerful telepath, bending minds to their will. Bonus: +3 Wisdom, +1 Persuasion.",
+        "Corporate Enforcer": "Corporate Enforcer",
+        "A heavily-armed and armored agent of a mega-corporation, tasked with protecting assets and eliminating rivals by any means necessary. Bonus: +2 Strength, +1 Constitution.": "A heavily-armed and armored agent of a mega-corporation, tasked with protecting assets and eliminating rivals by any means necessary. Bonus: +2 Strength, +1 Constitution.",
+        "Bio-Tinker": "Bio-Tinker",
+        "A rogue scientist who manipulates genetics and biology, often with little regard for ethics. They can create biological concoctions and perform field surgery with makeshift tools. Bonus: +2 Intelligence, +1 Wisdom.": "A rogue scientist who manipulates genetics and biology, often with little regard for ethics. They can create biological concoctions and perform field surgery with makeshift tools. Bonus: +2 Intelligence, +1 Wisdom.",
+        "Dual-Mind Tactician": "Dual-Mind Tactician",
+        "The two minds of the Symbiote work in perfect concert, allowing for unparalleled tactical analysis and processing of battlefield information. Bonus: +2 Intelligence, +1 Perception.": "The two minds of the Symbiote work in perfect concert, allowing for unparalleled tactical analysis and processing of battlefield information. Bonus: +2 Intelligence, +1 Perception.",
+        "Biotic Brawler": "Biotic Brawler",
+        "The host's physical form is enhanced by the symbiote, granting them powerful bio-enhanced melee attacks and rapid regeneration. Bonus: +2 Strength, +1 Constitution.": "The host's physical form is enhanced by the symbiote, granting them powerful bio-enhanced melee attacks and rapid regeneration. Bonus: +2 Strength, +1 Constitution.",
+        "Host Jumper": "Host Jumper",
+        "The intellectual symbiote can temporarily detach its consciousness to another willing or weakened host, controlling their actions. Bonus: +2 Persuasion, +1 Luck.": "The intellectual symbiote can temporarily detach its consciousness to another willing or weakened host, controlling their actions. Bonus: +2 Persuasion, +1 Luck.",
+    },
+    ru: {
+        "Grav-Brawler": "Грав-боец",
+        "A warrior who utilizes personal gravity manipulators for bone-crushing strength and surprising mobility on the battlefield. Bonus: +2 Strength, +1 Speed.": "Воин, использующий персональные гравитационные манипуляторы для сокрушительной силы и удивительной мобильности на поле боя. Бонус: +2 к Силе, +1 к Скорости.",
+        "Psion": "Псион",
+        "A powerful telepath, bending minds to their will. Bonus: +3 Wisdom, +1 Persuasion.": "Могущественный телепат, подчиняющий умы своей воле. Бонус: +3 к Мудрости, +1 к Убеждению.",
+        "Corporate Enforcer": "Корпоративный силовик",
+        "A heavily-armed and armored agent of a mega-corporation, tasked with protecting assets and eliminating rivals by any means necessary. Bonus: +2 Strength, +1 Constitution.": "Тяжеловооруженный и бронированный агент мегакорпорации, которому поручено защищать активы и устранять конкурентов любыми средствами. Бонус: +2 к Силе, +1 к Телосложению.",
+        "Bio-Tinker": "Био-механик",
+        "A rogue scientist who manipulates genetics and biology, often with little regard for ethics. They can create biological concoctions and perform field surgery with makeshift tools. Bonus: +2 Intelligence, +1 Wisdom.": "Ученый-изгой, который манипулирует генетикой и биологией, часто пренебрегая этикой. Они могут создавать биологические смеси и проводить полевую хирургию с помощью подручных инструментов. Бонус: +2 к Интеллекту, +1 к Мудрости.",
+        "Dual-Mind Tactician": "Тактик с двойным разумом",
+        "The two minds of the Symbiote work in perfect concert, allowing for unparalleled tactical analysis and processing of battlefield information. Bonus: +2 Intelligence, +1 Perception.": "Два разума Симбиота работают в идеальном согласии, обеспечивая непревзойденный тактический анализ и обработку информации на поле боя. Бонус: +2 к Интеллекту, +1 к Восприятию.",
+        "Biotic Brawler": "Биотический боец",
+        "The host's physical form is enhanced by the symbiote, granting them powerful bio-enhanced melee attacks and rapid regeneration. Bonus: +2 Strength, +1 Constitution.": "Физическая форма носителя усиливается симбиотом, предоставляя ему мощные био-усиленные атаки ближнего боя и быструю регенерацию. Бонус: +2 к Силе, +1 к Телосложению.",
+        "Host Jumper": "Прыгун по носителям",
+        "The intellectual symbiote can temporarily detach its consciousness to another willing or weakened host, controlling their actions. Bonus: +2 Persuasion, +1 Luck.": "Интеллектуальный симбиот может временно отделить свое сознание и переместиться в другого желающего или ослабленного носителя, контролируя его действия. Бонус: +2 к Убеждению, +1 к Удаче.",
+    }
+};

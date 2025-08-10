@@ -1,0 +1,35 @@
+
+export const geodeLoc = {
+    en: {
+        "Astro-Archaeologist": "Astro-Archaeologist",
+        "A scholar who delves into the ruins of precursor civilizations, seeking knowledge and lost technology. They are experts in history, xeno-linguistics, and spotting hidden details. Bonus: +2 Perception, +1 Intelligence.": "A scholar who delves into the ruins of precursor civilizations, seeking knowledge and lost technology. They are experts in history, xeno-linguistics, and spotting hidden details. Bonus: +2 Perception, +1 Intelligence.",
+        "Star-Prophet": "Star-Prophet",
+        "A mystic who interprets cosmic phenomena—starlight, nebula patterns, black hole emissions—to divine the future and navigate fate. Bonus: +2 Faith, +1 Wisdom.": "A mystic who interprets cosmic phenomena—starlight, nebula patterns, black hole emissions—to divine the future and navigate fate. Bonus: +2 Faith, +1 Wisdom.",
+        "Tech-Scrapper": "Tech-Scrapper",
+        "A resourceful engineer who can fix anything. Bonus: +3 Intelligence.": "A resourceful engineer who can fix anything. Bonus: +3 Intelligence.",
+        "Terraformer": "Terraformer",
+        "An exo-engineer who wields planetary-scale technology to reshape worlds, from adjusting atmospheres to redirecting rivers. Bonus: +2 Intelligence, +1 Wisdom.": "An exo-engineer who wields planetary-scale technology to reshape worlds, from adjusting atmospheres to redirecting rivers. Bonus: +2 Intelligence, +1 Wisdom.",
+        "Resonance Priest": "Resonance Priest",
+        "Uses the natural resonant frequencies of their crystalline body to create vibrations that can heal allies or shatter enemy armor. Bonus: +2 Faith, +1 Wisdom.": "Uses the natural resonant frequencies of their crystalline body to create vibrations that can heal allies or shatter enemy armor. Bonus: +2 Faith, +1 Wisdom.",
+        "Light Bender": "Light Bender",
+        "Can precisely refract light through their crystal form to create dazzling illusions or focus it into a damaging energy beam. Bonus: +2 Intelligence, +1 Dexterity.": "Can precisely refract light through their crystal form to create dazzling illusions or focus it into a damaging energy beam. Bonus: +2 Intelligence, +1 Dexterity.",
+        "Memory Crystal": "Memory Crystal",
+        "A Geode whose purpose is to be a living, incorruptible archive of a specific set of knowledge, such as a star map or a culture's history. Bonus: +2 Intelligence, +1 Constitution.": "A Geode whose purpose is to be a living, incorruptible archive of a specific set of knowledge, such as a star map or a culture's history. Bonus: +2 Intelligence, +1 Constitution.",
+    },
+    ru: {
+        "Astro-Archaeologist": "Астро-археолог",
+        "A scholar who delves into the ruins of precursor civilizations, seeking knowledge and lost technology. They are experts in history, xeno-linguistics, and spotting hidden details. Bonus: +2 Perception, +1 Intelligence.": "Ученый, который исследует руины предтеч, ища знания и утерянные технологии. Они эксперты в истории, ксенолингвистике и обнаружении скрытых деталей. Бонус: +2 к Восприятию, +1 к Интеллекту.",
+        "Star-Prophet": "Звездный пророк",
+        "A mystic who interprets cosmic phenomena—starlight, nebula patterns, black hole emissions—to divine the future and navigate fate. Bonus: +2 Faith, +1 Wisdom.": "Мистик, который интерпретирует космические явления — звездный свет, узоры туманностей, излучения черных дыр — чтобы предсказывать будущее и управлять судьбой. Бонус: +2 к Вере, +1 к Мудрости.",
+        "Tech-Scrapper": "Техно-мусорщик",
+        "A resourceful engineer who can fix anything. Bonus: +3 Intelligence.": "Находчивый инженер, который может починить все, что угодно. Бонус: +3 к Интеллекту.",
+        "Terraformer": "Терраформер",
+        "An exo-engineer who wields planetary-scale technology to reshape worlds, from adjusting atmospheres to redirecting rivers. Bonus: +2 Intelligence, +1 Wisdom.": "Экзо-инженер, который владеет технологиями планетарного масштаба для преобразования миров, от изменения атмосферы до перенаправления рек. Бонус: +2 к Интеллекту, +1 к Мудрости.",
+        "Resonance Priest": "Жрец резонанса",
+        "Uses the natural resonant frequencies of their crystalline body to create vibrations that can heal allies or shatter enemy armor. Bonus: +2 Faith, +1 Wisdom.": "Использует естественные резонансные частоты своего кристаллического тела для создания вибраций, которые могут исцелять союзников или разрушать вражескую броню. Бонус: +2 к Вере, +1 к Мудрости.",
+        "Light Bender": "Преломитель света",
+        "Can precisely refract light through their crystal form to create dazzling illusions or focus it into a damaging energy beam. Bonus: +2 Intelligence, +1 Dexterity.": "Может точно преломлять свет через свою кристаллическую форму, чтобы создавать ослепительные иллюзии или фокусировать его в разрушительный энергетический луч. Бонус: +2 к Интеллекту, +1 к Ловкости.",
+        "Memory Crystal": "Кристалл памяти",
+        "A Geode whose purpose is to be a living, incorruptible archive of a specific set of knowledge, such as a star map or a culture's history. Bonus: +2 Intelligence, +1 Constitution.": "Геод, чье предназначение — быть живым, нетленным архивом определенного набора знаний, например, звездной карты или истории культуры. Бонус: +2 к Интеллекту, +1 к Телосложению.",
+    }
+};

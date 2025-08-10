@@ -1,27 +1,113 @@
 
-export const modernWorld = {
-  name: "Modern",
-  description: "A world of spies, corporate espionage, and hidden conspiracies in the 21st century.",
+
+export const urbanMythWorld = {
+  name: "Urban Myth",
+  description: "A world of ancient conspiracies, alien engineers, and hidden truths beneath the veneer of reality.",
   currencyName: "Dollars",
   currencyOptions: ["Dollars", "Rubles"],
   races: {
-    'Human': { description: "The dominant species, diverse in all aspects. +1 to Trade, Persuasion, Intelligence, Luck, and Perception.", bonuses: { trade: 1, persuasion: 1, intelligence: 1, luck: 1, perception: 1 } },
-    'Reptilian': { description: "A shapeshifting reptilian humanoid from a hidden lineage, skilled in manipulation and influence. +3 Persuasion, +2 Intelligence.", bonuses: { persuasion: 3, intelligence: 2 } },
-    'Agent': { description: "A genetically or technologically altered human agent of a clandestine organization, possessing a commanding presence and an unnerving gaze. +3 Persuasion, +2 Perception.", bonuses: { persuasion: 3, perception: 2 } },
-    'Doppelgänger': { description: "A being with the uncanny ability to perfectly replicate others, a master of infiltration and social engineering. +3 Attractiveness, +2 Persuasion.", bonuses: { attractiveness: 3, persuasion: 2 } },
-    'Shadow Person': { description: "A fleeting entity of pure shadow, able to move unseen and unheard, their very presence causing a sense of dread. +3 Dexterity, +2 Luck.", bonuses: { dexterity: 3, luck: 2 } },
-    'The Slender': { description: "An unnaturally tall, faceless entity in a dark suit, whose mere presence can fray the sanity of those nearby. +3 Persuasion, +2 Wisdom.", bonuses: { persuasion: 3, wisdom: 2 } },
-    'Vampire': { description: "An immortal predator living in the shadows of modern society, possessing supernatural charm and resilience. +3 Attractiveness, +2 Constitution.", bonuses: { attractiveness: 3, constitution: 2 } },
-    'The Replicant': { description: "Bio-engineered androids, nearly indistinguishable from humans, built for specific tasks. They possess superior strength and speed but often grapple with questions of identity. +3 Strength, +2 Speed.", bonuses: { strength: 3, speed: 2 } },
-    'The Chronologically Displaced': { description: "An individual accidentally thrown through time, possessing knowledge of a different era but struggling with the modern world. +3 Luck, +2 Wisdom.", bonuses: { luck: 3, wisdom: 2 } },
-    'The Echo': { description: "A psychic imprint of a deceased person, a ghost bound to a specific place or object, able to perceive things others cannot. +3 Wisdom, +2 Perception.", bonuses: { wisdom: 3, perception: 2 } },
-    'Ancient': { description: "Legends whisper of them as Atlanteans, the first true civilization to rise on Earth. Long before recorded history, their society bent the laws of physics to its will, navigating the void between worlds and wielding energies that could reshape continents. Their minds, evolved over countless generations, were their greatest achievement—powerful psionic instruments capable of touching other thoughts and moving the physical world with sheer will. Yet, for all their mastery, they were humbled by a silent, cosmic force. A cataclysm from the heavens shattered their golden age, erasing their empire from the face of the Earth in a single, fiery moment. In their final, desperate hours, a chosen few were sealed in subterranean arks, intended to outlast the ensuing winter. They were meant to sleep for generations, not eons. Damaged by the very impact they sought to escape, their long slumber stretched into an abyss of time, preserving them as living fossils of a world that is now nothing but dust and myth. Bonus: +3 Intelligence, +2 Wisdom.", bonuses: { intelligence: 3, wisdom: 2 } },
-    'Werewolf': { description: "A human cursed with a primal, bestial nature that surfaces under duress or the full moon. They live in a constant struggle, hiding their secret while benefiting from enhanced strength, senses, and resilience. +3 Strength, +1 Constitution, +1 Perception.", bonuses: { strength: 3, constitution: 1, perception: 1 } },
-    'Yeti': { description: "A relict hominid, a surviving branch of an ancient lineage. Incredibly strong and resilient, adapted to harsh, remote environments. Elusive and misunderstood, often mistaken for a myth. They possess a simple, profound wisdom of the natural world. +4 Strength, +1 Constitution.", bonuses: { strength: 4, constitution: 1 } },
-    'The Shifted': { description: "A human from a nearly identical reality, but with key differences. They are haunted by 'glitches'—memories of a world that is almost, but not quite, this one. This gives them a strange insight and an uncanny ability to notice discrepancies. +3 Wisdom, +2 Perception.", bonuses: { wisdom: 3, perception: 2 } },
-    'The Grey': { description: "An alien species operating in the shadows of human society for decades. Physically frail, they possess enormous intellects and advanced psionic capabilities, focusing on research, abduction, and information gathering. Their motives are inscrutable. +4 Intelligence, +1 Wisdom.", bonuses: { intelligence: 4, wisdom: 1 } },
+    'Human': { 
+      description: "The dominant species, diverse in all aspects. +1 to Trade, Persuasion, Intelligence, Luck, and Perception.", 
+      bonuses: { trade: 1, persuasion: 1, intelligence: 1, luck: 1, perception: 1 },
+      availableClasses: ['Corporate Exec', 'Detective', 'Diplomat', 'Fixer', 'Hacker', 'Journalist', 'Mafioso', 'Paramedic', 'Police Officer', 'Soldier', 'Student', 'Spy', 'Truth-Seeker', 'Private Investigator', 'Professor', 'Taxi Driver', 'Bartender', 'Urban Explorer', 'Antiquarian', 'Forensic Scientist', 'Priest', 'Artist', 'Construction Worker', 'Librarian', 'Mechanic', 'Street Kid', 'Occultist', 'Conspiracy Theorist', 'Urban Druid', 'Bouncer', 'Security Guard', 'Politician\'s Aide', 'Parapsychologist']
+    },
+    'The Awakened': { 
+      description: "Descendants of a secret bloodline touched by the 'Prometheus' engineer, Enki. They lack the genetic 'veil' that clouds the perception of most of humanity, allowing them to sense the hidden structures of reality and the 'null-space' beyond. +3 Wisdom, +2 Luck.", 
+      bonuses: { wisdom: 3, luck: 2 },
+      availableClasses: ['Psion', 'Truth-Seeker', 'Sorcerer', 'Urban Shaman', 'Profiler']
+    },
+    'Adamu Clone': { 
+      description: "A bio-engineered human based on the primordial 'Adamu' template, created by the Anunnaki as a perfect worker. Possessing immense strength and resilience, you have broken free from your programmed purpose and now seek your own destiny in a world that sees you as a product. +3 Strength, +2 Constitution.", 
+      bonuses: { strength: 3, constitution: 2 },
+      availableClasses: ['Gilgamesh Prototype', 'Soldier', 'The Feral', 'Police Officer']
+    },
+    'Rogue Drone': { 
+      description: "Once a cybernetic enforcer for the Anunnaki, known to ancient humans as a Nephilim. A logic cascade or a stray signal severed your connection to the hive mind. Now, you operate as an independent entity, your advanced logic and durable chassis making you a formidable, if alien, presence. +3 Intelligence, +2 Constitution.", 
+      bonuses: { intelligence: 3, constitution: 2 },
+      availableClasses: ['Hacker', 'Controller', 'Bio-Hacker', 'Whisper', 'Soldier']
+    },
+    'Royal Bloodline': { 
+      description: "You carry the diluted but potent genes of the Anunnaki 'god-kings' who ruled antiquity. This lineage grants you a natural, almost hypnotic charisma and an air of authority that makes others instinctively want to follow or obey. But this heritage is both a gift and a target. +3 Persuasion, +2 Attractiveness.", 
+      bonuses: { persuasion: 3, attractiveness: 2 },
+      availableClasses: ['Controller', 'Diplomat', 'Corporate Exec', 'Mafioso']
+    },
+    'Reptilian': { 
+      description: "A shapeshifting reptilian humanoid from a hidden lineage, skilled in manipulation and influence. +3 Persuasion, +2 Intelligence.", 
+      bonuses: { persuasion: 3, intelligence: 2 },
+      availableClasses: ['Infiltrator', 'Spy', 'Controller', 'Diplomat', 'Fixer']
+    },
+    'Agent': { 
+      description: "A genetically or technologically altered human agent of a clandestine organization, possessing a commanding presence and an unnerving gaze. +3 Persuasion, +2 Perception.", 
+      bonuses: { persuasion: 3, perception: 2 },
+      availableClasses: ['Field Operative', 'Infiltrator', 'Spy', 'Whisper', 'Controller']
+    },
+    'Doppelgänger': { 
+      description: "A being with the uncanny ability to perfectly replicate others, a master of infiltration and social engineering. +3 Attractiveness, +2 Persuasion.", 
+      bonuses: { attractiveness: 3, persuasion: 2 },
+      availableClasses: ['Social Chameleon', 'Infiltrator', 'Spy', 'Fixer']
+    },
+    'Shadow Person': { 
+      description: "A fleeting entity of pure shadow, able to move unseen and unheard, their very presence causing a sense of dread. +3 Dexterity, +2 Luck.", 
+      bonuses: { dexterity: 3, luck: 2 },
+      availableClasses: ['Nightcrawler', 'Whisper', 'Infiltrator', 'Spy']
+    },
+    'The Slender': { 
+      description: "An unnaturally tall, faceless entity in a dark suit, whose mere presence can fray the sanity of those nearby. +3 Persuasion, +2 Wisdom.", 
+      bonuses: { persuasion: 3, wisdom: 2 },
+      availableClasses: ['Mind-Bender', 'Psion', 'Controller', 'Urban Shaman']
+    },
+    'Vampire': { 
+      description: "An immortal predator living in the shadows of modern society, possessing supernatural charm and resilience. +3 Attractiveness, +2 Constitution.", 
+      bonuses: { attractiveness: 3, constitution: 2 },
+      availableClasses: ['Nocturne', 'Corporate Exec', 'Mafioso', 'Fixer', 'Diplomat']
+    },
+    'The Replicant': { 
+      description: "Bio-engineered androids, nearly indistinguishable from humans, built for specific tasks. They possess superior strength and speed but often grapple with questions of identity. +3 Strength, +2 Speed.", 
+      bonuses: { strength: 3, speed: 2 },
+      availableClasses: ['Gilgamesh Prototype', 'Soldier', 'Whisper', 'Field Operative']
+    },
+    'The Chronologically Displaced': { 
+      description: "An individual accidentally thrown through time, possessing knowledge of a different era but struggling with the modern world. +3 Luck, +2 Wisdom.", 
+      bonuses: { luck: 3, wisdom: 2 },
+      availableClasses: ['Truth-Seeker', 'Student', 'Sorcerer', 'Detective']
+    },
+    'The Echo': { 
+      description: "A psychic imprint of a deceased person, a ghost bound to a specific place or object, able to perceive things others cannot. +3 Wisdom, +2 Perception.", 
+      bonuses: { wisdom: 3, perception: 2 },
+      availableClasses: ['Psion', 'Profiler', 'Detective', 'Truth-Seeker']
+    },
+    'Ancient': { 
+      description: "Legends whisper of them as Atlanteans, the first true civilization to rise on Earth. Long before recorded history, their society bent the laws of physics to its will, navigating the void between worlds and wielding energies that could reshape continents. Their minds, evolved over countless generations, were their greatest achievement—powerful psionic instruments capable of touching other thoughts and moving the physical world with sheer will. Yet, for all their mastery, they were humbled by a silent, cosmic force. A cataclysm from the heavens shattered their golden age, erasing their empire from the face of the Earth in a single, fiery moment. In their final, desperate hours, a chosen few were sealed in subterranean arks, intended to outlast the ensuing winter. They were meant to sleep for generations, not eons. Damaged by the very impact they sought to escape, their long slumber stretched into an abyss of time, preserving them as living fossils of a world that is now nothing but dust and myth. Bonus: +3 Intelligence, +2 Wisdom.", 
+      bonuses: { intelligence: 3, wisdom: 2 },
+      availableClasses: ['The Unfrozen', 'Psion', 'Sorcerer', 'Truth-Seeker']
+    },
+    'Werewolf': { 
+      description: "A human cursed with a primal, bestial nature that surfaces under duress or the full moon. They live in a constant struggle, hiding their secret while benefiting from enhanced strength, senses, and resilience. +3 Strength, +1 Constitution, +1 Perception.", 
+      bonuses: { strength: 3, constitution: 1, perception: 1 },
+      availableClasses: ['The Feral', 'Soldier', 'Detective', 'Police Officer']
+    },
+    'Yeti': { 
+      description: "A relict hominid, a surviving branch of an ancient lineage. Incredibly strong and resilient, adapted to harsh, remote environments. Elusive and misunderstood, often mistaken for a myth. They possess a simple, profound wisdom of the natural world. +4 Strength, +1 Constitution.", 
+      bonuses: { strength: 4, constitution: 1 },
+      availableClasses: ['The Relict', 'The Feral']
+    },
+    'The Shifted': { 
+      description: "A human from a nearly identical reality, but with key differences. They are haunted by 'glitches'—memories of a world that is almost, but not quite, this one. This gives them a strange insight and an uncanny ability to notice discrepancies. +3 Wisdom, +2 Perception.", 
+      bonuses: { wisdom: 3, perception: 2 },
+      availableClasses: ['The Glitch', 'Truth-Seeker', 'Profiler', 'Detective']
+    },
+    'The Grey': { 
+      description: "An alien species operating in the shadows of human society for decades. Physically frail, they possess enormous intellects and advanced psionic capabilities, focusing on research, abduction, and information gathering. Their motives are inscrutable. +4 Intelligence, +1 Wisdom.", 
+      bonuses: { intelligence: 4, wisdom: 1 },
+      availableClasses: ['The Observer', 'Psion', 'Bio-Hacker', 'Hacker']
+    },
   },
   classes: {
+    'Truth-Seeker': { description: "A driven investigator, rogue academic, or obsessive blogger. You piece together forgotten history from fractured myths, strange artifacts, and genetic anomalies, determined to expose the truth of humanity's origins, no matter how dangerous. Bonus: +2 Perception, +1 Intelligence.", bonuses: { perception: 2, intelligence: 1 } },
+    'Psion': { description: "You are one of the Awakened who has learned to consciously access the 'null-space'. To others, it looks like magic or miracles, but for you, it is the manipulation of unseen energies and probabilities, a power that strains the mind and draws unwanted attention. Bonus: +2 Wisdom, +1 Faith.", bonuses: { wisdom: 2, faith: 1 } },
+    'Bio-Hacker': { description: "A spiritual successor to Enki, you are a back-alley geneticist, a cyber-doc, or a renegade corporate scientist. You see DNA as code and the human body as a platform to be upgraded, using a mixture of bleeding-edge tech and salvaged Anunnaki artifacts. Bonus: +2 Intelligence, +1 Trade.", bonuses: { intelligence: 2, trade: 1 } },
+    'Controller': { description: "An agent of the old guard, the modern inheritors of Enlil's mission to maintain order and secrecy. You work for a shadow organization, using manipulation, misinformation, and targeted enforcement to keep humanity blissfully unaware of its true nature and masters. Bonus: +2 Persuasion, +1 Perception.", bonuses: { persuasion: 2, perception: 1 } },
+    'Gilgamesh Prototype': { description: "You are a product of a modern program attempting to replicate the 'god-king' hybrids of the past. A perfect soldier, a leader bred for the battlefield, you possess superior physical prowess. Whether you serve your creators or have gone rogue, your purpose was defined by conflict. Bonus: +2 Strength, +1 Constitution.", bonuses: { strength: 2, constitution: 1 } },
     'Corporate Exec': { description: "A ruthless player in the world of high finance. Bonus: +3 Trade.", bonuses: { trade: 3 } },
     'Detective': { description: "An investigator with a keen eye for detail. Bonus: +2 Perception, +1 Intelligence.", bonuses: { perception: 2, intelligence: 1 } },
     'Diplomat': { description: "A master of negotiation and international relations, capable of defusing conflicts with words alone. Bonus: +2 Persuasion, +1 Intelligence.", bonuses: { persuasion: 2, intelligence: 1 } },
@@ -49,5 +135,25 @@ export const modernWorld = {
     'The Unfrozen': { description: "You are an echo from a forgotten age, a survivor of a world that exists only in myth. Awakening from a damaged cryo-pod after millennia of forced sleep, you are a living anachronism. Your mind holds fragmented memories of starships and psionic power, but your ancient knowledge clashes with the primitive reality of this new Earth. Your journey is one of rediscovery—piecing together your lost history while grappling with a future you were never meant to see. Bonus: +2 Intelligence, +1 Luck.", bonuses: { intelligence: 2, luck: 1 } },
     'Urban Shaman': { description: "A mystic who draws power not from nature, but from the concrete jungle - the spirits of the city, the hum of electricity, and the collective consciousness of its inhabitants. Bonus: +2 Faith, +1 Wisdom.", bonuses: { faith: 2, wisdom: 1 } },
     'Whisper': { description: "A ghost in the system, an urban legend among intelligence agencies. Whispers are masters of untraceable assassinations, using silenced weapons, social engineering, and a deep understanding of modern forensics to erase targets and then themselves from the scene. They are the ultimate deniable asset. Bonus: +2 Dexterity, +1 Intelligence.", bonuses: { dexterity: 2, intelligence: 1 } },
+    'Private Investigator': { description: "A cynical detective-for-hire who navigates the city's underbelly, taking the cases the police won't touch. Often stumbles into things best left alone. Bonus: +2 Perception, +1 Wisdom.", bonuses: { perception: 2, wisdom: 1 } },
+    'Professor': { description: "An academic from a local university, whose research into obscure history or folklore has led them to dangerous, hidden truths. Bonus: +2 Intelligence, +1 Wisdom.", bonuses: { intelligence: 2, wisdom: 1 } },
+    'Taxi Driver': { description: "A creature of the night shift who sees and hears everything on the city's streets. They know the shortcuts, both physical and informational. Bonus: +2 Perception, +1 Luck.", bonuses: { perception: 2, luck: 1 } },
+    'Bartender': { description: "A confidant and information broker who serves drinks while collecting the secrets and stories of their patrons. Bonus: +2 Persuasion, +1 Perception.", bonuses: { persuasion: 2, perception: 1 } },
+    'Urban Explorer': { description: "An adventurer who explores abandoned subways, forgotten factories, and the city's hidden infrastructure, often finding more than just dust and decay. Bonus: +2 Dexterity, +1 Perception.", bonuses: { dexterity: 2, perception: 1 } },
+    'Antiquarian': { description: "A dealer in rare books and artifacts. Their shop is a magnet for objects with strange histories and even stranger properties. Bonus: +2 Trade, +1 Intelligence.", bonuses: { trade: 2, intelligence: 1 } },
+    'Forensic Scientist': { description: "A lab technician who analyzes evidence from crime scenes. Sometimes, the evidence defies all rational explanation. Bonus: +2 Intelligence, +1 Perception.", bonuses: { intelligence: 2, perception: 1 } },
+    'Priest': { description: "A minister, priest, or spiritual guide who offers counsel to their flock, often dealing with crises of faith brought on by encounters with the truly unholy. Bonus: +2 Faith, +1 Wisdom.", bonuses: { faith: 2, wisdom: 1 } },
+    'Artist': { description: "A painter, sculptor, or musician whose inspiration comes from strange dreams and unsettling visions, channeling the bizarre into their work. Bonus: +2 Attractiveness, +1 Wisdom.", bonuses: { attractiveness: 2, wisdom: 1 } },
+    'Construction Worker': { description: "A laborer who builds the city's future, often by digging up its past. They unearth forgotten tunnels, strange artifacts, and things that were buried for a reason. Bonus: +2 Strength, +1 Constitution.", bonuses: { strength: 2, constitution: 1 } },
+    'Librarian': { description: "A custodian of knowledge, who sometimes finds uncatalogued, dangerous texts hidden in the archives. Bonus: +2 Intelligence, +1 Perception.", bonuses: { intelligence: 2, perception: 1 } },
+    'Mechanic': { description: "A gearhead who can fix anything from a car engine to bizarre, non-human technology they find in the scrap yard. Bonus: +2 Dexterity, +1 Intelligence.", bonuses: { dexterity: 2, intelligence: 1 } },
+    'Street Kid': { description: "A survivor who grew up on the streets, with a network of contacts and an intimate knowledge of the city's hidden ways. Bonus: +2 Dexterity, +1 Luck.", bonuses: { dexterity: 2, luck: 1 } },
+    'Occultist': { description: "An active seeker of forbidden knowledge, who dabbles in rituals and collects esoteric artifacts, often with little regard for the consequences. Bonus: +2 Faith, +1 Intelligence.", bonuses: { faith: 2, intelligence: 1 } },
+    'Conspiracy Theorist': { description: "A fringe researcher who connects the dots between seemingly unrelated events, often correctly identifying the hidden puppet masters of the world. Bonus: +2 Perception, +1 Luck.", bonuses: { perception: 2, luck: 1 } },
+    'Urban Druid': { description: "A mystic who finds nature not in forests, but in city parks, rooftop gardens, and the resilient weeds that grow through concrete. They speak for the city's overlooked ecosystem. Bonus: +2 Wisdom, +1 Constitution.", bonuses: { wisdom: 2, constitution: 1 } },
+    'Bouncer': { description: "A nightclub doorman who is an expert at reading people and de-escalating (or escalating) violence. They see the city's strange nightlife up close. Bonus: +2 Strength, +1 Perception.", bonuses: { strength: 2, perception: 1 } },
+    'Security Guard': { description: "A night watchman at a museum, lab, or corporate office who often encounters strange phenomena during the quiet hours. Bonus: +2 Perception, +1 Constitution.", bonuses: { perception: 2, constitution: 1 } },
+    'Politician\'s Aide': { description: "A low-level staffer who learns the truly ugly secrets behind the city's political machine. Bonus: +2 Persuasion, +1 Intelligence.", bonuses: { persuasion: 2, intelligence: 1 } },
+    'Parapsychologist': { description: "A researcher who attempts to scientifically study paranormal and psychic phenomena, often using bizarre equipment and attracting strange entities. Bonus: +2 Intelligence, +1 Faith.", bonuses: { intelligence: 2, faith: 1 } },
   }
 };
