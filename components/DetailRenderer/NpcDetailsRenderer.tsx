@@ -1,3 +1,7 @@
+
+
+
+
 import React, { useState, useMemo } from 'react';
 import { NPC, FateCard, Faction } from '../../types';
 import { DetailRendererProps } from './types';
@@ -14,7 +18,7 @@ import {
     UserIcon, IdentificationIcon, TagIcon, CalendarIcon, GlobeAltIcon, UsersIcon, HeartIcon,
     StarIcon, BookOpenIcon, SparklesIcon, ShieldCheckIcon, ArchiveBoxIcon, DocumentTextIcon,
     CogIcon, TrashIcon, ArchiveBoxXMarkIcon, BoltIcon, SunIcon, CloudIcon, ShieldExclamationIcon, KeyIcon,
-    ClockIcon, ArrowPathIcon, AcademicCapIcon
+    ClockIcon, ArrowPathIcon, AcademicCapIcon, PhotoIcon
 } from '@heroicons/react/24/outline';
 
 interface NpcDetailsProps extends Omit<DetailRendererProps, 'data'> {
@@ -58,16 +62,58 @@ const NpcDetailsRenderer: React.FC<NpcDetailsProps> = ({ npc, onOpenImageModal, 
         onEditNpcData(npc.NPCId, 'journalEntries', newJournalEntries);
     };
     
+    const imagePrompt = npc.custom_image_prompt || npc.image_prompt;
+
+    const journalPreviewContent = useMemo(() => {
+        if (!npc.journalEntries || npc.journalEntries.length === 0) {
+            return null;
+        }
+        const firstEntry = npc.journalEntries[0];
+        if (typeof firstEntry === 'string') {
+            return firstEntry;
+        }
+        return `[${t('Corrupted Journal Entry')}]`;
+    }, [npc.journalEntries, t]);
+    
+    const getRelationshipTooltip = (level: number) => {
+        if (level <= 49) return t('relationship_level_hostility');
+        if (level === 50) return t('relationship_level_neutrality');
+        if (level <= 100) return t('relationship_level_friendship');
+        if (level <= 150) return t('relationship_level_deep_bond');
+        return t('relationship_level_devotion');
+    };
+
     return (
         <div className="space-y-4">
-            {npc.image_prompt && (
-                <div className="w-full h-48 rounded-lg overflow-hidden mb-4 bg-gray-900 group relative cursor-pointer" onClick={() => onOpenImageModal?.(npc.image_prompt || '')}>
-                    <ImageRenderer prompt={npc.image_prompt} alt={npc.name} width={1024} height={1024} />
+            {imagePrompt && (
+                <div className="w-full h-48 rounded-lg overflow-hidden mb-4 bg-gray-900 group relative cursor-pointer" onClick={() => onOpenImageModal?.(imagePrompt || '')}>
+                    <ImageRenderer 
+                        prompt={imagePrompt} 
+                        alt={npc.name} 
+                        width={1024} 
+                        height={1024}
+                        showRegenerateButton={true} 
+                    />
                      <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                         <p className="text-white font-bold text-lg">{t('Enlarge')}</p>
                     </div>
                 </div>
             )}
+            
+            <Section title={t("Image Prompt")} icon={PhotoIcon}>
+                <EditableField 
+                    label={t('Custom Image Prompt')}
+                    value={npc.custom_image_prompt || ''}
+                    isEditable={allowHistoryManipulation && !!npc.NPCId}
+                    onSave={(val) => { if (npc.NPCId) onEditNpcData(npc.NPCId, 'custom_image_prompt', val) }}
+                    as="textarea"
+                    className="text-sm italic text-gray-400"
+                />
+                {npc.image_prompt && (
+                    <p className="text-xs text-gray-500 mt-2">{t("Default prompt from AI:")} <span className="italic">{npc.image_prompt}</span></p>
+                )}
+            </Section>
+
             <Section title={t("Appearance")} icon={UserIcon}>
                 <EditableField 
                     label={t('Appearance')}
@@ -93,7 +139,11 @@ const NpcDetailsRenderer: React.FC<NpcDetailsProps> = ({ npc, onOpenImageModal, 
                 {npc.rarity && <DetailRow label={t("Rarity")} value={t(npc.rarity as any)} icon={TagIcon} />}
                 {npc.worldview && <DetailRow label={t("Worldview")} value={t(npc.worldview as any)} icon={GlobeAltIcon} />}
                 {npc.attitude && <DetailRow label={t("Attitude")} value={t(npc.attitude as any)} icon={UsersIcon} />}
-                {npc.relationshipLevel !== undefined && <DetailRow label={t("Relationship")} value={`${npc.relationshipLevel} / 200`} icon={HeartIcon} />}
+                {npc.relationshipLevel !== undefined && (
+                    <div title={getRelationshipTooltip(npc.relationshipLevel)}>
+                        <DetailRow label={t("Relationship")} value={`${npc.relationshipLevel} / 200`} icon={HeartIcon} />
+                    </div>
+                )}
                 {npc.currentHealthPercentage && <DetailRow label={t("Health")} value={
                     <div className="flex items-center gap-2 justify-end">
                         <span>{npc.currentHealthPercentage}</span>
@@ -315,11 +365,11 @@ const NpcDetailsRenderer: React.FC<NpcDetailsProps> = ({ npc, onOpenImageModal, 
                 )) : <p className="text-sm text-gray-500 text-center p-4">{t('No items in inventory.')}</p>}
             </Section>
 
-            {npc.journalEntries && npc.journalEntries.length > 0 && (
+            {journalPreviewContent && (
                 <Section title={t("Journal Preview")} icon={DocumentTextIcon}>
                     <div className="bg-gray-700/50 p-3 rounded-md italic text-gray-400">
                         <p className="line-clamp-3 whitespace-pre-wrap">
-                            {npc.journalEntries[0]}
+                            {journalPreviewContent}
                         </p>
                     </div>
                     <button

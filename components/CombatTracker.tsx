@@ -1,10 +1,14 @@
+
+
 import React, { useState, useMemo } from 'react';
-import { EnemyCombatObject, AllyCombatObject, Combatant, NPC, Item, ActiveSkill, PassiveSkill, CombatAction, PlayerCharacter } from '../types';
+import { EnemyCombatObject, AllyCombatObject, NPC, Item, ActiveSkill, PassiveSkill, CombatAction, PlayerCharacter, Wound } from '../types';
 import { ShieldExclamationIcon, BoltIcon, ShieldCheckIcon, SunIcon, CloudIcon, DocumentTextIcon, SparklesIcon, ArchiveBoxIcon, Cog6ToothIcon } from '@heroicons/react/24/outline';
 import { FireIcon } from '@heroicons/react/24/solid';
 import ImageRenderer from './ImageRenderer';
 import { useLocalization } from '../context/LocalizationContext';
 import MarkdownRenderer from './MarkdownRenderer';
+
+type Combatant = EnemyCombatObject | AllyCombatObject;
 
 const Section: React.FC<{ title: string; icon: React.ElementType; children: React.ReactNode }> = ({ title, icon: Icon, children }) => (
     <div className="mt-4">
@@ -59,48 +63,48 @@ const CombatantCard: React.FC<{
     const isGroup = combatant.isGroup;
     const isDefeated = isGroup ? (combatant.count ?? 0) <= 0 : parseInt(combatant.currentHealth ?? '0') <= 0;
     
-    const [activeTab, setActiveTab] = useState('Stats');
     const { t } = useLocalization();
     
     const combatantWithId = combatant as (EnemyCombatObject | AllyCombatObject);
     const fullNpcData = useMemo(() => {
         let npcData: NPC | undefined | null = null;
-        // First, try to find by ID
         if (combatantWithId.NPCId) {
             npcData = allNpcs.find(npc => npc.NPCId === combatantWithId.NPCId);
         }
-        // If not found by ID (even if ID exists), fall back to name
         if (!npcData && combatant.name) {
             npcData = allNpcs.find(npc => npc.name === combatant.name);
         }
         return npcData || null;
     }, [combatantWithId.NPCId, combatant.name, allNpcs]);
 
-    const { activeSkills, passiveSkills, inventory, hasSkills, hasInventory } = useMemo(() => {
-        if (fullNpcData) {
-            const skills = [...(fullNpcData.activeSkills || []), ...(fullNpcData.passiveSkills || [])];
-            return {
-                activeSkills: fullNpcData.activeSkills || [],
-                passiveSkills: fullNpcData.passiveSkills || [],
-                inventory: fullNpcData.inventory || [],
-                hasSkills: skills.length > 0,
-                hasInventory: (fullNpcData.inventory?.length || 0) > 0,
-            };
-        }
-        const skills = [...(combatant.actions || []), ...(combatant.passiveSkills || [])];
+    const { passiveSkills, hasPassiveSkills, inventory, hasInventory, actions, hasActions } = useMemo(() => {
+        const combatActions = combatant.actions || [];
+        const finalPassiveSkills = fullNpcData?.passiveSkills || [];
+        const finalInventory = fullNpcData?.inventory || [];
+
         return {
-            activeSkills: combatant.actions || [],
-            passiveSkills: combatant.passiveSkills || [],
-            inventory: combatant.inventory || [],
-            hasSkills: skills.length > 0,
-            hasInventory: (combatant.inventory?.length || 0) > 0,
+            actions: combatActions,
+            hasActions: combatActions.length > 0,
+            passiveSkills: finalPassiveSkills,
+            hasPassiveSkills: finalPassiveSkills.length > 0,
+            inventory: finalInventory,
+            hasInventory: finalInventory.length > 0,
         };
     }, [combatant, fullNpcData]);
+    
+    const woundsToDisplay = useMemo(() => {
+        return fullNpcData?.wounds || combatant.wounds || [];
+    }, [fullNpcData, combatant.wounds]);
+    const hasWounds = woundsToDisplay.length > 0;
 
-    const TABS: string[] = ['Stats'];
-    if (hasSkills) TABS.push('Skills');
-    if (hasInventory) TABS.push('Inventory');
+    const TABS = useMemo(() => {
+        const tabs: string[] = ['Actions', 'CombatantStats'];
+        if (hasPassiveSkills) tabs.push('Skills');
+        if (hasInventory) tabs.push('Inventory');
+        return tabs;
+    }, [hasPassiveSkills, hasInventory]);
 
+    const [activeTab, setActiveTab] = useState(TABS[0] || 'CombatantStats');
 
     return (
         <div className={`bg-gray-900/40 rounded-lg p-3 border border-gray-700/50 transition-opacity ${isDefeated ? 'opacity-50' : ''}`}>
@@ -148,7 +152,7 @@ const CombatantCard: React.FC<{
                     ) : null}
                 </div>
             </div>
-
+            
             {TABS.length > 1 && (
                 <div className="flex space-x-1 rounded-lg bg-gray-900/50 p-1 mt-3">
                 {TABS.map(tab => (
@@ -157,38 +161,55 @@ const CombatantCard: React.FC<{
                         onClick={() => setActiveTab(tab)}
                         className={`w-full rounded-md py-2 text-xs font-medium leading-5 transition flex items-center justify-center gap-1.5 ${activeTab === tab ? 'bg-gray-700 text-cyan-400 shadow' : 'text-gray-300 hover:bg-gray-700/50'}`}
                     >
-                        {t(tab)}
+                        {t(tab as any)}
                     </button>
                 ))}
                 </div>
             )}
-            
+
             <div className="mt-2">
-                {activeTab === 'Stats' && (
-                    <>
-                        {(combatant.actions ?? []).length > 0 && (
-                            <Section title={t('Actions')} icon={BoltIcon}>
-                                {(combatant.actions ?? []).map((action, i) => (
-                                    <div key={i} className="text-xs bg-gray-800/60 p-2 rounded">
-                                        <p className="font-semibold text-gray-200">{action.actionName}</p>
-                                        {(action.effects ?? []).map((e, idx) => (
-                                            <p key={idx} className="text-gray-400 italic">{e.effectDescription}</p>
-                                        ))}
-                                    </div>
+                {activeTab === 'Actions' && (
+                    <Section title={t('Actions')} icon={BoltIcon}>
+                        {(actions ?? []).map((action, i) => (
+                            <div key={i} className="text-xs bg-gray-800/60 p-2 rounded">
+                                <p className="font-semibold text-gray-200">{action.actionName}</p>
+                                {(action.effects ?? []).map((e, idx) => (
+                                    <p key={idx} className="text-gray-400 italic">{e.effectDescription}</p>
                                 ))}
-                            </Section>
-                        )}
-                        
+                            </div>
+                        ))}
+                    </Section>
+                )}
+
+                {activeTab === 'CombatantStats' && (
+                    <>
                         {(combatant.resistances ?? []).length > 0 && (
                             <Section title={t('Resistances')} icon={ShieldCheckIcon}>
                                 <div className="grid grid-cols-2 gap-1 text-xs">
                                     {(combatant.resistances ?? []).map((res, i) => (
                                         <div key={i} className="bg-gray-800/60 p-1.5 rounded flex justify-between items-center">
                                             <span className="text-gray-300">{res.resistTypeDisplayName || t(res.resistType as any)}</span>
-                                            <span className={`font-mono font-semibold ${parseInt(res.resistanceValue ?? '0') > 0 ? 'text-green-400' : 'text-red-400'}`}>{res.resistanceValue}</span>
+                                            <span className={`font-mono font-semibold ${parseInt(res.resistanceValue ?? '0') >= 0 ? 'text-green-400' : 'text-red-400'}`}>{res.resistanceValue}</span>
                                         </div>
                                     ))}
                                 </div>
+                            </Section>
+                        )}
+
+                        {hasWounds && (
+                             <Section title={t('Wounds')} icon={ShieldExclamationIcon}>
+                                {woundsToDisplay.map((wound, index) => (
+                                    <button key={wound.woundId || index} onClick={() => onOpenDetailModal(t("Wound: {name}", { name: wound.woundName }), wound)} className="w-full text-left bg-gray-900/60 p-3 rounded-md border border-red-800/50 flex items-start gap-3 hover:border-red-600 transition-colors">
+                                        <ShieldExclamationIcon className="w-5 h-5 mt-0.5 text-red-500 flex-shrink-0" />
+                                        <div className="flex-1">
+                                            <div className="flex justify-between items-baseline">
+                                                 <span className="font-semibold text-red-400">{wound.woundName}</span>
+                                                 <span className="text-xs text-red-500 bg-red-900/50 px-2 py-0.5 rounded-full">{t(wound.severity as any)}</span>
+                                            </div>
+                                             <p className="text-sm text-gray-400 italic mt-1 line-clamp-2">{wound.descriptionOfEffects}</p>
+                                        </div>
+                                    </button>
+                                ))}
                             </Section>
                         )}
 
@@ -215,41 +236,14 @@ const CombatantCard: React.FC<{
                 )}
 
                 {activeTab === 'Skills' && (
-                    <>
-                        {(activeSkills ?? []).length > 0 && (
-                            <Section title={t('Active Skills')} icon={SparklesIcon}>
-                                {(activeSkills ?? []).map((skill, i) => {
-                                    if (fullNpcData) { // This is an ActiveSkill
-                                        const s = skill as ActiveSkill;
-                                        return (
-                                            <button key={i} onClick={() => onOpenDetailModal(t("Active Skill: {name}", { name: s.skillName }), { ...s, owner: 'npc' })} className="w-full text-left bg-gray-800/60 p-2 rounded hover:bg-gray-700/80 transition-colors">
-                                                <p className="font-semibold text-gray-200">{s.skillName}</p>
-                                                <p className="text-xs text-gray-400 italic line-clamp-2">{s.skillDescription}</p>
-                                            </button>
-                                        );
-                                    } else { // This is a CombatAction
-                                        const a = skill as CombatAction;
-                                        return (
-                                            <button key={i} onClick={() => onOpenDetailModal(t("Combat Action: {name}", { name: a.actionName }), a)} className="w-full text-left bg-gray-800/60 p-2 rounded hover:bg-gray-700/80 transition-colors">
-                                                <p className="font-semibold text-gray-200">{a.actionName}</p>
-                                                <p className="text-xs text-gray-400 italic line-clamp-2">{(a.effects ?? []).map(e => e.effectDescription).join(' ')}</p>
-                                            </button>
-                                        );
-                                    }
-                                })}
-                            </Section>
-                        )}
-                        {(passiveSkills ?? []).length > 0 && (
-                            <Section title={t('Passive Skills')} icon={ShieldCheckIcon}>
-                                {(passiveSkills ?? []).map((skill, i) => (
-                                    <button key={i} onClick={() => onOpenDetailModal(t("Passive Skill: {name}", { name: skill.skillName }), skill)} className="w-full text-left bg-gray-800/60 p-2 rounded hover:bg-gray-700/80 transition-colors">
-                                        <p className="font-semibold text-gray-200">{skill.skillName}</p>
-                                        <p className="text-xs text-gray-400 italic line-clamp-2">{skill.skillDescription}</p>
-                                    </button>
-                                ))}
-                            </Section>
-                        )}
-                    </>
+                    <Section title={t('Passive Skills')} icon={ShieldCheckIcon}>
+                        {(passiveSkills ?? []).map((skill, i) => (
+                            <button key={i} onClick={() => onOpenDetailModal(t("Passive Skill: {name}", { name: skill.skillName }), skill)} className="w-full text-left bg-gray-800/60 p-2 rounded hover:bg-gray-700/80 transition-colors">
+                                <p className="font-semibold text-gray-200">{skill.skillName}</p>
+                                <p className="text-xs text-gray-400 italic line-clamp-2">{skill.skillDescription}</p>
+                            </button>
+                        ))}
+                    </Section>
                 )}
                  
                 {activeTab === 'Inventory' && (
@@ -269,7 +263,6 @@ const CombatantCard: React.FC<{
                         )}
                     </Section>
                 )}
-
             </div>
         </div>
     );

@@ -79,6 +79,10 @@ export const settings = {
     "Currency Name": "Currency Name",
     "Enter currency name...": "Enter currency name...",
     "Autosave": "Autosave",
+    "Narrative Overrides": "Narrative Overrides",
+    "Save World Information": "Save World Information",
+    "Notification Sound": "Notification Sound",
+    "Play a sound when the GM's response is ready.": "Play a sound when the GM's response is ready.",
   },
   ru: {
     "Non-Magic Mode": "Мир без магии",
@@ -158,5 +162,9 @@ export const settings = {
     "Currency Name": "Название валюты",
     "Enter currency name...": "Введите название валюты...",
     "Autosave": "Автосохранение",
+    "Narrative Overrides": "Настройки Повествования",
+    "Save World Information": "Сохранить Информацию о Мире",
+    "Notification Sound": "Звук уведомления",
+    "Play a sound when the GM's response is ready.": "Воспроизводить звук, когда ответ ГМ будет готов.",
   }
 };

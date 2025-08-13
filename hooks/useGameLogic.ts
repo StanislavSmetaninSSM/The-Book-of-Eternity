@@ -1,5 +1,9 @@
 
 
+
+
+
+
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { GameState, GameContext, ChatMessage, GameResponse, LocationData, Item, NPC, SaveFile, Location, PlayerCharacter, WorldState, GameSettings, Quest, Faction, PlotOutline, Language, DBSaveSlotInfo } from '../types';
 import { executeTurn, askGmQuestion, getMusicSuggestionFromAi, getModelForStep } from '../utils/gameApi';
@@ -10,6 +14,7 @@ import { deleteMessage as deleteMessageUtil, clearHalfHistory as clearHalfHistor
 import { saveGameToFile, loadGameFromFile, saveToDB, loadFromDB, getAutosaveTimestampFromDB, saveToDBSlot, loadFromDBSlot, listDBSlots, deleteDBSlot } from '../utils/fileManager';
 import { useLocalization } from '../context/LocalizationContext';
 import { formatError } from '../utils/errorUtils';
+import { playNotificationSound, initializeAndPreviewSound } from '../utils/soundManager';
 
 const asArray = <T>(value: T | T[] | null | undefined): T[] => {
     if (value === null || value === undefined) {
@@ -245,6 +250,10 @@ export function useGameLogic({ language, setLanguage }: UseGameLogicProps) {
       setWorldState(nextContext.worldState);
       setTurnNumber(nextContext.currentTurnNumber);
       
+      if (nextContext.gameSettings.notificationSound) {
+        playNotificationSound();
+      }
+      
     } catch (err: any) {
       if (err.name !== 'AbortError') {
         const formattedError = formatError(err);
@@ -465,6 +474,11 @@ export function useGameLogic({ language, setLanguage }: UseGameLogicProps) {
     setGameSettings(prevSettings => {
         if (!prevSettings || !gameContextRef.current) return prevSettings;
         
+        // If the setting is being turned ON
+        if (newSettings.notificationSound === true && prevSettings.notificationSound === false) {
+            initializeAndPreviewSound();
+        }
+
         const updatedSettings = { ...prevSettings, ...newSettings };
         gameContextRef.current.gameSettings = updatedSettings;
         

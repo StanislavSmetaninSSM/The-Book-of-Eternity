@@ -60,6 +60,7 @@ export const general = {
     "Afternoon": "Afternoon",
     "Evening": "Evening",
     "Night": "Night",
+    "stat_at_training_cap": "Your {statName} is at its training cap ({cap}) for your level. You gain 25 XP instead.",
   },
   ru: {
     // General
@@ -121,5 +122,6 @@ export const general = {
     "Afternoon": "День",
     "Evening": "Вечер",
     "Night": "Ночь",
+    "stat_at_training_cap": "Ваша характеристика '{statName}' достигла тренировочного предела ({cap}) для вашего уровня. Вместо этого вы получаете 25 очков опыта.",
   }
 };

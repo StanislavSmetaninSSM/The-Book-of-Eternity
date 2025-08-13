@@ -1,3 +1,6 @@
+
+
+
 import { GameState, GameResponse, PlayerCharacter, Item, ActiveSkill, PassiveSkill, NPC, LocationData, Quest, EnemyCombatObject, AllyCombatObject, CustomState, Wound, Faction, SkillMastery, Effect, Recipe, UnlockedMemory, WorldStateFlag } from '../types';
 import { recalculateDerivedStats } from './gameContext';
 import { recalculateAllWeights } from './inventoryManager';
@@ -420,21 +423,6 @@ export const processAndApplyResponse = (response: GameResponse, baseState: GameS
             }
         });
 
-    // Auto-unequip broken items
-    asArray(response.inventoryItemsData)
-        .filter(itemData => itemData.existedId && itemData.durability === '0%')
-        .forEach(brokenItemUpdate => {
-            const item = inventoryMap.get(brokenItemUpdate.existedId!);
-            if (item) {
-                Object.keys(pc.equippedItems).forEach(slot => {
-                    if (pc.equippedItems[slot] === item.existedId) {
-                        pc.equippedItems[slot] = null;
-                        logsToAdd.push(t("item_broke_unequipped", { itemName: item.name }));
-                    }
-                });
-            }
-        });
-
     pc.inventory.push(...potentialNewItems);
 
     asArray(response.inventoryItemsResources).forEach(resourceUpdate => {
@@ -585,6 +573,18 @@ export const processAndApplyResponse = (response: GameResponse, baseState: GameS
             const { sourceSlots } = change;
             sourceSlots.forEach((slot: string) => {
                 pc.equippedItems[slot] = null;
+            });
+        }
+    });
+    
+    // Auto-unequip broken items
+    pc.inventory.forEach(item => {
+        if (item.durability === '0%') {
+            Object.keys(pc.equippedItems).forEach(slot => {
+                if (pc.equippedItems[slot] === item.existedId) {
+                    pc.equippedItems[slot] = null;
+                    logsToAdd.push(t("item_broke_unequipped", { itemName: item.name }));
+                }
             });
         }
     });
@@ -873,7 +873,14 @@ export const processAndApplyResponse = (response: GameResponse, baseState: GameS
     newState.playerCharacter = pc;
 
     if (response.currentLocationData) {
-        newState.currentLocationData = response.currentLocationData;
+        // FIX: Ensure new locations from the GM get a unique ID.
+        // On turn 1, the GM generates the *real* starting location, which arrives with a null ID.
+        // We must assign one here so it can be correctly added to the world map and tracked.
+        const newLocationDataWithId = { ...response.currentLocationData };
+        if (!newLocationDataWithId.locationId) {
+            newLocationDataWithId.locationId = generateId('loc');
+        }
+        newState.currentLocationData = newLocationDataWithId;
     }
     
     newState.activeQuests = upsertEntities(newState.activeQuests, asArray(response.questUpdates), 'questId', 'questName');
@@ -882,8 +889,25 @@ export const processAndApplyResponse = (response: GameResponse, baseState: GameS
     newState.lastUpdatedQuestId = response.questUpdates && response.questUpdates.length > 0 ? response.questUpdates[response.questUpdates.length - 1].questId : null;
     
     newState.encounteredFactions = upsertEntities(newState.encounteredFactions, asArray(response.factionDataChanges), 'factionId', 'name');
-    newState.enemiesData = response.enemiesData || [];
-    newState.alliesData = response.alliesData || [];
+    
+    // Handle enemiesData: null/undefined = no change, [] = clear, [...] = upsert
+    if (response.enemiesData !== null && response.enemiesData !== undefined) {
+        if (Array.isArray(response.enemiesData) && response.enemiesData.length === 0) {
+            newState.enemiesData = [];
+        } else {
+            newState.enemiesData = upsertEntities(newState.enemiesData || [], asArray(response.enemiesData), 'NPCId', 'name');
+        }
+    }
+
+    // Handle alliesData: null/undefined = no change, [] = clear, [...] = upsert
+    if (response.alliesData !== null && response.alliesData !== undefined) {
+        if (Array.isArray(response.alliesData) && response.alliesData.length === 0) {
+            newState.alliesData = [];
+        } else {
+            newState.alliesData = upsertEntities(newState.alliesData || [], asArray(response.alliesData), 'NPCId', 'name');
+        }
+    }
+    
     newState.playerCustomStates = upsertEntities(newState.playerCustomStates || [], asArray(response.customStateChanges), 'stateId', 'stateName');
     newState.playerCharacter.playerCustomStates = newState.playerCustomStates; // SYNC THE TWO
     newState.plotOutline = response.plotOutline || newState.plotOutline;

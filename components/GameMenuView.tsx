@@ -62,6 +62,7 @@ export default function GameMenuView({
     const [isAdultConfirmOpen, setIsAdultConfirmOpen] = useState(false);
     const [advancedBudget, setAdvancedBudget] = useState(false);
     const [localSuperInstructions, setLocalSuperInstructions] = React.useState(superInstructions);
+    const [localWorldInfo, setLocalWorldInfo] = useState(gameSettings?.gameWorldInformation?.customInfo ?? '');
     const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState<number | null>(null);
     const [isOverwriteConfirmOpen, setIsOverwriteConfirmOpen] = useState<number | null>(null);
     const [isCustomModelModalOpen, setIsCustomModelModalOpen] = useState(false);
@@ -72,11 +73,28 @@ export default function GameMenuView({
     }, [superInstructions]);
 
     useEffect(() => {
+        if (gameSettings) {
+            setLocalWorldInfo(gameSettings.gameWorldInformation.customInfo);
+        }
+    }, [gameSettings?.gameWorldInformation?.customInfo]);
+
+    useEffect(() => {
         refreshDbSaveSlots();
     }, [refreshDbSaveSlots]);
     
     const handleSaveSuperInstructions = () => {
         updateSuperInstructions(localSuperInstructions);
+    };
+    
+    const handleSaveWorldInfo = () => {
+        if (gameSettings) {
+            updateGameSettings({
+                gameWorldInformation: {
+                    ...gameSettings.gameWorldInformation,
+                    customInfo: localWorldInfo,
+                },
+            });
+        }
     };
 
     const handleSaveToNewSlot = () => {
@@ -113,7 +131,7 @@ export default function GameMenuView({
         )
     }
 
-    const { aiProvider, modelName, geminiThinkingBudget, adultMode, geminiApiKey, openRouterApiKey, youtubeApiKey, allowHistoryManipulation, correctionModelName, useDynamicThinkingBudget, isCustomModel, customModelName, openRouterModelName } = gameSettings;
+    const { aiProvider, modelName, geminiThinkingBudget, adultMode, geminiApiKey, openRouterApiKey, youtubeApiKey, allowHistoryManipulation, correctionModelName, useDynamicThinkingBudget, isCustomModel, customModelName, openRouterModelName, hardMode, notificationSound } = gameSettings;
 
     const handleProviderChange = (provider: 'gemini' | 'openrouter') => {
         updateGameSettings({
@@ -337,6 +355,93 @@ export default function GameMenuView({
                      <div className="space-y-2">
                         <label htmlFor="inGameYoutubeApiKey" className="block text-sm font-medium text-gray-300">{t("YouTube API Key (Optional)")}</label>
                         <input id="inGameYoutubeApiKey" name="youtubeApiKey" type="password" onChange={(e) => updateGameSettings({ youtubeApiKey: e.target.value })} value={youtubeApiKey} className="w-full bg-gray-700/50 border border-gray-600 rounded-md p-3 text-gray-200 focus:ring-2 focus:ring-cyan-500 transition" placeholder={t("Required for music feature")} />
+                    </div>
+                </div>
+            </fieldset>
+            
+            <fieldset disabled={!isGameActive || isLoading}>
+                <h3 className="text-xl font-bold text-cyan-400 my-4 narrative-text">{t("Game Rules")}</h3>
+                <div className="p-4 bg-gray-900/30 rounded-lg border border-cyan-500/20 space-y-4">
+                    <div className="flex items-center justify-between p-3 bg-gray-900/30 rounded-lg border border-cyan-500/20">
+                        <div>
+                            <label className="font-medium text-gray-300">{t("Hard Mode")}</label>
+                            <p className="text-xs text-gray-400">{t("Increases enemy health and action difficulty for a greater challenge and enhanced rewards.")}</p>
+                        </div>
+                        <label htmlFor="inGameHardMode" className="relative inline-flex items-center cursor-pointer">
+                            <input
+                                type="checkbox"
+                                id="inGameHardMode"
+                                className="sr-only peer"
+                                checked={!!hardMode}
+                                onChange={(e) => updateGameSettings({ hardMode: e.target.checked })}
+                            />
+                            <div className="w-11 h-6 bg-gray-600 rounded-full peer peer-focus-within:ring-2 peer-focus-within:ring-cyan-500 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-cyan-600"></div>
+                        </label>
+                    </div>
+                     <div className="flex items-center justify-between p-3 bg-gray-900/30 rounded-lg border border-cyan-500/20">
+                        <div>
+                            <label className="font-medium text-gray-300">{t("Notification Sound")}</label>
+                            <p className="text-xs text-gray-400">{t("Play a sound when the GM's response is ready.")}</p>
+                        </div>
+                         <label htmlFor="inGameNotificationSound" className="relative inline-flex items-center cursor-pointer">
+                            <input
+                                type="checkbox"
+                                id="inGameNotificationSound"
+                                name="notificationSound"
+                                className="sr-only peer"
+                                checked={!!notificationSound}
+                                onChange={(e) => updateGameSettings({ notificationSound: e.target.checked })}
+                            />
+                            <div className="w-11 h-6 bg-gray-600 rounded-full peer peer-focus-within:ring-2 peer-focus-within:ring-cyan-500 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-cyan-600"></div>
+                        </label>
+                    </div>
+                     <div className="p-3 bg-gray-900/30 rounded-lg border border-cyan-500/20 space-y-4">
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <label className="font-medium text-gray-300">{t("Allow History Manipulation")}</label>
+                                <p className="text-xs text-gray-400">{t("allowHistoryManipulationDescription")}</p>
+                            </div>
+                            <label htmlFor="inGameAllowHistoryManipulation" className="relative inline-flex items-center cursor-pointer">
+                                <input
+                                    type="checkbox"
+                                    id="inGameAllowHistoryManipulation"
+                                    name="allowHistoryManipulation"
+                                    className="sr-only peer"
+                                    checked={!!allowHistoryManipulation}
+                                    onChange={(e) => updateGameSettings({ allowHistoryManipulation: e.target.checked })}
+                                />
+                                <div className="w-11 h-6 bg-gray-600 rounded-full peer peer-focus-within:ring-2 peer-focus-within:ring-cyan-500 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-cyan-600"></div>
+                            </label>
+                        </div>
+                        {allowHistoryManipulation && (
+                            <div className="space-y-4 pt-4 border-t border-cyan-500/20">
+                                <div>
+                                    <label htmlFor="inGameSuperInstructions" className="block text-sm font-medium text-gray-300 mb-2">{t("Player Super-Instructions")}</label>
+                                    <p className="text-xs text-gray-400 mb-2">{t("These instructions override the GM's default behavior. Use with caution.")}</p>
+                                    <textarea
+                                        id="inGameSuperInstructions"
+                                        value={localSuperInstructions}
+                                        onChange={(e) => setLocalSuperInstructions(e.target.value)}
+                                        className="w-full bg-gray-700/50 border border-gray-600 rounded-md p-3 text-gray-200 focus:ring-2 focus:ring-cyan-500 transition min-h-[100px]"
+                                    />
+                                    <button onClick={handleSaveSuperInstructions} className="mt-2 w-full bg-cyan-600/20 text-cyan-200 hover:bg-cyan-600/40 font-semibold py-2 px-4 rounded-md transition-colors">
+                                        {t("Save Super-Instructions")}
+                                    </button>
+                                </div>
+                                <div>
+                                    <label htmlFor="inGameWorldInformation" className="block text-sm font-medium text-gray-300 mb-2">{t("World Information")}</label>
+                                    <textarea
+                                        id="inGameWorldInformation"
+                                        value={localWorldInfo}
+                                        onChange={(e) => setLocalWorldInfo(e.target.value)}
+                                        className="w-full bg-gray-700/50 border border-gray-600 rounded-md p-3 text-gray-200 focus:ring-2 focus:ring-cyan-500 transition min-h-[100px]"
+                                    />
+                                    <button onClick={handleSaveWorldInfo} className="mt-2 w-full bg-cyan-600/20 text-cyan-200 hover:bg-cyan-600/40 font-semibold py-2 px-4 rounded-md transition-colors">
+                                        {t("Save World Information")}
+                                    </button>
+                                </div>
+                            </div>
+                        )}
                     </div>
                 </div>
             </fieldset>

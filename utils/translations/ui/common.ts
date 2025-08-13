@@ -123,6 +123,7 @@ export const common = {
     "Model": "Model",
     "Turn Processing Time": "Turn Processing Time",
     "Are you sure you want to delete this message?": "Are you sure you want to delete this message?",
+    "You do not know any recipes yet. You might learn them from books, trainers, or through practice with Knowledge-Based skills.": "You do not know any recipes yet. You might learn them from books, trainers, or through practice with Knowledge-Based skills.",
   },
   ru: {
     "Edit": "Редактировать",
@@ -247,5 +248,6 @@ export const common = {
     "Model": "Модель",
     "Turn Processing Time": "Время обработки хода",
     "Are you sure you want to delete this message?": "Вы уверены, что хотите удалить это сообщение?",
+    "You do not know any recipes yet. You might learn them from books, trainers, or through practice with Knowledge-Based skills.": "Вы еще не знаете ни одного рецепта. Вы можете изучить их из книг, у наставников или практикуясь с навыками, основанными на Знаниях.",
   }
 };

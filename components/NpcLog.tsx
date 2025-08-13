@@ -23,6 +23,14 @@ const NpcItem: React.FC<{ npc: NPC, faction: Faction | undefined, factionName: s
     const { t } = useLocalization();
     const primaryAffiliation = npc.factionAffiliations?.[0];
     const displayFactionName = faction ? faction.name : (factionName || t('Unknown Faction'));
+    
+    const getRelationshipTooltip = (level: number) => {
+        if (level <= 49) return t('relationship_level_hostility');
+        if (level === 50) return t('relationship_level_neutrality');
+        if (level <= 100) return t('relationship_level_friendship');
+        if (level <= 150) return t('relationship_level_deep_bond');
+        return t('relationship_level_devotion');
+    };
 
     return (
         <button
@@ -39,7 +47,13 @@ const NpcItem: React.FC<{ npc: NPC, faction: Faction | undefined, factionName: s
             <div className="flex-1">
                 <p className="font-semibold text-gray-200">{npc.name}</p>
                 <p className="text-sm text-gray-400">{t(npc.race as any)} {t(npc.class as any)}</p>
-                {npc.attitude && (
+                {npc.relationshipLevel !== undefined ? (
+                    <div title={getRelationshipTooltip(npc.relationshipLevel)}>
+                        <p className={`text-xs mt-1 font-semibold ${attitudeColorMap[npc.attitude || ''] || 'text-gray-400'}`}>
+                            {t('Relationship')}: {npc.relationshipLevel} {npc.attitude ? `(${t(npc.attitude as any)})` : ''}
+                        </p>
+                    </div>
+                ) : npc.attitude && (
                     <p className={`text-xs mt-1 font-semibold ${attitudeColorMap[npc.attitude] || 'text-gray-400'}`}>{t('Attitude')}: {t(npc.attitude as any)}</p>
                 )}
                 {primaryAffiliation && (

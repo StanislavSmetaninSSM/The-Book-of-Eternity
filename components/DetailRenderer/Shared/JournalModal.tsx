@@ -51,6 +51,19 @@ const JournalModal: React.FC<JournalModalProps> = ({ isOpen, onClose, journalEnt
       >
         <div className="space-y-4">
           {journalEntries.map((entry, index) => {
+             if (typeof entry !== 'string') {
+              return (
+                <div key={index} className="bg-red-900/40 p-3 rounded-lg border border-red-700/50">
+                  <div className="text-red-300 font-semibold text-sm">
+                    [{t('Corrupted Journal Entry')}]
+                  </div>
+                  <pre className="text-xs text-red-200/80 whitespace-pre-wrap break-all mt-1">
+                    {JSON.stringify(entry, null, 2)}
+                  </pre>
+                </div>
+              );
+            }
+
             const strippedEntry = stripMarkdown(entry);
             const isThisEntrySpeaking = isSpeaking && currentlySpeakingText === strippedEntry;
 

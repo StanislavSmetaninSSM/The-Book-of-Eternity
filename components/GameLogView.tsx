@@ -25,13 +25,11 @@ export default function GameLogView({ gameLog, onDeleteLogs }: GameLogViewProps)
             {t("Clear Button")}
         </button>
       </div>
-      <div className="flex-1 bg-gray-900/50 rounded-lg p-4 overflow-y-auto space-y-4">
+      <div className="flex-1 bg-gray-900/50 rounded-lg p-4 overflow-y-auto">
         {gameLog && gameLog.length > 0 ? (
-          (gameLog || []).map((entry, index) => (
-            <div key={index} className="bg-gray-800/50 p-3 rounded-md shadow-inner">
-              <MarkdownRenderer content={entry} className="prose-sm" />
-            </div>
-          ))
+          <div className="bg-gray-800/50 p-3 rounded-md shadow-inner">
+            <MarkdownRenderer content={gameLog.join('\n\n')} className="prose-sm" />
+          </div>
         ) : (
           <div className="text-center text-gray-500 p-6 flex flex-col items-center justify-center h-full">
             <DocumentMagnifyingGlassIcon className="w-12 h-12 text-gray-600 mb-4" />

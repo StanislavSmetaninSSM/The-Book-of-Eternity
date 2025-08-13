@@ -35,15 +35,11 @@ const AboutContent: React.FC = () => {
                     <UserGroupIcon className="w-5 h-5" />
                     {t('Discord Server')}
                 </a>
-                <a
-                    href="https://new.donatepay.ru/@1403769"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex-1 flex items-center justify-center gap-3 px-4 py-3 text-base font-semibold text-white bg-red-600/80 rounded-lg hover:bg-red-600 transition-colors border border-red-500/50"
+                <div
+                    className="flex-1 flex items-center justify-center gap-3 px-4 py-3 text-base font-semibold text-gray-500 bg-gray-800/40 rounded-lg border border-gray-700/60"
                 >
-                    <HeartIcon className="w-5 h-5" />
-                    {t('Support the Project')}
-                </a>
+                    {t('donations_unavailable')}
+                </div>
             </div>
             <div className="text-xs text-gray-500 pt-2">
                 <p>{t('This is a Russian-speaking community server.')}</p>

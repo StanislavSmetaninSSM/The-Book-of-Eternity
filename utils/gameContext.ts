@@ -1,8 +1,6 @@
 
 
-
-
-import { GameState, GameContext, ChatMessage, GameResponse, PlayerCharacter, LocationData, Characteristics, Location, Faction, Language, LootTemplate, UnlockedMemory, Recipe, Item, WorldStateFlag } from '../types';
+import { GameState, GameContext, ChatMessage, GameResponse, PlayerCharacter, LocationData, Characteristics, Location, Faction, Language, LootTemplate, UnlockedMemory, Recipe, Item, WorldStateFlag, SkillMastery, GameSettings, WorldState } from '../types';
 import { gameData } from './localizationGameData';
 import { generateLootTemplates } from './lootGenerator';
 
@@ -183,6 +181,7 @@ export const createInitialContext = (creationData: any, language: Language): Gam
       allowHistoryManipulation,
       currencyName,
       hardMode,
+      notificationSound,
   } = creationData;
 
   const standardCharacteristics: any = {};
@@ -251,18 +250,19 @@ export const createInitialContext = (creationData: any, language: Language): Gam
   const maxHealth = 100 + Math.floor(stdCon * 1.5) + Math.floor(stdStr * 0.5);
   const maxEnergy = 100 + Math.floor(stdInt * 0.6) + Math.floor(stdWis * 0.6) + Math.floor(stdFth * 0.6) + Math.floor(stdCon * 0.2);
   const maxWeight = 30 + Math.floor(stdStr * 1.8 + stdCon * 0.4);
-  const critChanceThreshold = 20 - Math.floor(stdLck / 20);
-
-  const initialPlayerCharacter: PlayerCharacter = {
+  const critChanceBuffFromLuck = Math.floor(stdLck / 20);
+  const critChanceThreshold = 20 - critChanceBuffFromLuck;
+  
+  const playerCharacter: PlayerCharacter = {
     name: playerName,
     race: isCustomRace ? customRaceName : race,
     class: isCustomClass ? customClassName : charClass,
-    age: age || 25,
+    age: age,
     appearanceDescription: characterDescription,
-    raceDescription: isCustomRace ? customRaceDescription : (currentWorld.races as any)[race]?.description,
-    classDescription: isCustomClass ? customClassDescription : (currentWorld.classes as any)[charClass]?.description,
+    raceDescription: isCustomRace ? customRaceDescription : currentWorld.races[race]!.description,
+    classDescription: isCustomClass ? customClassDescription : currentWorld.classes[charClass]!.description,
     level: 1,
-    levelOnPreviousTurn: 0,
+    levelOnPreviousTurn: 1,
     experience: 0,
     experienceForNextLevel: 100,
     attributePoints: 0,
@@ -274,247 +274,229 @@ export const createInitialContext = (creationData: any, language: Language): Gam
     maxWeight: maxWeight,
     totalWeight: 0,
     criticalExcessWeight: 15,
-    critChanceBuffFromLuck: Math.floor(stdLck / 20),
-    critChanceThreshold: critChanceThreshold,
+    critChanceBuffFromLuck,
+    critChanceThreshold,
     characteristics: {
       ...standardCharacteristics,
-      ...Object.keys(standardCharacteristics).reduce((acc, key) => {
-          const modifiedKey = key.replace('standard', 'modified');
-          acc[modifiedKey] = standardCharacteristics[key];
-          return acc;
-      }, {} as any)
-    } as Characteristics,
+      modifiedStrength: standardCharacteristics.standardStrength,
+      modifiedDexterity: standardCharacteristics.standardDexterity,
+      modifiedConstitution: standardCharacteristics.standardConstitution,
+      modifiedIntelligence: standardCharacteristics.standardIntelligence,
+      modifiedWisdom: standardCharacteristics.standardWisdom,
+      modifiedFaith: standardCharacteristics.standardFaith,
+      modifiedAttractiveness: standardCharacteristics.standardAttractiveness,
+      modifiedTrade: standardCharacteristics.standardTrade,
+      modifiedPersuasion: standardCharacteristics.standardPersuasion,
+      modifiedPerception: standardCharacteristics.standardPerception,
+      modifiedLuck: standardCharacteristics.standardLuck,
+      modifiedSpeed: standardCharacteristics.standardSpeed,
+    },
     activeSkills: [],
     passiveSkills: [],
     skillMasteryData: [],
     knownRecipes: [],
     inventory: [],
-    equippedItems: { Head: null, Chest: null, Legs: null, Feet: null, Hands: null, Wrists: null, Neck: null, Waist: null, Back: null, Finger1: null, Finger2: null, MainHand: null, OffHand: null },
+    equippedItems: {
+        Head: null, Neck: null, Chest: null, Back: null, MainHand: null, OffHand: null,
+        Hands: null, Wrists: null, Waist: null, Legs: null, Feet: null,
+        Finger1: null, Finger2: null
+    },
     activePlayerEffects: [],
     playerWounds: [],
-    playerCustomStates: null,
+    playerCustomStates: [],
     autoCombatSkill: null,
-    stealthState: {
-        isActive: false,
-        detectionLevel: 0,
-        description: 'Not sneaking'
-    },
-    effortTracker: {
-        lastUsedCharacteristic: null,
-        consecutivePartialSuccesses: 0,
-    },
-  };
-  
-  const [startHour, startMinute] = (startTime || '08:00').split(':').map(Number);
-  const currentTimeInMinutes = startHour * 60 + startMinute;
-  let timeOfDay: 'Morning' | 'Afternoon' | 'Evening' | 'Night' = 'Morning';
-  if (startHour >= 6 && startHour < 12) {
-      timeOfDay = 'Morning';
-  } else if (startHour >= 12 && startHour < 18) {
-      timeOfDay = 'Afternoon';
-  } else if (startHour >= 18 && startHour < 22) {
-      timeOfDay = 'Evening';
-  } else {
-      timeOfDay = 'Night';
-  }
-  
-  const possibleWeathers = [
-    'Clear', 'Cloudy', 'Overcast', 'Foggy', 'Light Rain', 'Heavy Rain', 'Storm',
-    'Scorching Sun', 'Windy', 'Sandstorm', 'Frigid Air', 'Light Snow', 'Heavy Snow',
-    'Blizzard', 'Humid', 'Misty', 'Drizzle', 'Downpour', 'Rain', 'Snow'
-  ];
-  const randomWeather = possibleWeathers[Math.floor(Math.random() * possibleWeathers.length)];
-  const initialWeather = weather === 'Random' ? randomWeather : weather;
-
-  const initialLocationPlaceholder: Location = {
-    name: "Unknown",
-    difficultyProfile: { combat: 1, environment: 1, social: 1, exploration: 1 },
-    description: "",
-    lastEventsDescription: "",
-    image_prompt: "",
-    locationId: "start-loc-0",
-    coordinates: { x: 0, y: 0 },
-    locationType: 'outdoor',
-    biome: 'Plains',
+    stealthState: { isActive: false, detectionLevel: 0, description: 'Not sneaking' },
+    effortTracker: { lastUsedCharacteristic: null, consecutivePartialSuccesses: 0 },
   };
 
-  const initialLoot = generateLootTemplates([0.1, 1.1, 1.1, 1.1, 0.1], initialPlayerCharacter, 10);
+  const gameSettings: GameSettings = {
+    nonMagicMode: finalNonMagicMode,
+    language,
+    gameWorldInformation: {
+      currencyName: finalCurrencyName,
+      baseInfo: baseInfo,
+      customInfo: worldInformation,
+    },
+    modelName: isCustomModel ? customModelName : (aiProvider === 'openrouter' ? openRouterModelName : modelName),
+    correctionModelName,
+    aiProvider,
+    isCustomModel,
+    customModelName,
+    openRouterModelName,
+    geminiThinkingBudget: geminiThinkingBudget,
+    useDynamicThinkingBudget,
+    adultMode,
+    geminiApiKey,
+    openRouterApiKey,
+    youtubeApiKey,
+    allowHistoryManipulation,
+    hardMode,
+    notificationSound: notificationSound ?? false,
+  };
 
-  return {
+  const initialLocation: LocationData = {
+      locationId: generateId('loc'),
+      name: "Starting Point",
+      description: "You find yourself at the beginning of your journey.",
+      coordinates: {x: 0, y: 0},
+      locationType: 'outdoor',
+      biome: 'Plains',
+      lastEventsDescription: '',
+      image_prompt: 'A vast open plain under a clear blue sky, a single path leading towards the horizon, fantasy landscape.',
+      difficultyProfile: { combat: 5, environment: 5, social: 5, exploration: 5 }
+  };
+  
+  const initialWeather = (() => {
+    if (weather === 'Random') {
+        const allWeatherOptions = Array.from(new Set(Object.values(BIOME_WEATHER).flat()));
+        return allWeatherOptions[Math.floor(Math.random() * allWeatherOptions.length)];
+    }
+    return weather || 'Clear';
+  })();
+
+  const initialWorldState: WorldState = {
+      day: 1,
+      timeOfDay: 'Morning',
+      weather: initialWeather,
+      currentTimeInMinutes: parseInt(startTime.split(':')[0]) * 60 + parseInt(startTime.split(':')[1]),
+  };
+
+  const initialContext: GameContext = {
     message: initialPrompt,
-    superInstructions: superInstructions || "No special rules provided by the player.",
+    superInstructions,
     currentTurnNumber: 1,
-    gameSettings: {
-      nonMagicMode: finalNonMagicMode,
-      language: language,
-      gameWorldInformation: {
-        currencyName: finalCurrencyName,
-        baseInfo: baseInfo,
-        customInfo: worldInformation || "No additional world information provided by the player.",
-      },
-      modelName: modelName || 'gemini-2.5-flash',
-      aiProvider: aiProvider || 'gemini',
-      geminiThinkingBudget: geminiThinkingBudget ?? 512,
-      useDynamicThinkingBudget: useDynamicThinkingBudget ?? true,
-      adultMode: adultMode ?? false,
-      geminiApiKey: geminiApiKey || '',
-      openRouterApiKey: openRouterApiKey || '',
-      youtubeApiKey: youtubeApiKey || '',
-      allowHistoryManipulation: allowHistoryManipulation ?? false,
-      correctionModelName: correctionModelName || '',
-      hardMode: hardMode ?? false,
-      isCustomModel: isCustomModel ?? false,
-      customModelName: customModelName || '',
-      openRouterModelName: openRouterModelName || 'google/gemini-flash-1.5',
-    },
-    playerCharacter: initialPlayerCharacter,
-    currentLocation: initialLocationPlaceholder,
-    visitedLocations: [initialLocationPlaceholder],
+    gameSettings,
+    playerCharacter,
+    currentLocation: initialLocation,
+    visitedLocations: [initialLocation],
     activeQuests: [],
     completedQuests: [],
     encounteredNPCs: [],
     npcSkillMasteryData: [],
-    lootForCurrentTurn: initialLoot,
+    lootForCurrentTurn: generateLootTemplates([0.1, 1.1, 1.1, 1.1, 0.1], playerCharacter, 5),
     preGeneratedDices1d20: Array.from({ length: 50 }, () => Math.floor(Math.random() * 20) + 1),
-    worldState: {
-      day: 1,
-      timeOfDay: timeOfDay,
-      weather: initialWeather,
-      currentTimeInMinutes: currentTimeInMinutes,
-    },
+    worldState: initialWorldState,
     worldStateFlags: {},
     previousTurnResponse: null,
+    encounteredFactions: [],
     plotOutline: null,
-    worldMap: { [initialLocationPlaceholder.locationId!]: initialLocationPlaceholder },
-    responseHistory: [],
+    worldMap: { [initialLocation.locationId]: initialLocation },
+    responseHistory: [], // this will be populated in useGameLogic
     currentStepFocus: null,
     partiallyGeneratedResponse: null,
-    enemiesDataForCurrentTurn: null,
-    alliesDataForCurrentTurn: null,
-    playerCustomStates: null,
-    encounteredFactions: [],
+    enemiesDataForCurrentTurn: [],
+    alliesDataForCurrentTurn: [],
+    playerCustomStates: [],
   };
+
+  return initialContext;
 };
 
-export const buildNextContext = (
-  prevContext: GameContext,
-  response: GameResponse,
-  newState: GameState, // This is a mutable reference
-  chatHistory: ChatMessage[],
-  incrementTurn = true
-): GameContext => {
-  const newWorldMap = updateWorldMap(prevContext.worldMap, response.worldMapUpdates, newState.currentLocationData);
-  
-  const newVisitedLocations = [...prevContext.visitedLocations];
-  const currentLocationUpdate = newState.currentLocationData;
+export function buildNextContext(
+    currentContext: GameContext,
+    response: GameResponse,
+    newState: GameState,
+    newHistory: ChatMessage[],
+    advanceTurn: boolean = true
+): GameContext {
+    const newTurnNumber = advanceTurn ? currentContext.currentTurnNumber + 1 : currentContext.currentTurnNumber;
 
-  if (currentLocationUpdate) {
-    let existingIndex = -1;
-    
-    const placeholderIndex = newVisitedLocations.findIndex(loc => loc && loc.locationId === 'start-loc-0');
-    if (placeholderIndex !== -1 && prevContext.currentTurnNumber === 1) {
-        existingIndex = placeholderIndex;
-    } else {
-        if (currentLocationUpdate.locationId) {
-            existingIndex = newVisitedLocations.findIndex(loc => loc && loc.locationId === currentLocationUpdate.locationId);
-        }
-        if (existingIndex === -1 && currentLocationUpdate.name) {
-            existingIndex = newVisitedLocations.findIndex(loc => loc && loc.name && loc.name.toLowerCase() === currentLocationUpdate.name.toLowerCase());
+    let newWorldState = { ...currentContext.worldState };
+    if (advanceTurn && response.timeChange && response.timeChange > 0) {
+        newWorldState.currentTimeInMinutes += response.timeChange;
+        const totalDays = Math.floor(newWorldState.currentTimeInMinutes / (24 * 60));
+        newWorldState.day = 1 + totalDays;
+        const minutesIntoDay = newWorldState.currentTimeInMinutes % (24 * 60);
+
+        if (minutesIntoDay >= 5 * 60 && minutesIntoDay < 12 * 60) newWorldState.timeOfDay = 'Morning';
+        else if (minutesIntoDay >= 12 * 60 && minutesIntoDay < 18 * 60) newWorldState.timeOfDay = 'Afternoon';
+        else if (minutesIntoDay >= 18 * 60 && minutesIntoDay < 22 * 60) newWorldState.timeOfDay = 'Evening';
+        else newWorldState.timeOfDay = 'Night';
+    }
+
+    if (response.weatherChange && response.weatherChange.tendency !== 'NO_CHANGE') {
+        const currentBiome = newState.currentLocationData.biome || 'TemperateForest';
+        const weatherOptions = BIOME_WEATHER[currentBiome] || BIOME_WEATHER['Unique'];
+        const currentIdx = weatherOptions.indexOf(newWorldState.weather);
+
+        if (response.weatherChange.tendency.startsWith('JUMP_TO_')) {
+            const targetWeather = response.weatherChange.tendency.replace('JUMP_TO_', '').replace(/_/g, ' ');
+            if (weatherOptions.includes(targetWeather)) {
+                newWorldState.weather = targetWeather;
+            }
+        } else if (currentIdx !== -1) {
+            if (response.weatherChange.tendency === 'IMPROVE') {
+                newWorldState.weather = weatherOptions[Math.max(0, currentIdx - 1)];
+            } else if (response.weatherChange.tendency === 'WORSEN') {
+                newWorldState.weather = weatherOptions[Math.min(weatherOptions.length - 1, currentIdx + 1)];
+            }
         }
     }
     
-    if (existingIndex !== -1) {
-        // An existing location was found. Update it.
-        const originalLocation = newVisitedLocations[existingIndex];
-        const updatedLocation = { ...originalLocation, ...currentLocationUpdate };
+    let newWorldMap: Record<string, Location>;
+    let newVisitedLocations: Location[];
 
-        // Specific merge logic for event history
-        const newEvent = currentLocationUpdate.lastEventsDescription;
-        const oldEvents = originalLocation.lastEventsDescription;
-        updatedLocation.lastEventsDescription = newEvent ? `${newEvent}\n\n${oldEvents}`.trim() : oldEvents;
+    // Special logic for Turn 1 to completely replace the "Starting Point" placeholder.
+    if (currentContext.currentTurnNumber === 1 && response.currentLocationData) {
+        // The new world map starts fresh with ONLY the new, real starting location.
+        const initialMapForTurn1 = {};
+        newWorldMap = updateWorldMap(initialMapForTurn1, response.worldMapUpdates, newState.currentLocationData);
 
-        // Ensure the ID is correct and consistent.
-        updatedLocation.locationId = (originalLocation.locationId === 'start-loc-0') 
-            ? generateId('loc') 
-            : originalLocation.locationId;
+        // The visited locations list also starts fresh with only the new location.
+        newVisitedLocations = [newState.currentLocationData];
+    } else {
+        // This is the logic for all subsequent turns.
+        newWorldMap = updateWorldMap(currentContext.worldMap, response.worldMapUpdates, newState.currentLocationData);
         
-        // MUTATE the newState object so the UI gets the correct ID.
-        newState.currentLocationData.locationId = updatedLocation.locationId;
+        newVisitedLocations = [...currentContext.visitedLocations];
+        const locationIndex = newVisitedLocations.findIndex(l => l.locationId === newState.currentLocationData.locationId);
 
-        newVisitedLocations[existingIndex] = updatedLocation;
-    } else {
-        // It's a brand new location not seen before.
-        const newId = currentLocationUpdate.locationId || generateId('loc');
-        newState.currentLocationData.locationId = newId; // Mutate
-        newVisitedLocations.push(newState.currentLocationData);
-    }
-  }
+        if (locationIndex === -1) {
+            // Location not found, so add it.
+            newVisitedLocations.push(newState.currentLocationData);
+        } else {
+            // Location found, so update it with the latest data, preserving the event log.
+            const oldLocationData = newVisitedLocations[locationIndex];
+            const newLocationData = newState.currentLocationData;
+            
+            // If the new event description is present and different, prepend it.
+            if (newLocationData.lastEventsDescription && newLocationData.lastEventsDescription !== oldLocationData.lastEventsDescription) {
+                 newLocationData.lastEventsDescription = `${newLocationData.lastEventsDescription}\n\n${oldLocationData.lastEventsDescription || ''}`.trim();
+            }
 
-  const newWorldState = JSON.parse(JSON.stringify(prevContext.worldState));
-
-  if (response.timeChange && response.timeChange > 0) {
-      newWorldState.currentTimeInMinutes = (newWorldState.currentTimeInMinutes || 0) + response.timeChange;
-      if (newWorldState.currentTimeInMinutes >= 1440) { // 24 * 60 minutes
-          newWorldState.day += Math.floor(newWorldState.currentTimeInMinutes / 1440);
-          newWorldState.currentTimeInMinutes %= 1440;
-      }
-  
-      const currentHour = Math.floor(newWorldState.currentTimeInMinutes / 60);
-      if (currentHour >= 6 && currentHour < 12) {
-          newWorldState.timeOfDay = 'Morning';
-      } else if (currentHour >= 12 && currentHour < 18) {
-          newWorldState.timeOfDay = 'Afternoon';
-      } else if (currentHour >= 18 && currentHour < 22) {
-          newWorldState.timeOfDay = 'Evening';
-      } else {
-          newWorldState.timeOfDay = 'Night';
-      }
-  }
-
-  if (response.weatherChange && newState.currentLocationData.locationType === 'outdoor') {
-    const biome = newState.currentLocationData.biome || 'Plains';
-    const weatherLadder = BIOME_WEATHER[biome as keyof typeof BIOME_WEATHER] || BIOME_WEATHER['Unique'];
-    const currentWeatherIndex = weatherLadder.indexOf(newWorldState.weather);
-
-    const tendency = response.weatherChange.tendency;
-
-    if (tendency === 'IMPROVE' && currentWeatherIndex > 0) {
-        newWorldState.weather = weatherLadder[currentWeatherIndex - 1];
-    } else if (tendency === 'WORSEN' && currentWeatherIndex < weatherLadder.length - 1) {
-        newWorldState.weather = weatherLadder[currentWeatherIndex + 1];
-    } else if (tendency.startsWith('JUMP_TO_')) {
-        const targetWeather = tendency.replace('JUMP_TO_', '').replace(/_/g, ' ');
-        // Convert 'LIGHT RAIN' to 'Light Rain'
-        const titleCaseTarget = targetWeather.toLowerCase().split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
-        if (weatherLadder.includes(titleCaseTarget)) {
-            newWorldState.weather = titleCaseTarget;
+            newVisitedLocations[locationIndex] = { 
+                ...oldLocationData, 
+                ...newLocationData,
+            };
         }
     }
-  }
 
-  const lootForNextTurn = generateLootTemplates(response.multipliers, newState.playerCharacter, 10);
+    const nextContext: GameContext = {
+        ...currentContext,
+        message: '', // Clear message for next turn
+        currentTurnNumber: newTurnNumber,
+        playerCharacter: newState.playerCharacter,
+        currentLocation: newState.currentLocationData,
+        visitedLocations: newVisitedLocations,
+        activeQuests: newState.activeQuests,
+        completedQuests: newState.completedQuests,
+        encounteredNPCs: newState.encounteredNPCs,
+        encounteredFactions: newState.encounteredFactions,
+        worldState: newWorldState,
+        worldStateFlags: newState.worldStateFlags,
+        previousTurnResponse: response,
+        plotOutline: newState.plotOutline,
+        worldMap: newWorldMap,
+        responseHistory: newHistory,
+        // Reset turn-specific data
+        lootForCurrentTurn: generateLootTemplates(response.multipliers, newState.playerCharacter, 5),
+        preGeneratedDices1d20: Array.from({ length: 50 }, () => Math.floor(Math.random() * 20) + 1),
+        enemiesDataForCurrentTurn: newState.enemiesData,
+        alliesDataForCurrentTurn: newState.alliesData,
+        playerCustomStates: newState.playerCustomStates,
+        currentStepFocus: null,
+        partiallyGeneratedResponse: null,
+    };
 
-  return {
-      ...prevContext,
-      message: '',
-      currentTurnNumber: prevContext.currentTurnNumber + (incrementTurn ? 1 : 0),
-      playerCharacter: newState.playerCharacter,
-      currentLocation: newState.currentLocationData,
-      visitedLocations: newVisitedLocations,
-      activeQuests: newState.activeQuests,
-      completedQuests: newState.completedQuests,
-      encounteredNPCs: newState.encounteredNPCs,
-      previousTurnResponse: response,
-      responseHistory: chatHistory.slice(-15),
-      lootForCurrentTurn: lootForNextTurn,
-      preGeneratedDices1d20: Array.from({ length: 50 }, () => Math.floor(Math.random() * 20) + 1),
-      enemiesDataForCurrentTurn: response.enemiesData,
-      alliesDataForCurrentTurn: response.alliesData,
-      worldState: newWorldState,
-      worldStateFlags: newState.worldStateFlags,
-      encounteredFactions: newState.encounteredFactions,
-      plotOutline: response.plotOutline || prevContext.plotOutline,
-      worldMap: newWorldMap,
-      playerCustomStates: newState.playerCustomStates,
-  };
+    return nextContext;
 }

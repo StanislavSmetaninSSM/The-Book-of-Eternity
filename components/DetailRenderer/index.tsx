@@ -59,8 +59,8 @@ const CustomStateDetailsRenderer: React.FC<{ state: CustomState }> = ({ state })
 // Type guards
 const isItem = (data: any): data is Item => data && typeof data.quality === 'string' && typeof data.weight === 'number';
 const isQuest = (data: any): data is Quest => data && typeof data.questGiver === 'string' && Array.isArray(data.objectives);
-const isActiveSkill = (data: any): data is ActiveSkill => data && typeof data.skillName === 'string' && data.energyCost !== undefined;
-const isPassiveSkill = (data: any): data is PassiveSkill => data && typeof data.skillName === 'string' && data.energyCost === undefined && data.group !== undefined;
+const isPassiveSkill = (data: any): data is PassiveSkill => data && typeof data.skillName === 'string' && data.masteryLevel !== undefined;
+const isActiveSkill = (data: any): data is ActiveSkill => data && typeof data.skillName === 'string' && data.masteryLevel === undefined && !isPassiveSkill(data);
 const isEffect = (data: any): data is Effect => data && typeof data.effectType === 'string' && data.duration !== undefined;
 const isWound = (data: any): data is Wound => data && typeof data.woundName === 'string' && data.severity !== undefined;
 const isNpc = (data: any): data is NPC => data && (data.relationshipLevel !== undefined || data.NPCId !== undefined) && data.attitude !== undefined;

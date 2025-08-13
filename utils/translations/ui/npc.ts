@@ -1,5 +1,7 @@
 
 
+
+
 export const npc = {
   en: {
     // NPC Details
@@ -40,6 +42,10 @@ export const npc = {
     "Delete Oldest Journal Entries": "Delete Oldest Journal Entries",
     "Are you sure you want to delete the 10 oldest journal entries for {name}? This cannot be undone.": "Are you sure you want to delete the 10 oldest journal entries for {name}? This cannot be undone.",
     "Progression": "Progression",
+    "Image Prompt": "Image Prompt",
+    "Custom Image Prompt": "Custom Image Prompt",
+    "Default prompt from AI:": "Default prompt from AI:",
+    "Corrupted Journal Entry": "Corrupted Journal Entry",
 
 
     // NPC Log
@@ -65,6 +71,13 @@ export const npc = {
     "Lawful Evil": "Lawful Evil",
     "Neutral Evil": "Neutral Evil",
     "Chaotic Evil": "Chaotic Evil",
+
+    // Relationship Tooltips
+    "relationship_level_hostility": "Hostility / Distrust (0-49)",
+    "relationship_level_neutrality": "Neutrality (50)",
+    "relationship_level_friendship": "Friendship / Respect (51-100)",
+    "relationship_level_deep_bond": "Deep Bond / Loyalty (101-150)",
+    "relationship_level_devotion": "Unyielding Devotion / True Love (151-200)",
   },
   ru: {
     // NPC Details
@@ -106,6 +119,10 @@ export const npc = {
     "Delete Oldest Journal Entries": "Удалить старые записи журнала",
     "Are you sure you want to delete the 10 oldest journal entries for {name}? This cannot be undone.": "Вы уверены, что хотите удалить 10 самых старых записей в журнале для {name}? Это действие нельзя отменить.",
     "Progression": "Прогрессия",
+    "Image Prompt": "Промпт изображения",
+    "Custom Image Prompt": "Пользовательский промпт",
+    "Default prompt from AI:": "Промпт по умолчанию от ИИ:",
+    "Corrupted Journal Entry": "Поврежденная запись в журнале",
 
     // NPC Log
     "Encountered NPCs": "Встреченные NPC",
@@ -130,5 +147,12 @@ export const npc = {
     "Lawful Evil": "Законопослушно-злой",
     "Neutral Evil": "Нейтрально-злой",
     "Chaotic Evil": "Хаотично-злой",
+
+    // Relationship Tooltips
+    "relationship_level_hostility": "Враждебность / Недоверие (0-49)",
+    "relationship_level_neutrality": "Нейтралитет (50)",
+    "relationship_level_friendship": "Дружба / Уважение (51-100)",
+    "relationship_level_deep_bond": "Глубокая связь / Верность (101-150)",
+    "relationship_level_devotion": "Непоколебимая преданность / Истинная любовь (151-200)",
   }
 };

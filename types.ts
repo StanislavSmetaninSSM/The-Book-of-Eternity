@@ -79,7 +79,11 @@ export type Language = 'ru' | 'en';
 export interface GameSettings {
   nonMagicMode: boolean;
   language: Language;
-  gameWorldInformation: Record<string, any>;
+  gameWorldInformation: {
+    currencyName: string;
+    baseInfo: any;
+    customInfo: string;
+  };
   modelName: string;
   aiProvider: string;
   geminiThinkingBudget: number;
@@ -94,6 +98,7 @@ export interface GameSettings {
   isCustomModel?: boolean;
   customModelName?: string;
   openRouterModelName?: string;
+  notificationSound: boolean;
 }
 
 export interface RecipeMaterial {
@@ -356,6 +361,7 @@ export interface NPC {
   name: string;
   currentLocationId?: string | null;
   image_prompt?: string;
+  custom_image_prompt?: string;
   rarity?: string;
   age?: number;
   worldview?: string;
@@ -490,6 +496,7 @@ export interface Combatant {
     }[];
     activeBuffs: Effect[];
     activeDebuffs: Effect[];
+    wounds?: Wound[];
     passiveSkills?: PassiveSkill[];
     inventory?: Item[];
     isGroup?: boolean;

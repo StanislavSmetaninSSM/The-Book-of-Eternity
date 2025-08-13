@@ -21,6 +21,7 @@ import { urbanMagicSystemDescEn, urbanMagicSystemDescRu } from '../utils/transla
 import { fameSystemDescEn, fameSystemDescRu } from '../utils/translations/presetRules/history/fame';
 import { oldMagicDescEn, oldMagicDescRu } from '../utils/translations/presetRules/myths/old_magic';
 import { divineFavorDescEn, divineFavorDescRu } from '../utils/translations/presetRules/myths/divine_favor';
+import { initializeAndPreviewSound } from '../utils/soundManager';
 
 
 const CHARACTERISTICS_LIST = ['strength', 'dexterity', 'constitution', 'intelligence', 'wisdom', 'faith', 'attractiveness', 'trade', 'persuasion', 'perception', 'luck', 'speed'];
@@ -75,6 +76,7 @@ const initialFormData = {
   currencyName: 'Gold',
   customCurrencyValue: '',
   hardMode: false,
+  notificationSound: false,
   useCultivationSystem: false,
   cultivationSystemDescription: cultivationSystemDescEn,
   useMagicSystem: false,
@@ -317,6 +319,11 @@ export default function StartScreen({ onStart, onLoadGame, onLoadAutosave, autos
     const { name, value, type } = e.target;
     const isCheckbox = type === 'checkbox';
     const finalValue = isCheckbox ? (e.target as HTMLInputElement).checked : value;
+
+    // Specific logic for notification sound preview
+    if (name === 'notificationSound' && finalValue === true) {
+        initializeAndPreviewSound();
+    }
 
     setFormData(prev => {
       let newState: typeof initialFormData = { ...prev, [name]: finalValue as any };
@@ -1144,6 +1151,23 @@ export default function StartScreen({ onStart, onLoadGame, onLoadAutosave, autos
                     <div className="w-11 h-6 bg-gray-600 rounded-full peer peer-focus-within:ring-2 peer-focus-within:ring-cyan-500 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-cyan-600"></div>
                   </label>
                 </div>
+                 <div className="flex items-center justify-between p-3 bg-gray-900/30 rounded-lg border border-cyan-500/20">
+                    <div>
+                        <label className="font-medium text-gray-300">{t("Notification Sound")}</label>
+                        <p className="text-xs text-gray-400">{t("Play a sound when the GM's response is ready.")}</p>
+                    </div>
+                     <label htmlFor="notificationSound" className="relative inline-flex items-center cursor-pointer">
+                        <input
+                            type="checkbox"
+                            id="notificationSound"
+                            name="notificationSound"
+                            className="sr-only peer"
+                            checked={formData.notificationSound}
+                            onChange={handleInputChange}
+                        />
+                        <div className="w-11 h-6 bg-gray-600 rounded-full peer peer-focus-within:ring-2 peer-focus-within:ring-cyan-500 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-cyan-600"></div>
+                    </label>
+                </div>
                 <div className="flex items-center justify-between p-3 bg-gray-900/30 rounded-lg border border-cyan-500/20">
                   <div>
                     <label className="font-medium text-gray-300">{t("Allow History Manipulation")}</label>
@@ -1454,71 +1478,41 @@ export default function StartScreen({ onStart, onLoadGame, onLoadAutosave, autos
           </div>
         </div>
 
-        <div className="mt-6 border-t border-gray-700/50 pt-6">
-          <p className="text-gray-400 text-sm mb-4 text-center">{t("Load from Database")}</p>
-          <div className="space-y-3 max-h-64 overflow-y-auto pr-2">
-            {dbSaveSlots && dbSaveSlots.length > 0 ? (
-              dbSaveSlots.map(slot => (
-                <button
-                  key={slot.slotId}
-                  type="button"
-                  onClick={() => onLoadFromSlot(slot.slotId)}
-                  className="w-full text-left bg-gray-700/50 hover:bg-gray-700 text-gray-200 p-3 rounded-md transition-all border border-gray-600 flex items-center gap-4 group"
-                >
-                  <div className="flex-shrink-0 bg-cyan-900/50 group-hover:bg-cyan-800/70 text-cyan-300 font-bold rounded-md w-12 h-12 flex flex-col items-center justify-center text-center transition-colors">
-                    <span className="text-xs">{t("Slot")}</span>
-                    <span className="text-lg">{slot.slotId}</span>
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-semibold text-white truncate group-hover:text-cyan-300 transition-colors">{slot.playerName}</p>
-                    <p className="text-sm text-gray-400 truncate">{t("Lvl {level}", { level: slot.playerLevel })} - {slot.locationName}</p>
-                    <p className="text-xs text-gray-500 mt-1">{t("Turn")} {slot.turnNumber} - {new Date(slot.timestamp).toLocaleString()}</p>
-                  </div>
-                </button>
-              ))
-            ) : (
-              <div className="text-center text-gray-500 p-4 bg-gray-900/20 rounded-lg">
-                {t("No saved games in the database yet.")}
-              </div>
-            )}
+        {dbSaveSlots.length > 0 && (
+          <div className="mt-8 border-t border-gray-700/50 pt-6">
+            <h3 className="text-lg font-semibold text-cyan-400 mb-4 text-center">{t("Load from Database")}</h3>
+            <div className="space-y-2 max-h-48 overflow-y-auto pr-2">
+                {dbSaveSlots.map(slot => (
+                    <button
+                        key={slot.slotId}
+                        onClick={() => onLoadFromSlot(slot.slotId)}
+                        className="w-full text-left bg-gray-700/50 hover:bg-gray-700 p-3 rounded-md transition-colors"
+                    >
+                        <p className="font-semibold text-white">{slot.playerName} - {t("Lvl {level}", { level: slot.playerLevel })}</p>
+                        <p className="text-xs text-gray-400">{slot.locationName} - {t("Turn")} {slot.turnNumber}</p>
+                        <p className="text-xs text-gray-500">{new Date(slot.timestamp).toLocaleString()}</p>
+                    </button>
+                ))}
+            </div>
           </div>
-        </div>
+        )}
 
-        <div className="mt-6 text-center">
-            <button
-                type="button"
-                onClick={() => setIsAboutModalOpen(true)}
-                className="text-gray-400 hover:text-cyan-400 text-sm transition-colors"
-            >
-                {t('About the Project')}
-            </button>
+        <div className="mt-8 border-t border-gray-700/50 pt-6">
+            <AboutContent />
         </div>
       </div>
-      <ConfirmationModal
-        isOpen={isAdultConfirmOpen}
-        onClose={() => setIsAdultConfirmOpen(false)}
-        onConfirm={confirmAdultMode}
-        title={t("Adult Mode (21+)")}
-      >
-        <p>{t("adult_mode_warning_p1")}</p>
-        <p>{t("adult_mode_warning_p2")}</p>
-        <p>{t("adult_mode_warning_p3")}</p>
-        <p className="font-bold">{t("adult_mode_warning_p4")}</p>
-      </ConfirmationModal>
-      <ConfirmationModal
-        isOpen={isNonMagicConfirmOpen}
-        onClose={() => setIsNonMagicConfirmOpen(false)}
-        onConfirm={confirmNonMagicMode}
-        title={t("non_magic_mode_title")}
-      >
-        <p>{t("non_magic_mode_warning_p1")}</p>
-        <p>{t("non_magic_mode_warning_p2")}</p>
-        <p className="font-bold">{t("non_magic_mode_warning_p3")}</p>
-        <p>{t("non_magic_mode_warning_p4")}</p>
-      </ConfirmationModal>
-       <Modal isOpen={isAboutModalOpen} onClose={() => setIsAboutModalOpen(false)} title={t('About the Project')}>
-          <AboutContent />
-      </Modal>
+       <ConfirmationModal isOpen={isAdultConfirmOpen} onClose={() => setIsAdultConfirmOpen(false)} onConfirm={confirmAdultMode} title={t("Adult Mode (21+)")}>
+            <p>{t("adult_mode_warning_p1")}</p>
+            <p>{t("adult_mode_warning_p2")}</p>
+            <p>{t("adult_mode_warning_p3")}</p>
+            <p className="font-bold">{t("adult_mode_warning_p4")}</p>
+        </ConfirmationModal>
+        <ConfirmationModal isOpen={isNonMagicConfirmOpen} onClose={() => setIsNonMagicConfirmOpen(false)} onConfirm={confirmNonMagicMode} title={t("non_magic_mode_title")}>
+            <p>{t("non_magic_mode_warning_p1")}</p>
+            <p>{t("non_magic_mode_warning_p2")}</p>
+            <p>{t("non_magic_mode_warning_p3")}</p>
+            <p className="font-bold">{t("non_magic_mode_warning_p4")}</p>
+        </ConfirmationModal>
     </div>
   );
 }

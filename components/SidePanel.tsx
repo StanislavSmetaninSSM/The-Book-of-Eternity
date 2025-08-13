@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import CharacterSheet from './CharacterSheet';
 import QuestLog from './QuestLog';
@@ -161,7 +162,6 @@ export default function SidePanel({
 
   const temporaryStash = gameState?.temporaryStash || [];
   const showStash = temporaryStash.length > 0;
-  const canCraft = (gameState?.playerCharacter?.knownRecipes?.length ?? 0) > 0 || (gameState?.playerCharacter?.passiveSkills?.some(s => s.type === 'KnowledgeBased') ?? false);
   
   // If the stash appears, switch to it automatically
   React.useEffect(() => {
@@ -202,7 +202,7 @@ export default function SidePanel({
             </div>
         </div>
         
-        <div className="flex border-b border-gray-700/60 p-1 overflow-x-auto">
+        <div className="flex flex-wrap border-b border-gray-700/60 p-1 gap-1">
           {TABS.map(tab => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.name;
@@ -211,9 +211,7 @@ export default function SidePanel({
                 return null;
             }
             const isCrafting = tab.name === 'Crafting';
-            if (isCrafting && !canCraft) {
-                return null;
-            }
+            
             return (
               <button
                 key={tab.name}

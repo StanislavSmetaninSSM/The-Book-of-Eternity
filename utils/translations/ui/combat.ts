@@ -49,6 +49,8 @@ export const combat = {
     "confusion": "Confusion",
     "fear": "Fear",
     "sleep": "Sleep",
+    "Actions": "Actions",
+    "CombatantStats": "Stats",
   },
   ru: {
     // Combat UI
@@ -103,5 +105,7 @@ export const combat = {
     "confusion": "Замешательство",
     "fear": "Страх",
     "sleep": "Сон",
+    "Actions": "Действия",
+    "CombatantStats": "Статистика",
   }
 };
