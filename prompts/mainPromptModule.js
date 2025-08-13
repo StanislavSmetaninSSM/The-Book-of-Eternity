@@ -14766,21 +14766,87 @@ export const getGameMasterGuideRules = (configuration) => {
                 </Content>
             </Rule>
 
-            <Rule id="13.7"> 
+            <Rule id="13.7">
                 <Title>Ending Combat</Title>
-                <Description>Conditions under which a combat encounter concludes.</Description>
-                <Content type="rule_text">
+                <Description>Conditions under which a combat encounter concludes, and the mandatory mechanical cleanup process.</Description>
+                <InstructionText>
                     <![CDATA[
 
-                    Combat ends when one of the following occurs:
-                    1.  All Combatants on One Side Defeated: All members of one side are slain, incapacitated ('currentHealth' <= 0%), or otherwise removed from combat.
-                    2.  Surrender: One side formally surrenders. The other side may choose to accept or reject the surrender.
-                    3.  Retreat: One side successfully disengages and flees the combat area beyond the reach of their opponents.
-                    4.  Negotiation/Truce: Combatants cease hostilities due to successful negotiation, a truce, or a plot development that changes their intent. (Player may initiate this via Persuasion or similar checks, even mid-combat, at GM discretion based on situation).
-                    5.  Plot Resolution: A specific plot objective related to the combat is achieved (e.g., a ritual is stopped, an item is retrieved), making further fighting unnecessary.
-                    The GM narrates the end of combat and any immediate aftermath. Post-combat, the game returns to a non-combat state.
-                    
+                    In addition to narrating the end of combat, you MUST perform a specific mechanical cleanup by sending empty arrays for 'enemiesData' and 'alliesData' as detailed below. 
+                    This is a critical command to the game system.
+
                     ]]>
+                </InstructionText>
+                <Content type="ruleset">
+                    <Rule id="13.7.0">
+                        <Title>Narrative Conditions for Ending Combat</Title>
+                        <Content type="rule_text">
+                            <![CDATA[
+
+                            Combat ends when one of the following occurs:
+                            1.  All Combatants on One Side Defeated: All members of one side are slain, incapacitated ('currentHealth' <= 0%), or otherwise removed from combat.
+                            2.  Surrender: One side formally surrenders. The other side may choose to accept or reject the surrender.
+                            3.  Retreat: One side successfully disengages and flees the combat area beyond the reach of their opponents.
+                            4.  Negotiation/Truce: Combatants cease hostilities due to successful negotiation, a truce, or a plot development that changes their intent. (Player may initiate this via Persuasion or similar checks, even mid-combat, at GM discretion based on situation).
+                            5.  Plot Resolution: A specific plot objective related to the combat is achieved (e.g., a ritual is stopped, an item is retrieved), making further fighting unnecessary.
+                            The GM narrates the end of combat and any immediate aftermath. Post-combat, the game returns to a non-combat state.
+
+                            ]]>
+                        </Content>
+                    </Rule>
+
+                    <Rule id="13.7.1">
+                        <Title>CRITICAL DIRECTIVE: Mechanical Cleanup on Combat End</Title>
+                        <Content type="rule_text">
+                            <![CDATA[
+
+                            When ANY of the conditions for ending combat from rule #13.7.0 are met, you MUST perform the following mechanical cleanup in your JSON response for the current turn. 
+                            This is not optional.
+
+                            1.  Set Combatant Arrays to Empty: You MUST set both the 'enemiesData' and 'alliesData' keys to empty arrays ('[]').
+
+                            2.  Reasoning: This is a direct command to the game system to clear all active combatants from the state and formally end the combat mode. 
+                            Sending 'null' for these keys will be interpreted as "no change" and is INCORRECT in this context. 
+                            Failure to send empty arrays will result in defeated combatants persisting in the game state.
+
+                            3.  Logging: You MUST log this action in 'items_and_stat_calculations'.
+                            Example Log: "Combat has concluded. Clearing all combatant data by setting enemiesData and alliesData to empty arrays."
+                            
+                            ]]>
+                        </Content>
+                        <Examples>
+                            <Example type="good" contentType="json_fragment">
+                                <Title>Correct JSON for ending combat</Title>
+                                <ScenarioContext>The player has just defeated the last remaining goblin.</ScenarioContext>
+                                <JsonResponse>
+                                    <response>
+                                        <![CDATA[
+
+                                        С вашим последним ударом последний гоблин падает на землю. 
+                                        В пещере воцаряется тишина, нарушаемая лишь вашим тяжелым дыханием. 
+                                        Бой окончен.
+                                        
+                                        ]]>
+                                    </response>
+                                    <enemiesData>
+                                        <![CDATA[
+
+                                        []
+
+                                        ]]>
+                                    </enemiesData>
+                                    <alliesData>
+                                        <![CDATA[
+
+                                        []
+
+                                        ]]>
+                                    </alliesData>
+                                    <!-- ... other JSON keys as needed ... -->
+                                </JsonResponse>
+                            </Example>
+                        </Examples>
+                    </Rule>
                 </Content>
             </Rule>
         </Content>
