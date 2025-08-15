@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { FateCard } from '../../types';
 import ImageRenderer from '../ImageRenderer';
@@ -7,14 +8,16 @@ import { useLocalization } from '../../context/LocalizationContext';
 interface FateCardDetailsProps {
   card: FateCard;
   onOpenImageModal?: (prompt: string) => void;
+  imageCache: Record<string, string>;
+  onImageGenerated: (prompt: string, base64: string) => void;
 }
 
-const FateCardDetailsRenderer: React.FC<FateCardDetailsProps> = ({ card, onOpenImageModal }) => {
+const FateCardDetailsRenderer: React.FC<FateCardDetailsProps> = ({ card, onOpenImageModal, imageCache, onImageGenerated }) => {
     const { t } = useLocalization();
     return (
     <div className={`p-4 rounded-lg border-l-4 ${card.isUnlocked ? 'border-yellow-500 bg-yellow-900/20' : 'border-gray-600 bg-gray-700/50'}`}>
         <div className="w-full h-32 rounded-lg overflow-hidden mb-3 bg-gray-900 group relative cursor-pointer" onClick={() => onOpenImageModal?.(card.image_prompt)}>
-            <ImageRenderer prompt={card.image_prompt} alt={card.name} />
+            <ImageRenderer prompt={card.image_prompt} alt={card.name} width={1024} height={1024} imageCache={imageCache} onImageGenerated={onImageGenerated} />
             <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                 <p className="text-white font-bold text-lg">{t('Enlarge')}</p>
             </div>
@@ -25,8 +28,8 @@ const FateCardDetailsRenderer: React.FC<FateCardDetailsProps> = ({ card, onOpenI
             <div className="text-xs mt-2 text-cyan-300/80">
                 <p>{t('Unlock Conditions:')}</p>
                 <ul className="list-disc list-inside pl-2">
-                    {card.unlockConditions.requiredRelationshipLevel && <li>{t('Reach relationship level {level}', { level: card.unlockConditions.requiredRelationshipLevel })}</li>}
-                    {card.unlockConditions.plotConditionDescription && <li><MarkdownRenderer content={t(card.unlockConditions.plotConditionDescription as any)} /></li>}
+                    {card.unlockConditions.requiredRelationshipLevel != null && <li>{t('Reach relationship level {level}', { level: card.unlockConditions.requiredRelationshipLevel })}</li>}
+                    {card.unlockConditions.plotConditionDescription && <li><MarkdownRenderer content={t(card.unlockConditions.plotConditionDescription as any)} inline /></li>}
                 </ul>
             </div>
         )}

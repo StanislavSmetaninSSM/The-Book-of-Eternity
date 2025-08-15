@@ -1,4 +1,5 @@
 
+
 import React, { useState, useEffect } from 'react';
 import { ArrowDownTrayIcon, ArrowUpTrayIcon, ClockIcon, CpuChipIcon, WrenchScrewdriverIcon, InformationCircleIcon, TrashIcon, CloudArrowDownIcon, ExclamationTriangleIcon } from '@heroicons/react/24/outline';
 import { GameSettings, DBSaveSlotInfo } from '../types';
@@ -371,6 +372,7 @@ export default function GameMenuView({
                             <input
                                 type="checkbox"
                                 id="inGameHardMode"
+                                name="hardMode"
                                 className="sr-only peer"
                                 checked={!!hardMode}
                                 onChange={(e) => updateGameSettings({ hardMode: e.target.checked })}
@@ -383,7 +385,7 @@ export default function GameMenuView({
                             <label className="font-medium text-gray-300">{t("Notification Sound")}</label>
                             <p className="text-xs text-gray-400">{t("Play a sound when the GM's response is ready.")}</p>
                         </div>
-                         <label htmlFor="inGameNotificationSound" className="relative inline-flex items-center cursor-pointer">
+                         <label htmlFor="inGameNotificationSound" className="relative inline-flex items-center cursor-pointer" title={t('notificationSoundTooltip')}>
                             <input
                                 type="checkbox"
                                 id="inGameNotificationSound"

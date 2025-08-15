@@ -1,8 +1,7 @@
 
-
 import React, { useState, useMemo } from 'react';
 import { EnemyCombatObject, AllyCombatObject, NPC, Item, ActiveSkill, PassiveSkill, CombatAction, PlayerCharacter, Wound } from '../types';
-import { ShieldExclamationIcon, BoltIcon, ShieldCheckIcon, SunIcon, CloudIcon, DocumentTextIcon, SparklesIcon, ArchiveBoxIcon, Cog6ToothIcon } from '@heroicons/react/24/outline';
+import { ShieldExclamationIcon, BoltIcon, ShieldCheckIcon, SunIcon, CloudIcon, DocumentTextIcon, SparklesIcon, ArchiveBoxIcon, Cog6ToothIcon, InformationCircleIcon } from '@heroicons/react/24/outline';
 import { FireIcon } from '@heroicons/react/24/solid';
 import ImageRenderer from './ImageRenderer';
 import { useLocalization } from '../context/LocalizationContext';
@@ -55,28 +54,59 @@ const HealthGrid: React.FC<{ healthStates: string[], maxHealth: string }> = ({ h
 };
 
 
-const CombatantCard: React.FC<{ 
+interface CombatantCardProps {
     combatant: Combatant;
-    allNpcs: NPC[];
+    fullNpcData: NPC | null;
     onOpenDetailModal: (title: string, data: any) => void;
-}> = ({ combatant, allNpcs, onOpenDetailModal }) => {
+    imageCache: Record<string, string>;
+    onImageGenerated: (prompt: string, base64: string) => void;
+}
+
+
+const CombatantCard: React.FC<CombatantCardProps> = ({ combatant, fullNpcData, onOpenDetailModal, imageCache, onImageGenerated }) => {
     const isGroup = combatant.isGroup;
     const isDefeated = isGroup ? (combatant.count ?? 0) <= 0 : parseInt(combatant.currentHealth ?? '0') <= 0;
     
     const { t } = useLocalization();
-    
-    const combatantWithId = combatant as (EnemyCombatObject | AllyCombatObject);
-    const fullNpcData = useMemo(() => {
-        let npcData: NPC | undefined | null = null;
-        if (combatantWithId.NPCId) {
-            npcData = allNpcs.find(npc => npc.NPCId === combatantWithId.NPCId);
-        }
-        if (!npcData && combatant.name) {
-            npcData = allNpcs.find(npc => npc.name === combatant.name);
-        }
-        return npcData || null;
-    }, [combatantWithId.NPCId, combatant.name, allNpcs]);
 
+    const level = useMemo(() => {
+        if (fullNpcData && fullNpcData.level !== undefined) {
+            return fullNpcData.level;
+        }
+    
+        const maxHealth = parseInt(combatant.maxHealth ?? '0');
+        if (isNaN(maxHealth) || maxHealth === 0) return null;
+    
+        let el: number | null = null;
+        // This is the correct reverse-engineered formula for Effective Level (EL)
+        // based on the GM's generation logic.
+        switch (combatant.type) {
+            case 'Frail':
+                el = (maxHealth - 50) / 0.6;
+                break;
+            case 'Weak':
+                el = (maxHealth - 80) / 1.2;
+                break;
+            case 'Moderate':
+                el = (maxHealth - 100) / 2;
+                break;
+            case 'Strong':
+                el = (maxHealth - 150) / 3.5;
+                break;
+            case 'Boss':
+                el = (maxHealth - 200) / 5;
+                break;
+            default:
+                // Fallback for unknown types if any
+                return null;
+        }
+    
+        if (el === null || isNaN(el)) return null;
+
+        // The final level is rounded to the nearest whole number and cannot be less than 1.
+        return Math.max(1, Math.round(el));
+    }, [combatant, fullNpcData]);
+    
     const { passiveSkills, hasPassiveSkills, inventory, hasInventory, actions, hasActions } = useMemo(() => {
         const combatActions = combatant.actions || [];
         const finalPassiveSkills = fullNpcData?.passiveSkills || [];
@@ -110,12 +140,19 @@ const CombatantCard: React.FC<{
         <div className={`bg-gray-900/40 rounded-lg p-3 border border-gray-700/50 transition-opacity ${isDefeated ? 'opacity-50' : ''}`}>
             <div className="flex justify-between items-start gap-3">
                  <div className="w-16 h-16 rounded-md overflow-hidden flex-shrink-0 bg-gray-800">
-                    <ImageRenderer prompt={combatant.image_prompt || fullNpcData?.image_prompt} alt={combatant.name} />
+                    <ImageRenderer prompt={combatant.image_prompt || fullNpcData?.image_prompt} alt={combatant.name} imageCache={imageCache} onImageGenerated={onImageGenerated} />
                 </div>
                 <div className="flex-1">
                     <div className="flex justify-between items-start">
                         <div>
-                            <h4 className={`font-bold text-lg ${isDefeated ? 'text-gray-500 line-through' : 'text-white'}`}>{combatant.name}</h4>
+                            <div className="flex items-baseline gap-2">
+                                <h4 className={`font-bold text-lg ${isDefeated ? 'text-gray-500 line-through' : 'text-white'}`}>{combatant.name}</h4>
+                                {level !== null && !isDefeated && (
+                                    <span className="text-sm font-mono px-2 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300">
+                                        {t('Lvl {level}', { level })}
+                                    </span>
+                                )}
+                            </div>
                              {isGroup ? (
                                 <p className="text-xs text-gray-400 uppercase tracking-wider">{t('{count}x {unitName} ({type})', { count: combatant.count || 0, unitName: t(combatant.unitName as any), type: t(combatant.type as any) })}</p>
                             ) : (
@@ -236,7 +273,7 @@ const CombatantCard: React.FC<{
                 )}
 
                 {activeTab === 'Skills' && (
-                    <Section title={t('Passive Skills')} icon={ShieldCheckIcon}>
+                    <Section title={t('Skills')} icon={ShieldCheckIcon}>
                         {(passiveSkills ?? []).map((skill, i) => (
                             <button key={i} onClick={() => onOpenDetailModal(t("Passive Skill: {name}", { name: skill.skillName }), skill)} className="w-full text-left bg-gray-800/60 p-2 rounded hover:bg-gray-700/80 transition-colors">
                                 <p className="font-semibold text-gray-200">{skill.skillName}</p>
@@ -278,9 +315,11 @@ interface CombatTrackerProps {
     onOpenDetailModal: (title: string, data: any) => void;
     onSendMessage: (message: string) => void;
     isLoading: boolean;
+    imageCache: Record<string, string>;
+    onImageGenerated: (prompt: string, base64: string) => void;
 }
 
-export default function CombatTracker({ enemies, allies, combatLog, allNpcs, playerCharacter, setAutoCombatSkill, onOpenDetailModal, onSendMessage, isLoading }: CombatTrackerProps): React.ReactNode {
+export default function CombatTracker({ enemies, allies, combatLog, allNpcs, playerCharacter, setAutoCombatSkill, onOpenDetailModal, onSendMessage, isLoading, imageCache, onImageGenerated }: CombatTrackerProps): React.ReactNode {
     const { t } = useLocalization();
     const hasCombatants = (enemies && enemies.length > 0) || (allies && allies.length > 0);
     const hasLog = combatLog && combatLog.length > 0;
@@ -343,10 +382,19 @@ export default function CombatTracker({ enemies, allies, combatLog, allNpcs, pla
                     <div className="space-y-3">
                         {(enemies ?? []).map((enemy, index) => {
                             const isDefeated = enemy.isGroup ? (enemy.count ?? 0) <= 0 : parseInt(enemy.currentHealth ?? '0') <= 0;
+                            const combatantWithId = enemy as (EnemyCombatObject | AllyCombatObject);
+                            let fullNpcData: NPC | null = null;
+                            if (combatantWithId.NPCId) {
+                                fullNpcData = allNpcs.find(npc => npc.NPCId === combatantWithId.NPCId) || null;
+                            }
+                            if (!fullNpcData && enemy.name) {
+                                fullNpcData = allNpcs.find(npc => npc.name === enemy.name) || null;
+                            }
+
                             return (
                                 <div key={enemy.NPCId || `enemy-${index}`} className="flex items-start gap-2 group">
                                     <div className="flex-1">
-                                        <CombatantCard combatant={enemy} allNpcs={allNpcs} onOpenDetailModal={onOpenDetailModal} />
+                                        <CombatantCard combatant={enemy} fullNpcData={fullNpcData} onOpenDetailModal={onOpenDetailModal} imageCache={imageCache} onImageGenerated={onImageGenerated} />
                                     </div>
                                     {!isDefeated && (
                                         <button
@@ -368,7 +416,17 @@ export default function CombatTracker({ enemies, allies, combatLog, allNpcs, pla
                 <div>
                     <h3 className="text-xl font-bold text-green-400 mt-6 mb-3 narrative-text">{t('Allies')}</h3>
                     <div className="space-y-3">
-                        {(allies ?? []).map((ally, index) => <CombatantCard key={ally.NPCId || `ally-${index}`} combatant={ally} allNpcs={allNpcs} onOpenDetailModal={onOpenDetailModal} />)}
+                        {(allies ?? []).map((ally, index) => {
+                             const combatantWithId = ally as (EnemyCombatObject | AllyCombatObject);
+                             let fullNpcData: NPC | null = null;
+                             if (combatantWithId.NPCId) {
+                                 fullNpcData = allNpcs.find(npc => npc.NPCId === combatantWithId.NPCId) || null;
+                             }
+                             if (!fullNpcData && ally.name) {
+                                 fullNpcData = allNpcs.find(npc => npc.name === ally.name) || null;
+                             }
+                            return <CombatantCard key={ally.NPCId || `ally-${index}`} combatant={ally} fullNpcData={fullNpcData} onOpenDetailModal={onOpenDetailModal} imageCache={imageCache} onImageGenerated={onImageGenerated} />
+                        })}
                     </div>
                 </div>
             )}

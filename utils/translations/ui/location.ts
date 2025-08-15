@@ -1,7 +1,4 @@
 
-
-
-
 export const location = {
   en: {
     // Location Details & Map
@@ -83,6 +80,16 @@ export const location = {
     "DifficultyEnvironmentTooltip": "Environment: Danger from traps, weather, and natural threats.",
     "DifficultySocialTooltip": "Social: Difficulty of persuasion, trade, and interaction with NPCs.",
     "DifficultyExplorationTooltip": "Exploration: Difficulty of finding secrets, solving puzzles, and navigation.",
+
+    // Challenge Assessment
+    "Challenge Assessment": "Challenge Assessment",
+    "Effective Difficulty": "Effective Difficulty",
+    "Trivial": "Trivial",
+    "Easy": "Easy",
+    "Moderate": "Moderate",
+    "Hard": "Hard",
+    "Very Hard": "Very Hard",
+    "Deadly": "Deadly",
   },
   ru: {
     // Location Details & Map
@@ -164,5 +171,15 @@ export const location = {
     "DifficultyEnvironmentTooltip": "Окружение: Опасность от ловушек, погоды и природных угроз.",
     "DifficultySocialTooltip": "Социальное: Сложность убеждения, торговли и взаимодействия с NPC.",
     "DifficultyExplorationTooltip": "Исследование: Сложность поиска секретов, решения головоломок и навигации.",
+
+    // Challenge Assessment
+    "Challenge Assessment": "Оценка сложности",
+    "Effective Difficulty": "Эффективная сложность",
+    "Trivial": "Тривиально",
+    "Easy": "Легко",
+    "Moderate": "Умеренно",
+    "Hard": "Сложно",
+    "Very Hard": "Очень сложно",
+    "Deadly": "Смертельно",
   }
 };

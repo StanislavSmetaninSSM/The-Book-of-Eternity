@@ -1,4 +1,5 @@
-import { Item, Quest, NPC, Location, PlayerCharacter, Faction, GameSettings } from '../../types';
+
+import { Item, Quest, NPC, Location, PlayerCharacter, Faction, GameSettings, Wound } from '../../types';
 
 export interface DetailRendererProps {
     data: any;
@@ -9,7 +10,7 @@ export interface DetailRendererProps {
     onOpenImageModal?: (prompt: string) => void;
     onForgetLocation?: (locationId: string) => void;
     onForgetQuest?: (questId: string) => void;
-    playerCharacter?: PlayerCharacter | null;
+    playerCharacter: PlayerCharacter | null;
     setAutoCombatSkill?: (skillName: string | null) => void;
     onOpenDetailModal: (title: string, data: any) => void;
     disassembleItem?: (item: Item) => void;
@@ -22,4 +23,8 @@ export interface DetailRendererProps {
     onEditPlayerData: (field: keyof PlayerCharacter, value: any) => void;
     encounteredFactions?: Faction[];
     gameSettings: GameSettings | null;
+    imageCache: Record<string, string>;
+    onImageGenerated: (prompt: string, base64: string) => void;
+    forgetHealedWound: (characterType: 'player' | 'npc', characterId: string | null, woundId: string) => void;
+    clearAllHealedWounds: (characterType: 'player' | 'npc', characterId: string | null) => void;
 }

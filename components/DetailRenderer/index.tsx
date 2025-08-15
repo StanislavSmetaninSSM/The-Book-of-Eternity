@@ -75,7 +75,7 @@ const isCustomState = (data: any): data is CustomState & { type: 'customState' }
 
 
 export default function DetailRenderer(props: DetailRendererProps) {
-    const { data, onForgetNpc, onClearNpcJournal, onCloseModal, onForgetQuest, onForgetLocation, currentLocationId, disassembleItem, gameSettings, onDeleteOldestNpcJournalEntries } = props;
+    const { data, onForgetNpc, onClearNpcJournal, onCloseModal, onForgetQuest, onForgetLocation, currentLocationId, disassembleItem, gameSettings, onDeleteOldestNpcJournalEntries, imageCache, onImageGenerated, forgetHealedWound, clearAllHealedWounds } = props;
     const [confirmation, setConfirmation] = useState<{ type: string | null; data: any }>({ type: null, data: null });
     const { t } = useLocalization();
 
@@ -152,7 +152,7 @@ export default function DetailRenderer(props: DetailRendererProps) {
     else if (isActiveSkill(data)) content = <ActiveSkillDetailsRenderer skill={data} {...props} />;
     else if (isPassiveSkill(data)) content = <PassiveSkillDetailsRenderer skill={data} {...props} />;
     else if (isEffect(data)) content = <EffectDetailsRenderer effect={data} />;
-    else if (isWound(data)) content = <WoundDetailsRenderer wound={data} />;
+    else if (isWound(data)) content = <WoundDetailsRenderer wound={data} {...props} />;
     else if (isNpc(data)) content = <NpcDetailsRenderer npc={data} onOpenForgetConfirm={() => setConfirmation({ type: 'forgetNpc', data })} onOpenClearJournalConfirm={() => setConfirmation({ type: 'clearJournal', data })} {...props} />;
     else if (isCharacteristic(data)) content = <CharacteristicDetailsRenderer data={data} />;
     else if (isPrimaryStat(data)) content = <PrimaryStatDetailsRenderer data={data} />;

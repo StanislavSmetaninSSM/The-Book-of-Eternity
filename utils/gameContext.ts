@@ -1,5 +1,8 @@
 
 
+
+
+
 import { GameState, GameContext, ChatMessage, GameResponse, PlayerCharacter, LocationData, Characteristics, Location, Faction, Language, LootTemplate, UnlockedMemory, Recipe, Item, WorldStateFlag, SkillMastery, GameSettings, WorldState } from '../types';
 import { gameData } from './localizationGameData';
 import { generateLootTemplates } from './lootGenerator';
@@ -404,7 +407,8 @@ export function buildNextContext(
     let newWorldState = { ...currentContext.worldState };
     if (advanceTurn && response.timeChange && response.timeChange > 0) {
         newWorldState.currentTimeInMinutes += response.timeChange;
-        const totalDays = Math.floor(newWorldState.currentTimeInMinutes / (24 * 60));
+        // Rounding to nearest integer to prevent floating point inaccuracies from cumulative additions.
+        const totalDays = Math.floor(Math.round(newWorldState.currentTimeInMinutes) / (24 * 60));
         newWorldState.day = 1 + totalDays;
         const minutesIntoDay = newWorldState.currentTimeInMinutes % (24 * 60);
 
@@ -420,9 +424,10 @@ export function buildNextContext(
         const currentIdx = weatherOptions.indexOf(newWorldState.weather);
 
         if (response.weatherChange.tendency.startsWith('JUMP_TO_')) {
-            const targetWeather = response.weatherChange.tendency.replace('JUMP_TO_', '').replace(/_/g, ' ');
-            if (weatherOptions.includes(targetWeather)) {
-                newWorldState.weather = targetWeather;
+            const targetWeatherRaw = response.weatherChange.tendency.replace('JUMP_TO_', '').replace(/_/g, ' ');
+            const foundWeather = weatherOptions.find(option => option.toLowerCase() === targetWeatherRaw.toLowerCase());
+            if (foundWeather) {
+                newWorldState.weather = foundWeather;
             }
         } else if (currentIdx !== -1) {
             if (response.weatherChange.tendency === 'IMPROVE') {

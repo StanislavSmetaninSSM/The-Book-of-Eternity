@@ -1,5 +1,4 @@
 
-
 import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import ChatWindow from './components/ChatWindow';
 import InputBar from './components/InputBar';
@@ -85,6 +84,9 @@ export default function App(): React.ReactNode {
     currentStep,
     currentModel,
     turnTime,
+    onImageGenerated,
+    forgetHealedWound,
+    clearAllHealedWounds,
   } = useGameLogic({ language, setLanguage });
   const [hasStarted, setHasStarted] = useState(false);
   const [isInventoryOpen, setIsInventoryOpen] = useState(false);
@@ -271,6 +273,8 @@ export default function App(): React.ReactNode {
                   className="object-cover w-full h-full opacity-30" 
                   width={1024} 
                   height={1024} 
+                  imageCache={gameState?.imageCache ?? {}}
+                  onImageGenerated={onImageGenerated}
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-gray-900 via-gray-900/80 to-transparent"></div>
             </div>
@@ -356,6 +360,10 @@ export default function App(): React.ReactNode {
               currentStep={currentStep}
               currentModel={currentModel}
               turnTime={turnTime}
+              imageCache={gameState?.imageCache ?? {}}
+              onImageGenerated={onImageGenerated}
+              forgetHealedWound={forgetHealedWound}
+              clearAllHealedWounds={clearAllHealedWounds}
             />
           )}
         </aside>
@@ -381,6 +389,8 @@ export default function App(): React.ReactNode {
           onMergeItems={mergeItemStacks}
           onOpenDetailModal={handleOpenDetailModal}
           onOpenImageModal={handleShowImageModal}
+          imageCache={gameState?.imageCache ?? {}}
+          onImageGenerated={onImageGenerated}
         />
       )}
        {messageModalContent && (
@@ -398,6 +408,8 @@ export default function App(): React.ReactNode {
               showRegenerateButton={true}
               width={1024}
               height={1024}
+              imageCache={gameState?.imageCache ?? {}}
+              onImageGenerated={onImageGenerated}
             />
         </Modal>
       )}
@@ -424,6 +436,10 @@ export default function App(): React.ReactNode {
             onEditPlayerData={editPlayerData}
             encounteredFactions={gameState?.encounteredFactions}
             gameSettings={gameSettings}
+            imageCache={gameState?.imageCache ?? {}}
+            onImageGenerated={onImageGenerated}
+            forgetHealedWound={forgetHealedWound}
+            clearAllHealedWounds={clearAllHealedWounds}
             />}
       </Modal>
 

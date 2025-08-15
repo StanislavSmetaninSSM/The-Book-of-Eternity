@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo } from 'react';
 import { PlayerCharacter, Item, ActiveSkill, PassiveSkill, Effect, Wound, GameSettings, StructuredBonus } from '../types';
 import {
@@ -18,6 +17,9 @@ import {
     Squares2X2Icon,
     PlusCircleIcon,
     ClockIcon,
+    TrashIcon,
+    ChevronDownIcon,
+    ChevronUpIcon,
 } from '@heroicons/react/24/outline';
 import { 
     FireIcon as FireSolidIcon, 
@@ -29,6 +31,7 @@ import {
 } from '@heroicons/react/24/solid';
 import { useLocalization } from '../context/LocalizationContext';
 import MarkdownRenderer from './MarkdownRenderer';
+import ConfirmationModal from './ConfirmationModal';
 
 interface CharacterSheetProps {
   character: PlayerCharacter;
@@ -36,6 +39,8 @@ interface CharacterSheetProps {
   onOpenModal: (title: string, data: any) => void;
   onOpenInventory: () => void;
   onSpendAttributePoint: (characteristic: string) => void;
+  forgetHealedWound: (characterType: 'player' | 'npc', characterId: string | null, woundId: string) => void;
+  clearAllHealedWounds: (characterType: 'player' | 'npc', characterId: string | null) => void;
 }
 
 const CHARACTERISTICS_LIST = ['strength', 'dexterity', 'constitution', 'intelligence', 'wisdom', 'faith', 'attractiveness', 'trade', 'persuasion', 'perception', 'luck', 'speed'];
@@ -83,11 +88,26 @@ const TABS = [
     { name: 'Conditions', icon: ExclamationTriangleIcon },
 ];
 
-export default function CharacterSheet({ character, gameSettings, onOpenModal, onOpenInventory, onSpendAttributePoint }: CharacterSheetProps): React.ReactNode {
+export default function CharacterSheet({ character, gameSettings, onOpenModal, onOpenInventory, onSpendAttributePoint, forgetHealedWound, clearAllHealedWounds }: CharacterSheetProps): React.ReactNode {
   const [activeTab, setActiveTab] = useState(TABS[0].name);
   const { t } = useLocalization();
+  const [confirmClear, setConfirmClear] = useState(false);
+  const [confirmForget, setConfirmForget] = useState<Wound | null>(null);
+  const [healedWoundsCollapsed, setHealedWoundsCollapsed] = useState(true);
 
   const currencyName = gameSettings?.gameWorldInformation?.currencyName || 'Gold';
+
+  const handleClearAllHealedWounds = () => {
+    clearAllHealedWounds('player', null);
+    setConfirmClear(false);
+  };
+  
+  const handleForgetWound = () => {
+    if (confirmForget && confirmForget.woundId) {
+      forgetHealedWound('player', null, confirmForget.woundId);
+    }
+    setConfirmForget(null);
+  };
 
   const equipmentBonuses = useMemo(() => {
     if (!character) return {};
@@ -359,6 +379,9 @@ export default function CharacterSheet({ character, gameSettings, onOpenModal, o
             </div>
         </div>
     );
+    const activeWounds = (wounds ?? []).filter(w => w.healingState.currentState !== 'Healed');
+    const healedWounds = (wounds ?? []).filter(w => w.healingState.currentState === 'Healed');
+
     return (
      <div className="space-y-4">
       <Section title={t('Active Effects')}>
@@ -402,7 +425,7 @@ export default function CharacterSheet({ character, gameSettings, onOpenModal, o
         }) : <p className="text-sm text-gray-500 text-center p-2">{t('You are free of temporary effects.')}</p>}
       </Section>
       <Section title={t('Wounds')}>
-        {(wounds ?? []).length > 0 ? (wounds ?? []).map((wound, index) => (
+        {(activeWounds.length > 0) ? (activeWounds.map((wound, index) => (
             <button key={wound.woundId || index} onClick={() => onOpenModal(t("Wound: {name}", { name: wound.woundName }), wound)} className="w-full text-left bg-gray-900/60 p-3 rounded-md border border-red-800/50 flex items-start gap-3 hover:border-red-600 transition-colors">
                 <ShieldExclamationIcon className="w-5 h-5 mt-0.5 text-red-500 flex-shrink-0" />
                 <div className="flex-1">
@@ -413,8 +436,45 @@ export default function CharacterSheet({ character, gameSettings, onOpenModal, o
                      <p className="text-sm text-gray-400 italic mt-1 line-clamp-2">{wound.descriptionOfEffects}</p>
                 </div>
             </button>
-        )) : <p className="text-sm text-gray-500 text-center p-2">{t('You are unwounded.')}</p>}
+        ))) : <p className="text-sm text-gray-500 text-center p-2">{t('You are unwounded.')}</p>}
       </Section>
+        {healedWounds.length > 0 && (
+            <div className="mt-4">
+                <div className="border-b border-cyan-500/20 mb-3">
+                    <button onClick={() => setHealedWoundsCollapsed(prev => !prev)} className="w-full flex justify-between items-center text-left pb-1 group">
+                        <h4 className="text-sm font-bold text-cyan-300/80 uppercase tracking-wider group-hover:text-cyan-200">{t('Healed Wounds')}</h4>
+                        {healedWoundsCollapsed ? <ChevronDownIcon className="w-5 h-5 text-gray-400" /> : <ChevronUpIcon className="w-5 h-5 text-gray-400" />}
+                    </button>
+                </div>
+                {!healedWoundsCollapsed && (
+                    <div className="space-y-3 animate-fade-in-down">
+                        {healedWounds.map((wound, index) => (
+                            <div key={wound.woundId || index} className="w-full bg-gray-900/60 p-3 rounded-md border border-green-800/50 flex items-center justify-between gap-3">
+                                <button onClick={() => onOpenModal(t("Wound: {name}", { name: wound.woundName }), wound)} className="flex-1 text-left">
+                                    <span className="font-semibold text-green-400/80 hover:text-green-300 transition-colors">{wound.woundName}</span>
+                                </button>
+                                <button
+                                    onClick={() => setConfirmForget(wound)}
+                                    className="p-1 text-gray-400 rounded-full hover:bg-red-900/50 hover:text-red-300 transition-colors flex-shrink-0"
+                                    title={t('Forget Wound')}
+                                >
+                                    <TrashIcon className="w-4 h-4" />
+                                </button>
+                            </div>
+                        ))}
+                        <div className="!mt-4">
+                            <button
+                                onClick={() => setConfirmClear(true)}
+                                className="w-full flex items-center justify-center gap-2 px-4 py-2 text-xs bg-red-900/50 hover:bg-red-900/80 rounded-md text-red-300 font-semibold transition-colors"
+                            >
+                                <TrashIcon className="w-4 h-4" />
+                                {t('Clear All Healed Wounds')}
+                            </button>
+                        </div>
+                    </div>
+                )}
+            </div>
+        )}
       <Section title={t('States')}>
         {(customStates ?? []).length > 0 ? (customStates ?? []).map((state, index) => (
              <StatBar 
@@ -569,6 +629,22 @@ export default function CharacterSheet({ character, gameSettings, onOpenModal, o
           {activeTab === 'Bonuses' && renderBonuses()}
           {activeTab === 'Conditions' && renderConditions(character.activePlayerEffects, character.playerWounds, character.playerCustomStates)}
       </div>
+       <ConfirmationModal
+          isOpen={confirmClear}
+          onClose={() => setConfirmClear(false)}
+          onConfirm={handleClearAllHealedWounds}
+          title={t('Clear All Healed Wounds')}
+      >
+          <p>{t('Are you sure you want to clear all healed wounds? This will remove them permanently.')}</p>
+      </ConfirmationModal>
+      <ConfirmationModal
+          isOpen={!!confirmForget}
+          onClose={() => setConfirmForget(null)}
+          onConfirm={handleForgetWound}
+          title={t('Forget Wound')}
+      >
+          <p>{t('Are you sure you want to forget this healed wound?')}</p>
+      </ConfirmationModal>
     </div>
   );
 }

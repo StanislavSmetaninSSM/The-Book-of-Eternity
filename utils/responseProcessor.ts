@@ -1,6 +1,5 @@
 
 
-
 import { GameState, GameResponse, PlayerCharacter, Item, ActiveSkill, PassiveSkill, NPC, LocationData, Quest, EnemyCombatObject, AllyCombatObject, CustomState, Wound, Faction, SkillMastery, Effect, Recipe, UnlockedMemory, WorldStateFlag } from '../types';
 import { recalculateDerivedStats } from './gameContext';
 import { recalculateAllWeights } from './inventoryManager';
@@ -142,14 +141,16 @@ function upsertEntities<T extends { [key: string]: any }>(
             if (idMap.has(lookupKey)) {
                 existingIndex = idMap.get(lookupKey)!;
             }
-        } 
-        // Priority 2: Match by Name (if ID match failed)
-        else if (changeName) {
+        }
+        
+        // Priority 2: Match by Name (if ID match failed or ID was not provided)
+        if (existingIndex === -1 && changeName) {
             const lookupKey = typeof changeName === 'string' ? changeName.toLowerCase() : changeName;
             if (nameMap.has(lookupKey)) {
                 existingIndex = nameMap.get(lookupKey)!;
             }
         }
+
 
         if (existingIndex !== -1) {
             const existingEntity = newEntities[existingIndex];
@@ -233,6 +234,10 @@ export const processAndApplyResponse = (response: GameResponse, baseState: GameS
     let pc = newState.playerCharacter;
     const logsToAdd: string[] = [];
     const combatLogsToAdd = asArray(response.combatLogEntries);
+    
+    if (!newState.imageCache) {
+      newState.imageCache = {};
+    }
 
     // --- Player Stats ---
     pc.currentHealth = Math.max(0, pc.currentHealth + (response.currentHealthChange || 0));

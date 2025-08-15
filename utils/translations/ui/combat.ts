@@ -51,6 +51,8 @@ export const combat = {
     "sleep": "Sleep",
     "Actions": "Actions",
     "CombatantStats": "Stats",
+    "Skills": "Skills",
+    "Inventory": "Inventory",
   },
   ru: {
     // Combat UI
@@ -107,5 +109,7 @@ export const combat = {
     "sleep": "Сон",
     "Actions": "Действия",
     "CombatantStats": "Статистика",
+    "Skills": "Навыки",
+    "Inventory": "Инвентарь",
   }
 };

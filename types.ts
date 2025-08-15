@@ -71,6 +71,7 @@ export interface GameState {
   temporaryStash?: Item[];
   worldStateFlags: Record<string, WorldStateFlag>;
   playerStatus?: PlayerStatus;
+  imageCache: Record<string, string>;
 }
 
 export type Language = 'ru' | 'en';

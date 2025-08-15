@@ -1,11 +1,7 @@
 
 
-
-
-
-
 import { useState, useCallback, useRef, useEffect } from 'react';
-import { GameState, GameContext, ChatMessage, GameResponse, LocationData, Item, NPC, SaveFile, Location, PlayerCharacter, WorldState, GameSettings, Quest, Faction, PlotOutline, Language, DBSaveSlotInfo } from '../types';
+import { GameState, GameContext, ChatMessage, GameResponse, LocationData, Item, NPC, SaveFile, Location, PlayerCharacter, WorldState, GameSettings, Quest, Faction, PlotOutline, Language, DBSaveSlotInfo, Wound } from '../types';
 import { executeTurn, askGmQuestion, getMusicSuggestionFromAi, getModelForStep } from '../utils/gameApi';
 import { createInitialContext, buildNextContext, updateWorldMap, recalculateDerivedStats } from '../utils/gameContext';
 import { processAndApplyResponse, checkAndApplyLevelUp } from '../utils/responseProcessor';
@@ -83,6 +79,14 @@ export function useGameLogic({ language, setLanguage }: UseGameLogicProps) {
 
   const gameContextRef = useRef<GameContext | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
+  
+  const onImageGenerated = useCallback((cacheKey: string, base64: string) => {
+    setGameState(prev => {
+        if (!prev) return null;
+        const newCache = { ...prev.imageCache, [cacheKey]: base64 };
+        return { ...prev, imageCache: newCache };
+    });
+  }, []);
 
   const packageSaveData = useCallback((): SaveFile | null => {
     if (!gameContextRef.current || !gameState) {
@@ -126,6 +130,11 @@ export function useGameLogic({ language, setLanguage }: UseGameLogicProps) {
   const restoreFromSaveData = useCallback((data: SaveFile) => {
       gameContextRef.current = data.gameContext;
       const loadedGameState = data.gameState;
+
+      // Graceful migration for old saves without imageCache
+      if (!loadedGameState.imageCache) {
+        loadedGameState.imageCache = {};
+      }
 
       const { pc: updatedPc, logs: levelUpLogs } = checkAndApplyLevelUp(loadedGameState.playerCharacter, t);
       
@@ -228,6 +237,7 @@ export function useGameLogic({ language, setLanguage }: UseGameLogicProps) {
           plotOutline: context.plotOutline,
           temporaryStash: [],
           worldStateFlags: context.worldStateFlags,
+          imageCache: {},
       };
       
       const { newState, logsToAdd, combatLogsToAdd } = processAndApplyResponse(finalResponse, baseState, t);
@@ -430,6 +440,7 @@ export function useGameLogic({ language, setLanguage }: UseGameLogicProps) {
           plotOutline: context.plotOutline,
           temporaryStash: [],
           worldStateFlags: context.worldStateFlags,
+          imageCache: {},
         };
 
         const { newState, logsToAdd, combatLogsToAdd } = processAndApplyResponse(response, baseState, t);
@@ -1024,6 +1035,52 @@ export function useGameLogic({ language, setLanguage }: UseGameLogicProps) {
     });
   }, []);
 
+  const forgetHealedWound = useCallback((characterType: 'player' | 'npc', characterId: string | null, woundId: string) => {
+    setGameState(prevState => {
+        if (!prevState) return null;
+        const newState = JSON.parse(JSON.stringify(prevState));
+        if (characterType === 'player') {
+            const pc = newState.playerCharacter as PlayerCharacter;
+            pc.playerWounds = pc.playerWounds.filter((w: Wound) => w.woundId !== woundId);
+            if (gameContextRef.current) {
+                gameContextRef.current.playerCharacter.playerWounds = pc.playerWounds;
+            }
+        } else if (characterType === 'npc' && characterId) {
+            const npcIndex = newState.encounteredNPCs.findIndex((n: NPC) => n.NPCId === characterId);
+            if (npcIndex > -1) {
+                newState.encounteredNPCs[npcIndex].wounds = (newState.encounteredNPCs[npcIndex].wounds || []).filter((w: Wound) => w.woundId !== woundId);
+                if (gameContextRef.current) {
+                    gameContextRef.current.encounteredNPCs = newState.encounteredNPCs;
+                }
+            }
+        }
+        return newState;
+    });
+  }, []);
+
+  const clearAllHealedWounds = useCallback((characterType: 'player' | 'npc', characterId: string | null) => {
+    setGameState(prevState => {
+        if (!prevState) return null;
+        const newState = JSON.parse(JSON.stringify(prevState));
+        if (characterType === 'player') {
+            const pc = newState.playerCharacter as PlayerCharacter;
+            pc.playerWounds = pc.playerWounds.filter((w: Wound) => w.healingState.currentState !== 'Healed');
+             if (gameContextRef.current) {
+                gameContextRef.current.playerCharacter.playerWounds = pc.playerWounds;
+            }
+        } else if (characterType === 'npc' && characterId) {
+            const npcIndex = newState.encounteredNPCs.findIndex((n: NPC) => n.NPCId === characterId);
+            if (npcIndex > -1) {
+                newState.encounteredNPCs[npcIndex].wounds = (newState.encounteredNPCs[npcIndex].wounds || []).filter((w: Wound) => w.healingState.currentState !== 'Healed');
+                 if (gameContextRef.current) {
+                    gameContextRef.current.encounteredNPCs = newState.encounteredNPCs;
+                }
+            }
+        }
+        return newState;
+    });
+  }, []);
+
 
   return {
     gameState,
@@ -1091,5 +1148,8 @@ export function useGameLogic({ language, setLanguage }: UseGameLogicProps) {
     currentStep,
     currentModel,
     turnTime,
+    onImageGenerated,
+    forgetHealedWound,
+    clearAllHealedWounds,
   };
 }

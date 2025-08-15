@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import CharacterSheet from './CharacterSheet';
 import QuestLog from './QuestLog';
-import { GameState, Location, WorldState, GameSettings, PlayerCharacter, Faction, PlotOutline, Item, DBSaveSlotInfo, WorldStateFlag } from '../types';
+import { GameState, Location, WorldState, GameSettings, PlayerCharacter, Faction, PlotOutline, Item, DBSaveSlotInfo, WorldStateFlag, Wound } from '../types';
 import { UserCircleIcon, BookOpenIcon, CodeBracketIcon, DocumentTextIcon, UsersIcon, ShieldExclamationIcon, Cog6ToothIcon, MapIcon, MapPinIcon, QuestionMarkCircleIcon, UserGroupIcon, GlobeAltIcon, ArchiveBoxXMarkIcon, BeakerIcon } from '@heroicons/react/24/outline';
 import { ChevronDoubleRightIcon } from '@heroicons/react/24/solid';
 import JsonDebugView from './JsonDebugView';
@@ -58,6 +58,10 @@ interface SidePanelProps {
   currentStep: string | null;
   currentModel: string | null;
   turnTime: number | null;
+  imageCache: Record<string, string>;
+  onImageGenerated: (prompt: string, base64: string) => void;
+  forgetHealedWound: (characterType: 'player' | 'npc', characterId: string | null, woundId: string) => void;
+  clearAllHealedWounds: (characterType: 'player' | 'npc', characterId: string | null) => void;
 }
 
 type Tab = 'Character' | 'Quests' | 'Factions' | 'NPCs' | 'Locations' | 'Map' | 'Combat' | 'Log' | 'Guide' | 'Debug' | 'Game' | 'Stash' | 'Crafting' | 'World';
@@ -151,6 +155,10 @@ export default function SidePanel({
     currentStep,
     currentModel,
     turnTime,
+    imageCache,
+    onImageGenerated,
+    forgetHealedWound,
+    clearAllHealedWounds,
 }: SidePanelProps): React.ReactNode {
   const [activeTab, setActiveTab] = useState<Tab>('Character');
   const { language, t } = useLocalization();
@@ -235,11 +243,11 @@ export default function SidePanel({
           })}
         </div>
         <div className="flex-1 overflow-y-auto p-4">
-          {activeTab === 'Character' && gameState && <CharacterSheet character={gameState.playerCharacter} gameSettings={gameSettings} onOpenModal={onOpenDetailModal} onOpenInventory={onOpenInventory} onSpendAttributePoint={onSpendAttributePoint} />}
+          {activeTab === 'Character' && gameState && <CharacterSheet character={gameState.playerCharacter} gameSettings={gameSettings} onOpenModal={onOpenDetailModal} onOpenInventory={onOpenInventory} onSpendAttributePoint={onSpendAttributePoint} forgetHealedWound={forgetHealedWound} clearAllHealedWounds={clearAllHealedWounds} />}
           {activeTab === 'Quests' && gameState && <QuestLog activeQuests={gameState.activeQuests} completedQuests={gameState.completedQuests} onOpenModal={onOpenDetailModal} lastUpdatedQuestId={lastUpdatedQuestId} />}
           {activeTab === 'World' && <WorldPanel worldState={worldState} worldStateFlags={worldStateFlags} turnNumber={turnNumber} />}
           {activeTab === 'Factions' && gameState && <FactionLog factions={gameState.encounteredFactions} onOpenModal={onOpenDetailModal} />}
-          {activeTab === 'NPCs' && gameState && <NpcLog npcs={gameState.encounteredNPCs} encounteredFactions={gameState.encounteredFactions} onOpenModal={onOpenDetailModal} />}
+          {activeTab === 'NPCs' && gameState && <NpcLog npcs={gameState.encounteredNPCs} encounteredFactions={gameState.encounteredFactions} onOpenModal={onOpenDetailModal} imageCache={gameState?.imageCache ?? {}} onImageGenerated={onImageGenerated} />}
           {activeTab === 'Locations' && gameState && <LocationLog locations={visitedLocations} currentLocation={gameState.currentLocationData} onOpenModal={onOpenDetailModal} allowHistoryManipulation={gameSettings?.allowHistoryManipulation ?? false} onEditLocationData={editLocationData} />}
           {activeTab === 'Map' && gameState && <LocationViewer visitedLocations={visitedLocations} currentLocation={gameState.currentLocationData} onOpenModal={onOpenDetailModal} />}
           {activeTab === 'Combat' && gameState && <CombatTracker 
@@ -252,8 +260,10 @@ export default function SidePanel({
             onOpenDetailModal={onOpenDetailModal}
             onSendMessage={onSendMessage}
             isLoading={isLoading}
+            imageCache={imageCache}
+            onImageGenerated={onImageGenerated}
           />}
-          {activeTab === 'Stash' && showStash && gameState && <StashView stash={temporaryStash} onTake={moveFromStashToInventory} onDrop={dropItemFromStash} playerCharacter={gameState.playerCharacter} />}
+          {activeTab === 'Stash' && showStash && gameState && <StashView stash={temporaryStash} onTake={moveFromStashToInventory} onDrop={dropItemFromStash} playerCharacter={gameState.playerCharacter} imageCache={imageCache} onImageGenerated={onImageGenerated} />}
           {activeTab === 'Crafting' && gameState && <CraftingScreen playerCharacter={gameState.playerCharacter} craftItem={craftItem} />}
           {activeTab === 'Guide' && <HelpGuide />}
           

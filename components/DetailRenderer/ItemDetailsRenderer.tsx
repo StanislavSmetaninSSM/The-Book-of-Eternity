@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo } from 'react';
 import { Item, GameSettings } from '../../types';
 import { DetailRendererProps } from './types';
@@ -22,7 +23,7 @@ interface ItemDetailsProps extends Omit<DetailRendererProps, 'data'> {
   item: Item;
 }
 
-const ItemDetailsRenderer: React.FC<ItemDetailsProps> = ({ item, onOpenImageModal, allowHistoryManipulation, onEditItemData, playerCharacter, disassembleItem, onCloseModal, gameSettings }) => {
+const ItemDetailsRenderer: React.FC<ItemDetailsProps> = ({ item, onOpenImageModal, allowHistoryManipulation, onEditItemData, playerCharacter, disassembleItem, onCloseModal, gameSettings, imageCache, onImageGenerated }) => {
     const { t } = useLocalization();
     const [isDisassembleConfirmOpen, setIsDisassembleConfirmOpen] = useState(false);
     const canHaveBond = ['Rare', 'Epic', 'Legendary', 'Unique'].includes(item.quality);
@@ -44,7 +45,7 @@ const ItemDetailsRenderer: React.FC<ItemDetailsProps> = ({ item, onOpenImageModa
     return (
     <div className="space-y-4">
         <div className="w-full h-48 rounded-lg overflow-hidden mb-4 bg-gray-900 group relative cursor-pointer" onClick={() => onOpenImageModal?.(imagePrompt)}>
-            <ImageRenderer prompt={imagePrompt} alt={item.name} width={1024} height={1024} />
+            <ImageRenderer prompt={imagePrompt} alt={item.name} width={1024} height={1024} imageCache={imageCache} onImageGenerated={onImageGenerated} />
              <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                 <p className="text-white font-bold text-lg">{t('Enlarge')}</p>
             </div>
@@ -217,7 +218,7 @@ const ItemDetailsRenderer: React.FC<ItemDetailsProps> = ({ item, onOpenImageModa
             <Section title={t("Fate Cards")} icon={SparklesIcon}>
                 <div className="space-y-3">
                     {item.fateCards.map((card) => (
-                       <FateCardDetailsRenderer key={card.cardId} card={card} onOpenImageModal={onOpenImageModal} />
+                       <FateCardDetailsRenderer key={card.cardId} card={card} onOpenImageModal={onOpenImageModal} imageCache={imageCache} onImageGenerated={onImageGenerated} />
                     ))}
                 </div>
             </Section>

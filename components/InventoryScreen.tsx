@@ -1,4 +1,5 @@
 
+
 import React, { useState, useMemo } from 'react';
 import { GameState, Item } from '../types';
 import Modal from './Modal';
@@ -47,6 +48,8 @@ interface InventoryScreenProps {
     onMergeItems: (sourceItem: Item, targetItem: Item) => void;
     onOpenDetailModal: (title: string, data: any) => void;
     onOpenImageModal: (prompt: string) => void;
+    imageCache: Record<string, string>;
+    onImageGenerated: (prompt: string, base64: string) => void;
 }
 
 const qualityOrder: Record<string, number> = {
@@ -54,7 +57,7 @@ const qualityOrder: Record<string, number> = {
     'Rare': 4, 'Epic': 5, 'Legendary': 6, 'Unique': 7,
 };
 
-export default function InventoryScreen({ gameState, onClose, onEquip, onUnequip, onDropItem, onMoveItem, onSplitItem, onMergeItems, onOpenDetailModal, onOpenImageModal }: InventoryScreenProps) {
+export default function InventoryScreen({ gameState, onClose, onEquip, onUnequip, onDropItem, onMoveItem, onSplitItem, onMergeItems, onOpenDetailModal, onOpenImageModal, imageCache, onImageGenerated }: InventoryScreenProps) {
     const { playerCharacter } = gameState;
     const [viewingContainer, setViewingContainer] = useState<Item | null>(null);
     const [sortCriteria, setSortCriteria] = useState<'name' | 'quality' | 'weight' | 'price' | 'type'>('name');
@@ -163,7 +166,7 @@ export default function InventoryScreen({ gameState, onClose, onEquip, onUnequip
                 className={`w-20 h-20 bg-gray-900/50 rounded-md flex flex-col justify-center items-center border-2 ${qualityColorMap[item.quality] || 'border-gray-600'} shadow-lg transition-all relative group overflow-hidden ${isBroken ? 'cursor-not-allowed' : 'cursor-pointer hover:shadow-cyan-500/20 hover:scale-105'}`}
                 title={isBroken ? t("This item is broken and cannot be equipped.") : item.name}
             >
-                <ImageRenderer prompt={imagePrompt} alt={item.name} className={`absolute inset-0 w-full h-full object-cover ${isBroken ? 'filter grayscale brightness-50' : ''}`} />
+                <ImageRenderer prompt={imagePrompt} alt={item.name} className={`absolute inset-0 w-full h-full object-cover ${isBroken ? 'filter grayscale brightness-50' : ''}`} imageCache={imageCache} onImageGenerated={onImageGenerated} />
                  {isBroken && (
                     <div className="absolute inset-0 bg-red-900/50 flex items-center justify-center pointer-events-none">
                         <ExclamationTriangleIcon className="w-8 h-8 text-red-400" />
@@ -285,7 +288,7 @@ export default function InventoryScreen({ gameState, onClose, onEquip, onUnequip
                     `}
                     title={t('Open {name}', { name: item.name })}
                 >
-                    <ImageRenderer prompt={imagePrompt} alt={item.name} className="absolute inset-0 w-full h-full object-cover" />
+                    <ImageRenderer prompt={imagePrompt} alt={item.name} className="absolute inset-0 w-full h-full object-cover" imageCache={imageCache} onImageGenerated={onImageGenerated} />
                     <div className="absolute inset-0 bg-cyan-900/30 flex items-center justify-center pointer-events-none">
                         <ArchiveBoxSolidIcon className="w-8 h-8 text-cyan-200/80" />
                     </div>
@@ -367,7 +370,7 @@ export default function InventoryScreen({ gameState, onClose, onEquip, onUnequip
                     break;
                 case 'price':
                     valA = a.price * a.count;
-                    valB = b.price * a.count;
+                    valB = b.price * b.count;
                     break;
                 case 'type':
                     valA = a.type || 'zzzz'; // Push undefined types to the end

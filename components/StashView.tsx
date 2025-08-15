@@ -1,4 +1,5 @@
 
+
 import React, { useState } from 'react';
 import { Item, PlayerCharacter } from '../types';
 import { useLocalization } from '../context/LocalizationContext';
@@ -11,6 +12,8 @@ interface StashViewProps {
   playerCharacter: PlayerCharacter;
   onTake: (item: Item, quantity: number) => void;
   onDrop: (item: Item) => void;
+  imageCache: Record<string, string>;
+  onImageGenerated: (prompt: string, base64: string) => void;
 }
 
 const qualityColorMap: Record<string, string> = {
@@ -24,7 +27,7 @@ const qualityColorMap: Record<string, string> = {
     'Unique': 'border-yellow-600/80',
 };
 
-const StashView: React.FC<StashViewProps> = ({ stash, playerCharacter, onTake, onDrop }) => {
+const StashView: React.FC<StashViewProps> = ({ stash, playerCharacter, onTake, onDrop, imageCache, onImageGenerated }) => {
     const { t } = useLocalization();
     const [quantities, setQuantities] = useState<Record<string, string>>({});
 
@@ -63,7 +66,7 @@ const StashView: React.FC<StashViewProps> = ({ stash, playerCharacter, onTake, o
                     return (
                         <div key={item.existedId} className={`bg-gray-900/40 p-3 rounded-lg border-l-4 ${qualityColorMap[item.quality] || 'border-gray-600'} flex items-center gap-4 flex-wrap`}>
                             <div className="w-12 h-12 rounded-md overflow-hidden flex-shrink-0 bg-gray-800">
-                                <ImageRenderer prompt={imagePrompt} alt={item.name} />
+                                <ImageRenderer prompt={imagePrompt} alt={item.name} imageCache={imageCache} onImageGenerated={onImageGenerated} />
                             </div>
                             <div className="flex-1 min-w-[120px]">
                                 <p className="font-semibold text-gray-200">{item.name} {item.count > 1 ? `(x${item.count})` : ''}</p>

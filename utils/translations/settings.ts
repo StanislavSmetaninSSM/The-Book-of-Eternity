@@ -83,6 +83,7 @@ export const settings = {
     "Save World Information": "Save World Information",
     "Notification Sound": "Notification Sound",
     "Play a sound when the GM's response is ready.": "Play a sound when the GM's response is ready.",
+    "notificationSoundTooltip": "To enable, toggle the switch. A preview sound will play upon activation to confirm it's working. This is required due to browser security policies that block sound until a user interacts with the page.",
   },
   ru: {
     "Non-Magic Mode": "Мир без магии",
@@ -166,5 +167,6 @@ export const settings = {
     "Save World Information": "Сохранить Информацию о Мире",
     "Notification Sound": "Звук уведомления",
     "Play a sound when the GM's response is ready.": "Воспроизводить звук, когда ответ ГМ будет готов.",
+    "notificationSoundTooltip": "Чтобы включить, переключите переключатель. При активации прозвучит предварительный звук для подтверждения работы. Это требуется из-за политик безопасности браузеров, которые блокируют звук до взаимодействия пользователя со страницей.",
   }
 };

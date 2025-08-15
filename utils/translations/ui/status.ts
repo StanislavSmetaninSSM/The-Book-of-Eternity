@@ -1,9 +1,12 @@
+
+
 export const status = {
   en: {
     // Conditions, Effects, Wounds
     "Active Effects": "Active Effects",
     "You are free of temporary effects.": "You are free of temporary effects.",
     "Wounds": "Wounds",
+    "Healed Wounds": "Healed Wounds",
     "You are unwounded.": "You are unwounded.",
     "Healing Progress": "Healing Progress",
     "Current State": "Current State",
@@ -87,6 +90,7 @@ export const status = {
     "Active Effects": "Активные эффекты",
     "You are free of temporary effects.": "Вы свободны от временных эффектов.",
     "Wounds": "Раны",
+    "Healed Wounds": "Зажившие раны",
     "You are unwounded.": "Вы не ранены.",
     "Healing Progress": "Прогресс лечения",
     "Current State": "Текущее состояние",

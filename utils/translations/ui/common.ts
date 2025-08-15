@@ -1,4 +1,6 @@
 
+
+
 export const common = {
   en: {
     "Edit": "Edit",
@@ -90,6 +92,7 @@ export const common = {
     "Character data will appear here after the first turn.": "Character data will appear here after the first turn.",
     "Enlarge": "Enlarge",
     "Regenerate Image": "Regenerate Image",
+    "Upload Image": "Upload Image",
     "Generated image": "Generated image",
     "Current game scene": "Current game scene",
     "Enlarged game scene": "Enlarged game scene",
@@ -124,6 +127,12 @@ export const common = {
     "Turn Processing Time": "Turn Processing Time",
     "Are you sure you want to delete this message?": "Are you sure you want to delete this message?",
     "You do not know any recipes yet. You might learn them from books, trainers, or through practice with Knowledge-Based skills.": "You do not know any recipes yet. You might learn them from books, trainers, or through practice with Knowledge-Based skills.",
+    "Show": "Show",
+    "Clear All": "Clear All",
+    "Forget Wound": "Forget Wound",
+    "Are you sure you want to forget this healed wound?": "Are you sure you want to forget this healed wound?",
+    "Clear All Healed Wounds": "Clear All Healed Wounds",
+    "Are you sure you want to clear all healed wounds? This will remove them permanently.": "Are you sure you want to clear all healed wounds? This will remove them permanently.",
   },
   ru: {
     "Edit": "Редактировать",
@@ -215,6 +224,7 @@ export const common = {
     "Character data will appear here after the first turn.": "Данные персонажа появятся здесь после первого хода.",
     "Enlarge": "Увеличить",
     "Regenerate Image": "Пересоздать изображение",
+    "Upload Image": "Загрузить изображение",
     "Generated image": "Сгенерированное изображение",
     "Current game scene": "Текущая игровая сцена",
     "Enlarged game scene": "Увеличенная игровая сцена",
@@ -249,5 +259,11 @@ export const common = {
     "Turn Processing Time": "Время обработки хода",
     "Are you sure you want to delete this message?": "Вы уверены, что хотите удалить это сообщение?",
     "You do not know any recipes yet. You might learn them from books, trainers, or through practice with Knowledge-Based skills.": "Вы еще не знаете ни одного рецепта. Вы можете изучить их из книг, у наставников или практикуясь с навыками, основанными на Знаниях.",
+    "Show": "Показать",
+    "Clear All": "Очистить все",
+    "Forget Wound": "Забыть рану",
+    "Are you sure you want to forget this healed wound?": "Вы уверены, что хотите забыть эту зажившую рану?",
+    "Clear All Healed Wounds": "Очистить все зажившие раны",
+    "Are you sure you want to clear all healed wounds? This will remove them permanently.": "Вы уверены, что хотите очистить все зажившие раны? Это удалит их навсегда.",
   }
 };

@@ -1,3 +1,5 @@
+
+
 import React from 'react';
 import { NPC, Faction } from '../types';
 import { UserGroupIcon, UserIcon, UserPlusIcon } from '@heroicons/react/24/outline';
@@ -8,6 +10,8 @@ interface NpcLogProps {
   npcs: NPC[];
   encounteredFactions: Faction[];
   onOpenModal: (title: string, data: any) => void;
+  imageCache: Record<string, string>;
+  onImageGenerated: (prompt: string, base64: string) => void;
 }
 
 const attitudeColorMap: Record<string, string> = {
@@ -19,7 +23,7 @@ const attitudeColorMap: Record<string, string> = {
     'Devoted': 'text-yellow-400',
 };
 
-const NpcItem: React.FC<{ npc: NPC, faction: Faction | undefined, factionName: string | undefined, onOpenModal: (title: string, data: any) => void }> = ({ npc, faction, factionName, onOpenModal }) => {
+const NpcItem: React.FC<{ npc: NPC, faction: Faction | undefined, factionName: string | undefined, onOpenModal: (title: string, data: any) => void, imageCache: Record<string, string>, onImageGenerated: (prompt: string, base64: string) => void }> = ({ npc, faction, factionName, onOpenModal, imageCache, onImageGenerated }) => {
     const { t } = useLocalization();
     const primaryAffiliation = npc.factionAffiliations?.[0];
     const displayFactionName = faction ? faction.name : (factionName || t('Unknown Faction'));
@@ -39,7 +43,7 @@ const NpcItem: React.FC<{ npc: NPC, faction: Faction | undefined, factionName: s
         >
             <div className="w-12 h-12 rounded-md overflow-hidden flex-shrink-0 bg-gray-800 flex items-center justify-center">
                 {npc.image_prompt ? (
-                    <ImageRenderer prompt={npc.image_prompt} alt={npc.name} className="w-full h-full object-cover" />
+                    <ImageRenderer prompt={npc.image_prompt} alt={npc.name} className="w-full h-full object-cover" imageCache={imageCache} onImageGenerated={onImageGenerated} />
                 ) : (
                     <UserIcon className="w-8 h-8 text-cyan-400" />
                 )}
@@ -67,7 +71,7 @@ const NpcItem: React.FC<{ npc: NPC, faction: Faction | undefined, factionName: s
     );
 };
 
-export default function NpcLog({ npcs, encounteredFactions, onOpenModal }: NpcLogProps): React.ReactNode {
+export default function NpcLog({ npcs, encounteredFactions, onOpenModal, imageCache, onImageGenerated }: NpcLogProps): React.ReactNode {
   const { t } = useLocalization();
   const factionMapById = new Map((encounteredFactions || []).filter(f => f.factionId).map(f => [f.factionId, f]));
   const factionMapByName = new Map((encounteredFactions || []).map(f => [f.name.toLowerCase(), f]));
@@ -95,7 +99,7 @@ export default function NpcLog({ npcs, encounteredFactions, onOpenModal }: NpcLo
                 }
             }
             return (
-              <NpcItem key={npc.NPCId || npc.name} npc={npc} faction={faction} factionName={primaryAffiliation?.factionName} onOpenModal={onOpenModal} />
+              <NpcItem key={npc.NPCId || npc.name} npc={npc} faction={faction} factionName={primaryAffiliation?.factionName} onOpenModal={onOpenModal} imageCache={imageCache} onImageGenerated={onImageGenerated} />
             )
           })}
         </div>

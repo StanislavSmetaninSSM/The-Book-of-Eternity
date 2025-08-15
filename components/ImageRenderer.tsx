@@ -1,88 +1,118 @@
 
-import React, { useState, useEffect } from 'react';
-import { ArrowPathIcon } from '@heroicons/react/24/solid';
+import React, { useState, useEffect, useRef } from 'react';
+import { ArrowPathIcon, ArrowUpTrayIcon } from '@heroicons/react/24/solid';
 import { useLocalization } from '../context/LocalizationContext';
 
-// Module-level cache to store loaded image URLs against their prompts.
-const imageCache = new Map<string, string>();
-
 interface ImageRendererProps {
-  prompt: string;
+  prompt: string | null;
   className?: string;
   alt?: string;
   showRegenerateButton?: boolean;
   width?: number;
   height?: number;
+  imageCache: Record<string, string>;
+  onImageGenerated: (prompt: string, base64: string) => void;
 }
 
-const ImageRenderer: React.FC<ImageRendererProps> = ({ prompt, className = '', alt, showRegenerateButton = false, width = 512, height = 512 }) => {
+const ImageRenderer: React.FC<ImageRendererProps> = ({ prompt, className = '', alt, showRegenerateButton = false, width = 512, height = 512, imageCache, onImageGenerated }) => {
   const [imageUrl, setImageUrl] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(false);
   const [regenerationCount, setRegenerationCount] = useState(0);
   const { t } = useLocalization();
+  const prevRegenCount = useRef(regenerationCount);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    if (!prompt) {
-      setIsLoading(false);
-      setError(true);
-      return;
-    }
-    
-    setIsLoading(true);
-    setError(false);
+    let isCancelled = false;
 
-    // Use width/height in cache key to avoid serving low-res images for high-res requests
-    const cacheKey = `${prompt}_${width}x${height}`;
-    const cachedUrl = imageCache.get(cacheKey);
-    if (cachedUrl) {
-      setImageUrl(cachedUrl);
-      setIsLoading(false);
-      setError(false);
-      return;
-    }
-
-    // Use a variable to track the prompt for this specific effect run.
-    // This prevents race conditions if the prompt prop changes while an image is loading.
-    const currentPrompt = prompt;
-    const encodedPrompt = encodeURIComponent(prompt);
-    // Add regenerationCount to the seed to ensure a new image is fetched.
-    const url = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=${width}&height=${height}&seed=${Math.random() + regenerationCount}`;
-    
-    const img = new Image();
-    img.src = url;
-
-    const handleLoad = () => {
-      // Only update state if the loaded image corresponds to the current prompt.
-      if (currentPrompt === prompt) {
-        setImageUrl(url);
-        setIsLoading(false);
-        setError(false);
-        imageCache.set(cacheKey, url); // Cache the new URL with resolution key.
-      }
-    };
-
-    const handleError = () => {
-      if (currentPrompt === prompt) {
+    const fetchAndCacheImage = async () => {
+      const regenerationJustTriggered = regenerationCount > prevRegenCount.current;
+      
+      if (!prompt) {
         setIsLoading(false);
         setError(true);
+        return;
+      }
+      
+      const cacheKey = prompt;
+
+      if (!regenerationJustTriggered && imageCache[cacheKey]) {
+        setImageUrl(imageCache[cacheKey]);
+        setIsLoading(false);
+        setError(false); // Reset error state if a cached image is found
+        return;
+      }
+
+      setIsLoading(true);
+      setError(false);
+
+      try {
+        const encodedPrompt = encodeURIComponent(prompt);
+        const url = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=${width}&height=${height}&seed=${Math.random() + regenerationCount}`;
+        
+        const response = await fetch(url);
+        if (!response.ok) {
+          throw new Error('Image fetch failed');
+        }
+        
+        const blob = await response.blob();
+        
+        const reader = new FileReader();
+        reader.onloadend = () => {
+            if (!isCancelled) {
+                const base64data = reader.result as string;
+                onImageGenerated(cacheKey, base64data);
+            }
+        };
+        reader.readAsDataURL(blob);
+
+      } catch (err) {
+        if (!isCancelled) {
+          setError(true);
+          setIsLoading(false);
+        }
       }
     };
+
+    fetchAndCacheImage();
     
-    img.addEventListener('load', handleLoad);
-    img.addEventListener('error', handleError);
+    prevRegenCount.current = regenerationCount;
 
     return () => {
-      img.removeEventListener('load', handleLoad);
-      img.removeEventListener('error', handleError);
+      isCancelled = true;
     };
-  }, [prompt, regenerationCount, width, height]); // Re-run effect if prompt or regenerationCount changes.
+  }, [prompt, regenerationCount, width, height, imageCache, onImageGenerated]);
 
   const handleRegenerate = (e: React.MouseEvent) => {
-    e.stopPropagation(); // Prevent modal from closing if the image is inside a clickable area.
-    const cacheKey = `${prompt}_${width}x${height}`;
-    imageCache.delete(cacheKey); // Clear the old image from the cache.
-    setRegenerationCount(count => count + 1); // Trigger the useEffect to re-fetch.
+    e.stopPropagation();
+    setRegenerationCount(count => count + 1);
+  };
+
+  const handleUploadClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (file && prompt) {
+          if (!file.type.startsWith('image/')) {
+              alert(t("Please select an image file."));
+              return;
+          }
+          setIsLoading(true);
+          setError(false);
+          const reader = new FileReader();
+          reader.onloadend = () => {
+              const base64data = reader.result as string;
+              onImageGenerated(prompt, base64data);
+          };
+          reader.readAsDataURL(file);
+      }
+      if (fileInputRef.current) {
+          fileInputRef.current.value = "";
+      }
   };
   
   return (
@@ -104,14 +134,32 @@ const ImageRenderer: React.FC<ImageRendererProps> = ({ prompt, className = '', a
       {!isLoading && !error && imageUrl && (
         <img src={imageUrl} alt={alt || t('Generated image')} className="object-cover w-full h-full" />
       )}
-      {showRegenerateButton && !isLoading && (
-        <button
-          onClick={handleRegenerate}
-          className="absolute top-2 right-2 bg-gray-900/60 text-white p-2 rounded-full hover:bg-black/80 transition-all opacity-0 group-hover:opacity-100 focus:opacity-100"
-          title={t("Regenerate Image")}
-        >
-          <ArrowPathIcon className="w-5 h-5" />
-        </button>
+      {showRegenerateButton && (
+        <div className="absolute top-2 right-2 flex gap-2">
+            <input
+                type="file"
+                ref={fileInputRef}
+                onChange={handleFileChange}
+                className="hidden"
+                accept="image/*"
+            />
+             <button
+                onClick={handleUploadClick}
+                disabled={isLoading}
+                className="bg-gray-900/60 text-white p-2 rounded-full hover:bg-black/80 transition-all opacity-50 group-hover:opacity-100 focus:opacity-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                title={t("Upload Image")}
+            >
+                <ArrowUpTrayIcon className="w-5 h-5" />
+            </button>
+            <button
+              onClick={handleRegenerate}
+              disabled={isLoading}
+              className="bg-gray-900/60 text-white p-2 rounded-full hover:bg-black/80 transition-all opacity-50 group-hover:opacity-100 focus:opacity-100 disabled:opacity-50 disabled:cursor-not-allowed"
+              title={t("Regenerate Image")}
+            >
+                <ArrowPathIcon className={`w-5 h-5 ${isLoading ? 'animate-spin' : ''}`} />
+            </button>
+        </div>
       )}
     </div>
   );
