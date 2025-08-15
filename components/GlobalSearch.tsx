@@ -82,36 +82,36 @@ export default function GlobalSearch({ gameState, visitedLocations, onOpenDetail
 
         // Search Items
         gameState.playerCharacter.inventory.forEach(item => {
-            if (item.name.toLowerCase().includes(q) || item.existedId?.toLowerCase().includes(q)) {
+            if (item && item.name && (item.name.toLowerCase().includes(q) || item.existedId?.toLowerCase().includes(q))) {
                 results.Items.push({ type: 'Item', data: item });
             }
         });
 
         // Search Quests
         [...gameState.activeQuests, ...gameState.completedQuests].forEach(quest => {
-            if (quest.questName.toLowerCase().includes(q) || quest.questId?.toLowerCase().includes(q)) {
+            if (quest && quest.questName && (quest.questName.toLowerCase().includes(q) || quest.questId?.toLowerCase().includes(q))) {
                 results.Quests.push({ type: 'Quest', data: quest });
             }
         });
 
         // Search NPCs
         gameState.encounteredNPCs.forEach(npc => {
-            if (npc.name.toLowerCase().includes(q) || npc.NPCId?.toLowerCase().includes(q)) {
+            if (npc && npc.name && (npc.name.toLowerCase().includes(q) || npc.NPCId?.toLowerCase().includes(q))) {
                 results.NPCs.push({ type: 'NPC', data: npc });
             }
         });
 
         // Search Skills
         [...gameState.playerCharacter.activeSkills, ...gameState.playerCharacter.passiveSkills].forEach(skill => {
-            const type = 'energyCost' in skill ? 'ActiveSkill' : 'PassiveSkill';
-            if (skill.skillName.toLowerCase().includes(q)) {
+            if (skill && skill.skillName && skill.skillName.toLowerCase().includes(q)) {
+                const type = 'energyCost' in skill ? 'ActiveSkill' : 'PassiveSkill';
                 results.Skills.push({ type, data: skill } as SearchResultItem);
             }
         });
         
         // Search Locations
         visitedLocations.forEach(loc => {
-            if (loc.name.toLowerCase().includes(q) || loc.locationId?.toLowerCase().includes(q)) {
+            if (loc && loc.name && (loc.name.toLowerCase().includes(q) || loc.locationId?.toLowerCase().includes(q))) {
                 results.Locations.push({ type: 'Location', data: loc });
             }
         });

@@ -140,6 +140,20 @@ export const details = {
     "Mastery Level": "Mastery Level",
     "Progress": "Progress",
     "Reputation": "Reputation",
+
+    // Fallback effect descriptions
+    "deals_damage_effect_template": "Deals {value} {target} damage",
+    "deals_dot_effect_template": "Deals {value} {target} damage per turn for {duration} turns",
+    "heals_effect_template": "Restores {value} health",
+    "heals_hot_effect_template": "Restores {value} health per turn for {duration} turns",
+    "buffs_effect_template": "Increases {target} by {value} for {duration} turns",
+    "buffs_effect_template_permanent": "Increases {target} by {value}",
+    "debuffs_effect_template": "Reduces {target} by {value} for {duration} turns",
+    "debuffs_effect_template_permanent": "Reduces {target} by {value}",
+    "controls_effect_template": "Has a {value} chance to apply {target} for {duration} turns",
+    "controls_effect_template_permanent": "Applies {target} with a {value} chance",
+    "reduces_damage_effect_template": "Reduces damage from {target} by {value} for {duration} turns",
+    "reduces_damage_effect_template_permanent": "Reduces damage from {target} by {value}",
   },
   ru: {
     // Common Detail View Titles
@@ -282,5 +296,19 @@ export const details = {
     "Mastery Level": "Уровень мастерства",
     "Progress": "Прогресс",
     "Reputation": "Репутация",
+
+    // Fallback effect descriptions
+    "deals_damage_effect_template": "Урон: {value} ({target})",
+    "deals_dot_effect_template": "Периодический урон: {value} ({target}) / ход, {duration} ходов",
+    "heals_effect_template": "Лечение: {value} здоровья",
+    "heals_hot_effect_template": "Регенерация: {value} здоровья / ход, {duration} ходов",
+    "buffs_effect_template": "Усиление: +{value} к {target} на {duration} ходов",
+    "buffs_effect_template_permanent": "Усиление: +{value} к {target}",
+    "debuffs_effect_template": "Ослабление: {value} к {target} на {duration} ходов",
+    "debuffs_effect_template_permanent": "Ослабление: {value} к {target}",
+    "controls_effect_template": "Контроль: {target} с шансом {value} на {duration} ходов",
+    "controls_effect_template_permanent": "Контроль: {target} с шансом {value}",
+    "reduces_damage_effect_template": "Снижение урона ({target}) на {value} на {duration} ходов",
+    "reduces_damage_effect_template_permanent": "Снижение урона ({target}) на {value}",
   }
 };

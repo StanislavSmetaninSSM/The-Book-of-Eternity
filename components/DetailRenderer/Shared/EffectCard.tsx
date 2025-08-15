@@ -1,8 +1,7 @@
-
 import React from 'react';
 import { CombatActionEffect } from '../../../types';
 import { useLocalization } from '../../../context/LocalizationContext';
-import { parseAndTranslateTargetType } from '../utils';
+import { parseAndTranslateTargetType, generateEffectDescription } from '../utils';
 import MarkdownRenderer from '../../MarkdownRenderer';
 import { HeartIcon, FireIcon, SunIcon, CloudIcon, SparklesIcon, ShieldCheckIcon, ShieldExclamationIcon, HandRaisedIcon } from '@heroicons/react/24/outline';
 
@@ -22,11 +21,13 @@ const EffectCard = ({ effect }: { effect: CombatActionEffect }) => {
     const meta = effectMeta[effect.effectType] || { icon: SparklesIcon, colorClass: 'border-gray-500 text-gray-400' };
     const Icon = meta.icon;
     
+    const descriptionToRender = generateEffectDescription(effect, t);
+
     return (
         <div className={`bg-gray-900/40 p-3 rounded-md border-l-4 ${meta.colorClass.split(' ')[0]}`}>
             <div className="font-semibold text-gray-200 flex items-start gap-2">
                 <Icon className={`w-5 h-5 flex-shrink-0 mt-0.5 ${meta.colorClass.split(' ')[1]}`} />
-                <MarkdownRenderer content={effect.effectDescription} className="flex-1" />
+                <MarkdownRenderer content={descriptionToRender} className="flex-1" />
             </div>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-1 text-xs text-gray-400 mt-2 pl-7">
                 <span><strong>{t("Value")}:</strong> {t(effect.value as any)}</span>

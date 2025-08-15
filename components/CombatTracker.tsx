@@ -1,11 +1,11 @@
-
 import React, { useState, useMemo } from 'react';
-import { EnemyCombatObject, AllyCombatObject, NPC, Item, ActiveSkill, PassiveSkill, CombatAction, PlayerCharacter, Wound } from '../types';
+import { EnemyCombatObject, AllyCombatObject, NPC, Item, ActiveSkill, PassiveSkill, CombatAction, PlayerCharacter, Wound, CombatActionEffect } from '../types';
 import { ShieldExclamationIcon, BoltIcon, ShieldCheckIcon, SunIcon, CloudIcon, DocumentTextIcon, SparklesIcon, ArchiveBoxIcon, Cog6ToothIcon, InformationCircleIcon } from '@heroicons/react/24/outline';
 import { FireIcon } from '@heroicons/react/24/solid';
 import ImageRenderer from './ImageRenderer';
 import { useLocalization } from '../context/LocalizationContext';
 import MarkdownRenderer from './MarkdownRenderer';
+import { generateEffectDescription } from './DetailRenderer/utils';
 
 type Combatant = EnemyCombatObject | AllyCombatObject;
 
@@ -228,12 +228,16 @@ const CombatantCard: React.FC<CombatantCardProps> = ({ combatant, fullNpcData, o
                 {activeTab === 'Actions' && (
                     <Section title={t('Actions')} icon={BoltIcon}>
                         {(actions ?? []).map((action, i) => (
-                            <div key={i} className="text-xs bg-gray-800/60 p-2 rounded">
+                             <button 
+                                key={i} 
+                                onClick={() => onOpenDetailModal(t("Combat Action: {name}", { name: action.actionName }), action)} 
+                                className="w-full text-left text-xs bg-gray-800/60 p-2 rounded hover:bg-gray-700/80 transition-colors"
+                            >
                                 <p className="font-semibold text-gray-200">{action.actionName}</p>
                                 {(action.effects ?? []).map((e, idx) => (
-                                    <p key={idx} className="text-gray-400 italic">{e.effectDescription}</p>
+                                    <p key={idx} className="text-gray-400 italic">{generateEffectDescription(e, t)}</p>
                                 ))}
-                            </div>
+                            </button>
                         ))}
                     </Section>
                 )}
