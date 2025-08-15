@@ -1,5 +1,4 @@
 
-
 import React from 'react';
 import { NPC, Faction } from '../types';
 import { UserGroupIcon, UserIcon, UserPlusIcon } from '@heroicons/react/24/outline';
@@ -27,6 +26,7 @@ const NpcItem: React.FC<{ npc: NPC, faction: Faction | undefined, factionName: s
     const { t } = useLocalization();
     const primaryAffiliation = npc.factionAffiliations?.[0];
     const displayFactionName = faction ? faction.name : (factionName || t('Unknown Faction'));
+    const imagePrompt = npc.custom_image_prompt || npc.image_prompt;
     
     const getRelationshipTooltip = (level: number) => {
         if (level <= 49) return t('relationship_level_hostility');
@@ -42,8 +42,8 @@ const NpcItem: React.FC<{ npc: NPC, faction: Faction | undefined, factionName: s
             className="w-full text-left bg-gray-900/40 p-3 rounded-lg border border-gray-700/50 shadow-md transition-all hover:ring-1 hover:ring-cyan-500/50 hover:border-cyan-500/50 flex items-start gap-4"
         >
             <div className="w-12 h-12 rounded-md overflow-hidden flex-shrink-0 bg-gray-800 flex items-center justify-center">
-                {npc.image_prompt ? (
-                    <ImageRenderer prompt={npc.image_prompt} alt={npc.name} className="w-full h-full object-cover" imageCache={imageCache} onImageGenerated={onImageGenerated} />
+                {imagePrompt ? (
+                    <ImageRenderer prompt={imagePrompt} alt={npc.name} className="w-full h-full object-cover" imageCache={imageCache} onImageGenerated={onImageGenerated} />
                 ) : (
                     <UserIcon className="w-8 h-8 text-cyan-400" />
                 )}

@@ -1,9 +1,11 @@
+
 import React from 'react';
 import { Quest, GameSettings } from '../../types';
 import { DetailRendererProps } from './types';
 import Section from './Shared/Section';
 import DetailRow from './Shared/DetailRow';
 import EditableField from './Shared/EditableField';
+import IdDisplay from './Shared/IdDisplay';
 import MarkdownRenderer from '../MarkdownRenderer';
 import { useLocalization } from '../../context/LocalizationContext';
 import {
@@ -16,7 +18,7 @@ interface QuestDetailsProps extends Omit<DetailRendererProps, 'data'> {
   gameSettings: GameSettings | null;
 }
 
-const QuestDetailsRenderer: React.FC<QuestDetailsProps> = ({ quest, onOpenForgetConfirm, allowHistoryManipulation, onEditQuestData, gameSettings }) => {
+const QuestDetailsRenderer: React.FC<QuestDetailsProps> = ({ quest, onOpenForgetConfirm, allowHistoryManipulation, onEditQuestData, gameSettings, onRegenerateId }) => {
     const { t } = useLocalization();
     const currencyName = gameSettings?.gameWorldInformation?.currencyName || 'Gold';
     
@@ -108,6 +110,17 @@ const QuestDetailsRenderer: React.FC<QuestDetailsProps> = ({ quest, onOpenForget
                 </div>
             </Section>
         )}
+
+        {allowHistoryManipulation && onRegenerateId && (
+            <Section title={t("System Information")} icon={CogIcon}>
+                <IdDisplay
+                    id={quest.questId}
+                    name={quest.questName}
+                    onRegenerate={() => onRegenerateId(quest, 'Quest')}
+                />
+            </Section>
+        )}
+
         {quest.questId && (
             <Section title={t("Actions")} icon={CogIcon}>
                 <button

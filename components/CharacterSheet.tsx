@@ -1,5 +1,6 @@
+
 import React, { useState, useMemo } from 'react';
-import { PlayerCharacter, Item, ActiveSkill, PassiveSkill, Effect, Wound, GameSettings, StructuredBonus } from '../types';
+import { PlayerCharacter, Item, ActiveSkill, PassiveSkill, Effect, Wound, GameSettings, StructuredBonus, CustomState } from '../types';
 import {
     HeartIcon, ShieldCheckIcon, StarIcon, ArchiveBoxIcon, // Main Stats
     BoltIcon, // Energy
@@ -41,6 +42,7 @@ interface CharacterSheetProps {
   onSpendAttributePoint: (characteristic: string) => void;
   forgetHealedWound: (characterType: 'player' | 'npc', characterId: string | null, woundId: string) => void;
   clearAllHealedWounds: (characterType: 'player' | 'npc', characterId: string | null) => void;
+  onDeleteCustomState: (stateId: string) => void;
 }
 
 const CHARACTERISTICS_LIST = ['strength', 'dexterity', 'constitution', 'intelligence', 'wisdom', 'faith', 'attractiveness', 'trade', 'persuasion', 'perception', 'luck', 'speed'];
@@ -88,12 +90,13 @@ const TABS = [
     { name: 'Conditions', icon: ExclamationTriangleIcon },
 ];
 
-export default function CharacterSheet({ character, gameSettings, onOpenModal, onOpenInventory, onSpendAttributePoint, forgetHealedWound, clearAllHealedWounds }: CharacterSheetProps): React.ReactNode {
+export default function CharacterSheet({ character, gameSettings, onOpenModal, onOpenInventory, onSpendAttributePoint, forgetHealedWound, clearAllHealedWounds, onDeleteCustomState }: CharacterSheetProps): React.ReactNode {
   const [activeTab, setActiveTab] = useState(TABS[0].name);
   const { t } = useLocalization();
   const [confirmClear, setConfirmClear] = useState(false);
   const [confirmForget, setConfirmForget] = useState<Wound | null>(null);
   const [healedWoundsCollapsed, setHealedWoundsCollapsed] = useState(true);
+  const [confirmDeleteState, setConfirmDeleteState] = useState<CustomState | null>(null);
 
   const currencyName = gameSettings?.gameWorldInformation?.currencyName || 'Gold';
 
@@ -107,6 +110,13 @@ export default function CharacterSheet({ character, gameSettings, onOpenModal, o
       forgetHealedWound('player', null, confirmForget.woundId);
     }
     setConfirmForget(null);
+  };
+  
+  const handleDeleteCustomState = () => {
+    if (confirmDeleteState && confirmDeleteState.stateId) {
+        onDeleteCustomState(confirmDeleteState.stateId);
+    }
+    setConfirmDeleteState(null);
   };
 
   const equipmentBonuses = useMemo(() => {
@@ -477,15 +487,25 @@ export default function CharacterSheet({ character, gameSettings, onOpenModal, o
         )}
       <Section title={t('States')}>
         {(customStates ?? []).length > 0 ? (customStates ?? []).map((state, index) => (
-             <StatBar 
-                key={state.stateId || index}
-                value={state.currentValue}
-                max={state.maxValue}
-                color="bg-purple-500"
-                label={t(state.stateName as any)}
-                icon={ExclamationTriangleIcon}
-                onClick={() => onOpenModal(t("CustomState: {name}", { name: state.stateName }), { ...state, type: 'customState' })}
-             />
+            <div key={state.stateId || index} className="flex items-center gap-2 group">
+                <div className="flex-1">
+                    <StatBar 
+                        value={state.currentValue}
+                        max={state.maxValue}
+                        color="bg-purple-500"
+                        label={t(state.stateName as any)}
+                        icon={ExclamationTriangleIcon}
+                        onClick={() => onOpenModal(t("CustomState: {name}", { name: state.stateName }), { ...state, type: 'customState' })}
+                    />
+                </div>
+                <button
+                    onClick={() => setConfirmDeleteState(state)}
+                    className="p-1 text-gray-500 rounded-full hover:bg-red-900/50 hover:text-red-300 transition-colors flex-shrink-0 opacity-0 group-hover:opacity-100"
+                    title={t('Delete State')}
+                >
+                    <TrashIcon className="w-4 h-4" />
+                </button>
+            </div>
         )) : <p className="text-sm text-gray-500 text-center p-2">{t('No custom states are active.')}</p>}
       </Section>
     </div>
@@ -644,6 +664,14 @@ export default function CharacterSheet({ character, gameSettings, onOpenModal, o
           title={t('Forget Wound')}
       >
           <p>{t('Are you sure you want to forget this healed wound?')}</p>
+      </ConfirmationModal>
+      <ConfirmationModal
+        isOpen={!!confirmDeleteState}
+        onClose={() => setConfirmDeleteState(null)}
+        onConfirm={handleDeleteCustomState}
+        title={t('delete_state_title', { name: confirmDeleteState?.stateName ?? '' })}
+      >
+        <p>{t('delete_state_confirm', { name: confirmDeleteState?.stateName ?? '' })}</p>
       </ConfirmationModal>
     </div>
   );

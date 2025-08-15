@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import CharacterSheet from './CharacterSheet';
 import QuestLog from './QuestLog';
-import { GameState, Location, WorldState, GameSettings, PlayerCharacter, Faction, PlotOutline, Item, DBSaveSlotInfo, WorldStateFlag, Wound } from '../types';
+import { GameState, Location, WorldState, GameSettings, PlayerCharacter, Faction, PlotOutline, Item, DBSaveSlotInfo, WorldStateFlag, Wound, CustomState } from '../types';
 import { UserCircleIcon, BookOpenIcon, CodeBracketIcon, DocumentTextIcon, UsersIcon, ShieldExclamationIcon, Cog6ToothIcon, MapIcon, MapPinIcon, QuestionMarkCircleIcon, UserGroupIcon, GlobeAltIcon, ArchiveBoxXMarkIcon, BeakerIcon } from '@heroicons/react/24/outline';
 import { ChevronDoubleRightIcon } from '@heroicons/react/24/solid';
 import JsonDebugView from './JsonDebugView';
@@ -35,6 +35,7 @@ interface SidePanelProps {
   autosaveTimestamp: string | null;
   visitedLocations: Location[];
   onOpenDetailModal: (title: string, data: any) => void;
+  onOpenImageModal: (prompt: string) => void;
   onSpendAttributePoint: (characteristic: string) => void;
   onToggleSidebar: () => void;
   gameSettings: GameSettings | null;
@@ -62,6 +63,8 @@ interface SidePanelProps {
   onImageGenerated: (prompt: string, base64: string) => void;
   forgetHealedWound: (characterType: 'player' | 'npc', characterId: string | null, woundId: string) => void;
   clearAllHealedWounds: (characterType: 'player' | 'npc', characterId: string | null) => void;
+  onRegenerateId: (entity: any, entityType: string) => void;
+  deleteCustomState: (stateId: string) => void;
 }
 
 type Tab = 'Character' | 'Quests' | 'Factions' | 'NPCs' | 'Locations' | 'Map' | 'Combat' | 'Log' | 'Guide' | 'Debug' | 'Game' | 'Stash' | 'Crafting' | 'World';
@@ -131,7 +134,8 @@ export default function SidePanel({
     onLoadAutosave, 
     autosaveTimestamp, 
     visitedLocations, 
-    onOpenDetailModal, 
+    onOpenDetailModal,
+    onOpenImageModal,
     onSpendAttributePoint, 
     onToggleSidebar,
     gameSettings,
@@ -159,6 +163,8 @@ export default function SidePanel({
     onImageGenerated,
     forgetHealedWound,
     clearAllHealedWounds,
+    onRegenerateId,
+    deleteCustomState,
 }: SidePanelProps): React.ReactNode {
   const [activeTab, setActiveTab] = useState<Tab>('Character');
   const { language, t } = useLocalization();
@@ -243,7 +249,7 @@ export default function SidePanel({
           })}
         </div>
         <div className="flex-1 overflow-y-auto p-4">
-          {activeTab === 'Character' && gameState && <CharacterSheet character={gameState.playerCharacter} gameSettings={gameSettings} onOpenModal={onOpenDetailModal} onOpenInventory={onOpenInventory} onSpendAttributePoint={onSpendAttributePoint} forgetHealedWound={forgetHealedWound} clearAllHealedWounds={clearAllHealedWounds} />}
+          {activeTab === 'Character' && gameState && <CharacterSheet character={gameState.playerCharacter} gameSettings={gameSettings} onOpenModal={onOpenDetailModal} onOpenInventory={onOpenInventory} onSpendAttributePoint={onSpendAttributePoint} forgetHealedWound={forgetHealedWound} clearAllHealedWounds={clearAllHealedWounds} onDeleteCustomState={deleteCustomState} />}
           {activeTab === 'Quests' && gameState && <QuestLog activeQuests={gameState.activeQuests} completedQuests={gameState.completedQuests} onOpenModal={onOpenDetailModal} lastUpdatedQuestId={lastUpdatedQuestId} />}
           {activeTab === 'World' && <WorldPanel worldState={worldState} worldStateFlags={worldStateFlags} turnNumber={turnNumber} />}
           {activeTab === 'Factions' && gameState && <FactionLog factions={gameState.encounteredFactions} onOpenModal={onOpenDetailModal} />}
@@ -262,6 +268,7 @@ export default function SidePanel({
             isLoading={isLoading}
             imageCache={imageCache}
             onImageGenerated={onImageGenerated}
+            onOpenImageModal={onOpenImageModal}
           />}
           {activeTab === 'Stash' && showStash && gameState && <StashView stash={temporaryStash} onTake={moveFromStashToInventory} onDrop={dropItemFromStash} playerCharacter={gameState.playerCharacter} imageCache={imageCache} onImageGenerated={onImageGenerated} />}
           {activeTab === 'Crafting' && gameState && <CraftingScreen playerCharacter={gameState.playerCharacter} craftItem={craftItem} />}

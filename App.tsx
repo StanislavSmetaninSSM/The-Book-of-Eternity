@@ -5,7 +5,7 @@ import InputBar from './components/InputBar';
 import SidePanel from './components/SidePanel';
 import InventoryScreen from './components/InventoryScreen';
 import { useGameLogic } from './hooks/useGameLogic';
-import { GameState, Item, WorldState, PlayerCharacter, ChatMessage, GameSettings } from './types';
+import { GameState, Item, WorldState, PlayerCharacter, ChatMessage, GameSettings, Quest, Location } from './types';
 import { ChevronDoubleLeftIcon, PencilSquareIcon, CheckIcon, XMarkIcon } from '@heroicons/react/24/solid';
 import ImageRenderer from './components/ImageRenderer';
 import Modal from './components/Modal';
@@ -87,6 +87,8 @@ export default function App(): React.ReactNode {
     onImageGenerated,
     forgetHealedWound,
     clearAllHealedWounds,
+    onRegenerateId,
+    deleteCustomState,
   } = useGameLogic({ language, setLanguage });
   const [hasStarted, setHasStarted] = useState(false);
   const [isInventoryOpen, setIsInventoryOpen] = useState(false);
@@ -103,27 +105,49 @@ export default function App(): React.ReactNode {
 
   useEffect(() => {
     // This effect ensures that the data shown in the detail modal is always fresh.
-    // When gameState is updated (e.g., by deleting journal entries), this finds the
+    // When gameState is updated (e.g., after regenerating an ID), this finds the
     // corresponding object in the new state and updates the modal's data,
     // triggering a re-render with the correct information.
-    if (detailModalData && gameState) {
-        const { data } = detailModalData;
-        let updatedData = null;
+    if (!detailModalData || !gameState) return;
 
-        // Identify the type of data and find its updated version in the new gameState.
-        if (data.NPCId && Array.isArray(gameState.encounteredNPCs)) {
-            updatedData = gameState.encounteredNPCs.find(npc => npc.NPCId === data.NPCId);
-        } else if (data.existedId && Array.isArray(gameState.playerCharacter.inventory)) {
-            updatedData = gameState.playerCharacter.inventory.find(item => item.existedId === data.existedId);
-        } else if (data.questId && Array.isArray(gameState.activeQuests)) {
-            updatedData = gameState.activeQuests.find(q => q.questId === data.questId) || gameState.completedQuests.find(q => q.questId === data.questId);
-        }
+    const { data } = detailModalData;
+    let updatedData = null;
 
-        if (updatedData && JSON.stringify(updatedData) !== JSON.stringify(data)) {
-            setDetailModalData(prev => (prev ? { ...prev, data: updatedData } : null));
+    // Type guards to identify the entity
+    const isNpc = data.NPCId !== undefined || (data.attitude !== undefined && data.race !== undefined);
+    const isItem = data.existedId !== undefined;
+    const isQuest = data.questId !== undefined;
+    const isLocation = data.type === 'location';
+
+    if (isNpc && Array.isArray(gameState.encounteredNPCs)) {
+        updatedData = gameState.encounteredNPCs.find(npc => 
+            (data.NPCId && npc.NPCId === data.NPCId) || // Find by existing ID first
+            (!data.NPCId && npc.name === data.name)      // Fallback to name if original had no ID
+        );
+    } else if (isItem && Array.isArray(gameState.playerCharacter.inventory)) {
+        updatedData = gameState.playerCharacter.inventory.find(item => item.existedId === data.existedId);
+    } else if (isQuest && Array.isArray(gameState.activeQuests)) {
+        const allQuests = [...gameState.activeQuests, ...gameState.completedQuests];
+        updatedData = allQuests.find(q => 
+            (data.questId && q.questId === data.questId) ||
+            (!data.questId && q.questName === data.questName)
+        );
+    } else if (isLocation && Array.isArray(visitedLocations)) {
+        updatedData = visitedLocations.find(loc => 
+            (data.locationId && loc.locationId === data.locationId) ||
+            (!data.locationId && loc.name === data.name)
+        );
+        if (updatedData) {
+            // Preserve the type property needed by the renderer, which isn't part of the core data model
+            updatedData = { ...updatedData, type: 'location' };
         }
     }
-  }, [gameState, detailModalData]);
+
+    // Only update state if the found data is different, to prevent render loops.
+    if (updatedData && JSON.stringify(updatedData) !== JSON.stringify(data)) {
+        setDetailModalData(prev => (prev ? { ...prev, data: updatedData } : null));
+    }
+  }, [gameState, detailModalData, visitedLocations]);
 
   const toggleSidebar = useCallback(() => {
     setIsSidebarCollapsed(prev => !prev);
@@ -331,13 +355,14 @@ export default function App(): React.ReactNode {
               gameLog={gameLog} 
               combatLog={combatLog}
               onDeleteLogs={deleteLogs} 
-              onSaveGame={handleSaveGame}
-              onLoadGame={handleLoadGame}
-              onLoadAutosave={handleLoadAutosave}
-              autosaveTimestamp={autosaveTimestamp}
-              visitedLocations={visitedLocations}
+              onSaveGame={handleSaveGame} 
+              onLoadGame={handleLoadGame} 
+              onLoadAutosave={handleLoadAutosave} 
+              autosaveTimestamp={autosaveTimestamp} 
+              visitedLocations={visitedLocations} 
               onOpenDetailModal={handleOpenDetailModal}
-              onSpendAttributePoint={spendAttributePoint}
+              onOpenImageModal={handleShowImageModal}
+              onSpendAttributePoint={spendAttributePoint} 
               onToggleSidebar={toggleSidebar}
               gameSettings={gameSettings}
               updateGameSettings={updateGameSettings}
@@ -364,6 +389,8 @@ export default function App(): React.ReactNode {
               onImageGenerated={onImageGenerated}
               forgetHealedWound={forgetHealedWound}
               clearAllHealedWounds={clearAllHealedWounds}
+              onRegenerateId={onRegenerateId}
+              deleteCustomState={deleteCustomState}
             />
           )}
         </aside>
@@ -434,6 +461,7 @@ export default function App(): React.ReactNode {
             onEditItemData={editItemData}
             onEditLocationData={editLocationData}
             onEditPlayerData={editPlayerData}
+            onRegenerateId={onRegenerateId}
             encounteredFactions={gameState?.encounteredFactions}
             gameSettings={gameSettings}
             imageCache={gameState?.imageCache ?? {}}

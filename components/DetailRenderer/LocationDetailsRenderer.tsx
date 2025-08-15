@@ -5,6 +5,7 @@ import { DetailRendererProps } from './types';
 import Section from './Shared/Section';
 import DetailRow from './Shared/DetailRow';
 import EditableField from './Shared/EditableField';
+import IdDisplay from './Shared/IdDisplay';
 import ImageRenderer from '../ImageRenderer';
 import { useLocalization } from '../../context/LocalizationContext';
 import {
@@ -92,7 +93,7 @@ const ChallengeAssessment: React.FC<{
     );
 };
 
-const LocationDetailsRenderer: React.FC<LocationDetailsProps> = ({ location, onOpenImageModal, onOpenForgetConfirm, currentLocationId, allowHistoryManipulation, onEditLocationData, imageCache, onImageGenerated, playerCharacter }) => {
+const LocationDetailsRenderer: React.FC<LocationDetailsProps> = ({ location, onOpenImageModal, onOpenForgetConfirm, currentLocationId, allowHistoryManipulation, onEditLocationData, imageCache, onImageGenerated, playerCharacter, onRegenerateId }) => {
     const { t } = useLocalization();
     const [isEventsModalOpen, setIsEventsModalOpen] = useState(false);
     const [expandedLink, setExpandedLink] = useState<string | null>(null);
@@ -213,6 +214,16 @@ const LocationDetailsRenderer: React.FC<LocationDetailsProps> = ({ location, onO
                                 </div>
                             )})}
                         </div>
+                    </Section>
+                )}
+
+                {allowHistoryManipulation && onRegenerateId && (
+                    <Section title={t("System Information")} icon={CogIcon}>
+                        <IdDisplay
+                            id={location.locationId}
+                            name={location.name}
+                            onRegenerate={() => onRegenerateId(location, 'Location')}
+                        />
                     </Section>
                 )}
 

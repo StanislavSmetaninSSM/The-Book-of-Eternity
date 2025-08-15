@@ -1,6 +1,4 @@
 
-
-
 export const common = {
   en: {
     "Edit": "Edit",
@@ -133,6 +131,12 @@ export const common = {
     "Are you sure you want to forget this healed wound?": "Are you sure you want to forget this healed wound?",
     "Clear All Healed Wounds": "Clear All Healed Wounds",
     "Are you sure you want to clear all healed wounds? This will remove them permanently.": "Are you sure you want to clear all healed wounds? This will remove them permanently.",
+    "System ID": "System ID",
+    "ID Missing": "ID Missing",
+    "Regenerate ID": "Regenerate ID",
+    'Are you sure you want to regenerate the ID for "{name}"?': 'Are you sure you want to regenerate the ID for "{name}"?',
+    'This can fix issues with uneditable objects but might have unintended side effects. This action cannot be undone.': 'This can fix issues with uneditable objects but might have unintended side effects. This action cannot be undone.',
+    "System Information": "System Information",
   },
   ru: {
     "Edit": "Редактировать",
@@ -157,7 +161,7 @@ export const common = {
     "Get Music Suggestion": "Получить музыкальную подсказку",
     "Show Music Player": "Показать плеер",
     "Hide": "Скрыть",
-    "Regenerate": "Сгенерировать заново",
+    "Regenerate": "Пересоздать",
     "Music Player": "Музыкальный плеер",
     "music_suggestion_reasoning": "Музыкальная подсказка: {reasoning}",
     "music_suggestion_failed": "ИИ не смог найти подходящую музыкальную подсказку для текущей атмосферы.",
@@ -265,5 +269,11 @@ export const common = {
     "Are you sure you want to forget this healed wound?": "Вы уверены, что хотите забыть эту зажившую рану?",
     "Clear All Healed Wounds": "Очистить все зажившие раны",
     "Are you sure you want to clear all healed wounds? This will remove them permanently.": "Вы уверены, что хотите очистить все зажившие раны? Это удалит их навсегда.",
+    "System ID": "Системный ID",
+    "ID Missing": "ID отсутствует",
+    "Regenerate ID": "Пересоздать ID",
+    'Are you sure you want to regenerate the ID for "{name}"?': 'Вы уверены, что хотите пересоздать ID для «{name}»?',
+    'This can fix issues with uneditable objects but might have unintended side effects. This action cannot be undone.': 'Это может исправить проблемы с нередактируемыми объектами, но может иметь непредвиденные побочные эффекты. Это действие нельзя отменить.',
+    "System Information": "Системная информация",
   }
 };

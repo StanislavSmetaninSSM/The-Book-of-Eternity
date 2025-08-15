@@ -22,7 +22,7 @@ import CombatActionDetails from './Shared/CombatActionDetails';
 import Section from './Shared/Section';
 import DetailRow from './Shared/DetailRow';
 import FactionDetailsRenderer from './FactionDetailsRenderer'; // Import the new component
-import { UserGroupIcon, StarIcon, CheckCircleIcon, ExclamationTriangleIcon } from '@heroicons/react/24/outline';
+import { UserGroupIcon, StarIcon, CheckCircleIcon, ExclamationTriangleIcon, CogIcon } from '@heroicons/react/24/outline';
 import MarkdownRenderer from '../MarkdownRenderer';
 
 // Local component for Custom State Details
@@ -75,7 +75,7 @@ const isCustomState = (data: any): data is CustomState & { type: 'customState' }
 
 
 export default function DetailRenderer(props: DetailRendererProps) {
-    const { data, onForgetNpc, onClearNpcJournal, onCloseModal, onForgetQuest, onForgetLocation, currentLocationId, disassembleItem, gameSettings, onDeleteOldestNpcJournalEntries, imageCache, onImageGenerated, forgetHealedWound, clearAllHealedWounds } = props;
+    const { data, onForgetNpc, onClearNpcJournal, onCloseModal, onForgetQuest, onForgetLocation, currentLocationId, disassembleItem, gameSettings, onDeleteOldestNpcJournalEntries, imageCache, onImageGenerated, forgetHealedWound, clearAllHealedWounds, onRegenerateId } = props;
     const [confirmation, setConfirmation] = useState<{ type: string | null; data: any }>({ type: null, data: null });
     const { t } = useLocalization();
 
@@ -111,6 +111,11 @@ export default function DetailRenderer(props: DetailRendererProps) {
                     if (onCloseModal) onCloseModal();
                 }
                 break;
+            case 'regenerateId':
+                if (onRegenerateId) {
+                    onRegenerateId(confirmation.data.entity, confirmation.data.entityType);
+                }
+                break;
         }
         handleConfirmationClose();
     };
@@ -138,6 +143,16 @@ export default function DetailRenderer(props: DetailRendererProps) {
                     title: t("Forget Quest"),
                     content: <p>{t("Are you sure you want to permanently remove this quest?")}</p>
                 };
+            case 'regenerateId':
+                return {
+                    title: t('Regenerate ID'),
+                    content: (
+                        <>
+                            <p>{t('Are you sure you want to regenerate the ID for "{name}"?', { name: confirmation.data.name })}</p>
+                            <p className="mt-2 text-sm text-gray-400">{t('This can fix issues with uneditable objects but might have unintended side effects. This action cannot be undone.')}</p>
+                        </>
+                    )
+                }
             default:
                 return { title: '', content: null };
         }

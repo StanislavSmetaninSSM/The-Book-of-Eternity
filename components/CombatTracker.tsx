@@ -60,14 +60,25 @@ interface CombatantCardProps {
     onOpenDetailModal: (title: string, data: any) => void;
     imageCache: Record<string, string>;
     onImageGenerated: (prompt: string, base64: string) => void;
+    onOpenImageModal: (prompt: string) => void;
 }
 
 
-const CombatantCard: React.FC<CombatantCardProps> = ({ combatant, fullNpcData, onOpenDetailModal, imageCache, onImageGenerated }) => {
+const CombatantCard: React.FC<CombatantCardProps> = ({ combatant, fullNpcData, onOpenDetailModal, imageCache, onImageGenerated, onOpenImageModal }) => {
     const isGroup = combatant.isGroup;
     const isDefeated = isGroup ? (combatant.count ?? 0) <= 0 : parseInt(combatant.currentHealth ?? '0') <= 0;
     
     const { t } = useLocalization();
+
+    const imagePrompt = useMemo(() => {
+        // Strictly prioritize the full NPC card's prompt to ensure consistency.
+        // If the full NPC data is available, use its prompts.
+        // Otherwise, fall back to the generic combatant prompt.
+        if (fullNpcData) {
+            return fullNpcData.custom_image_prompt || fullNpcData.image_prompt;
+        }
+        return combatant.image_prompt;
+    }, [fullNpcData, combatant.image_prompt]);
 
     const level = useMemo(() => {
         if (fullNpcData && fullNpcData.level !== undefined) {
@@ -139,8 +150,8 @@ const CombatantCard: React.FC<CombatantCardProps> = ({ combatant, fullNpcData, o
     return (
         <div className={`bg-gray-900/40 rounded-lg p-3 border border-gray-700/50 transition-opacity ${isDefeated ? 'opacity-50' : ''}`}>
             <div className="flex justify-between items-start gap-3">
-                 <div className="w-16 h-16 rounded-md overflow-hidden flex-shrink-0 bg-gray-800">
-                    <ImageRenderer prompt={combatant.image_prompt || fullNpcData?.image_prompt} alt={combatant.name} imageCache={imageCache} onImageGenerated={onImageGenerated} />
+                 <div className="w-16 h-16 rounded-md overflow-hidden flex-shrink-0 bg-gray-800 cursor-pointer" onClick={() => imagePrompt && onOpenImageModal(imagePrompt)}>
+                    <ImageRenderer prompt={imagePrompt} alt={combatant.name} imageCache={imageCache} onImageGenerated={onImageGenerated} />
                 </div>
                 <div className="flex-1">
                     <div className="flex justify-between items-start">
@@ -148,9 +159,18 @@ const CombatantCard: React.FC<CombatantCardProps> = ({ combatant, fullNpcData, o
                             <div className="flex items-baseline gap-2">
                                 <h4 className={`font-bold text-lg ${isDefeated ? 'text-gray-500 line-through' : 'text-white'}`}>{combatant.name}</h4>
                                 {level !== null && !isDefeated && (
-                                    <span className="text-sm font-mono px-2 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300">
-                                        {t('Lvl {level}', { level })}
-                                    </span>
+                                    fullNpcData ? (
+                                        <span className="text-sm font-mono px-2 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300">
+                                            {t('Lvl {level}', { level })}
+                                        </span>
+                                    ) : (
+                                        <span 
+                                            className="text-sm font-mono px-2 py-0.5 rounded-full bg-yellow-500/20 text-yellow-300 cursor-help" 
+                                            title={t('effectiveLevelTooltip')}
+                                        >
+                                            {t('Threat {level}', { level })}
+                                        </span>
+                                    )
                                 )}
                             </div>
                              {isGroup ? (
@@ -317,9 +337,10 @@ interface CombatTrackerProps {
     isLoading: boolean;
     imageCache: Record<string, string>;
     onImageGenerated: (prompt: string, base64: string) => void;
+    onOpenImageModal: (prompt: string) => void;
 }
 
-export default function CombatTracker({ enemies, allies, combatLog, allNpcs, playerCharacter, setAutoCombatSkill, onOpenDetailModal, onSendMessage, isLoading, imageCache, onImageGenerated }: CombatTrackerProps): React.ReactNode {
+export default function CombatTracker({ enemies, allies, combatLog, allNpcs, playerCharacter, setAutoCombatSkill, onOpenDetailModal, onSendMessage, isLoading, imageCache, onImageGenerated, onOpenImageModal }: CombatTrackerProps): React.ReactNode {
     const { t } = useLocalization();
     const hasCombatants = (enemies && enemies.length > 0) || (allies && allies.length > 0);
     const hasLog = combatLog && combatLog.length > 0;
@@ -394,7 +415,7 @@ export default function CombatTracker({ enemies, allies, combatLog, allNpcs, pla
                             return (
                                 <div key={enemy.NPCId || `enemy-${index}`} className="flex items-start gap-2 group">
                                     <div className="flex-1">
-                                        <CombatantCard combatant={enemy} fullNpcData={fullNpcData} onOpenDetailModal={onOpenDetailModal} imageCache={imageCache} onImageGenerated={onImageGenerated} />
+                                        <CombatantCard combatant={enemy} fullNpcData={fullNpcData} onOpenDetailModal={onOpenDetailModal} imageCache={imageCache} onImageGenerated={onImageGenerated} onOpenImageModal={onOpenImageModal} />
                                     </div>
                                     {!isDefeated && (
                                         <button
@@ -425,7 +446,7 @@ export default function CombatTracker({ enemies, allies, combatLog, allNpcs, pla
                              if (!fullNpcData && ally.name) {
                                  fullNpcData = allNpcs.find(npc => npc.name === ally.name) || null;
                              }
-                            return <CombatantCard key={ally.NPCId || `ally-${index}`} combatant={ally} fullNpcData={fullNpcData} onOpenDetailModal={onOpenDetailModal} imageCache={imageCache} onImageGenerated={onImageGenerated} />
+                            return <CombatantCard key={ally.NPCId || `ally-${index}`} combatant={ally} fullNpcData={fullNpcData} onOpenDetailModal={onOpenDetailModal} imageCache={imageCache} onImageGenerated={onImageGenerated} onOpenImageModal={onOpenImageModal} />
                         })}
                     </div>
                 </div>

@@ -75,6 +75,9 @@ export const status = {
     // Custom States
     "States": "States",
     "No custom states are active.": "No custom states are active.",
+    'Delete State': 'Delete State',
+    'delete_state_title': 'Delete State "{name}"',
+    'delete_state_confirm': 'Are you sure you want to permanently delete the "{name}" state? This will remove it from the game and cannot be undone.',
 
     // Fatigue
     "exhaustion_source": "Exhaustion",
@@ -159,6 +162,9 @@ export const status = {
     // Custom States
     "States": "Состояния",
     "No custom states are active.": "Нет активных особых состояний.",
+    'Delete State': 'Удалить состояние',
+    'delete_state_title': 'Удалить состояние "{name}"',
+    'delete_state_confirm': 'Вы уверены, что хотите навсегда удалить состояние "{name}"? Оно будет безвозвратно удалено из игры.',
 
     // Fatigue
     "exhaustion_source": "Усталость",

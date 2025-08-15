@@ -1,5 +1,4 @@
 
-
 import React, { useState, useMemo } from 'react';
 import { GameState, Item } from '../types';
 import Modal from './Modal';
@@ -114,7 +113,7 @@ export default function InventoryScreen({ gameState, onClose, onEquip, onUnequip
             onOpenDetailModal(t("Item: {name}", { name: item.name }), item);
         };
         
-        const imagePrompt = item.image_prompt || `game asset, inventory icon, ${item.quality} ${item.name}, fantasy art, plain background`;
+        const imagePrompt = item.image_prompt || `A detailed, photorealistic fantasy art image of a single ${item.quality} ${item.name}. ${item.description.split('. ')[0]}`;
 
         const handleImageClick = (e: React.MouseEvent) => {
             e.stopPropagation();
@@ -240,7 +239,7 @@ export default function InventoryScreen({ gameState, onClose, onEquip, onUnequip
 
     const ContainerItem = ({ item, onClick, onDrop, onOpenImageModal }: { item: Item, onClick: () => void, onDrop: (droppedItem: Item) => void, onOpenImageModal: (prompt: string) => void }) => {
         const [isOver, setIsOver] = useState(false);
-        const imagePrompt = item.image_prompt || `game asset, inventory icon, ${item.quality} ${item.name}, fantasy art, plain background`;
+        const imagePrompt = item.image_prompt || `A detailed, photorealistic fantasy art image of a single ${item.quality} ${item.name}. ${item.description.split('. ')[0]}`;
 
         const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
             e.preventDefault();

@@ -21,6 +21,7 @@ export interface DetailRendererProps {
     onEditItemData: (itemId: string, field: keyof Item, value: any) => void;
     onEditLocationData: (locationId: string, field: keyof Location, value: any) => void;
     onEditPlayerData: (field: keyof PlayerCharacter, value: any) => void;
+    onRegenerateId?: (entity: any, entityType: string) => void;
     encounteredFactions?: Faction[];
     gameSettings: GameSettings | null;
     imageCache: Record<string, string>;

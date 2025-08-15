@@ -5,6 +5,7 @@ import { DetailRendererProps } from './types';
 import Section from './Shared/Section';
 import DetailRow from './Shared/DetailRow';
 import EditableField from './Shared/EditableField';
+import IdDisplay from './Shared/IdDisplay';
 import FateCardDetailsRenderer from './Shared/FateCardDetailsRenderer';
 import ImageRenderer from '../ImageRenderer';
 import { useLocalization } from '../../context/LocalizationContext';
@@ -47,7 +48,7 @@ const StatBar: React.FC<{
 );
 
 
-const NpcDetailsRenderer: React.FC<NpcDetailsProps> = ({ npc, onOpenImageModal, onOpenDetailModal, onOpenForgetConfirm, onOpenClearJournalConfirm, allowHistoryManipulation, onEditNpcData, encounteredFactions, onDeleteOldestNpcJournalEntries, imageCache, onImageGenerated, forgetHealedWound, clearAllHealedWounds }) => {
+const NpcDetailsRenderer: React.FC<NpcDetailsProps> = ({ npc, onOpenImageModal, onOpenDetailModal, onOpenForgetConfirm, onOpenClearJournalConfirm, allowHistoryManipulation, onEditNpcData, encounteredFactions, onDeleteOldestNpcJournalEntries, imageCache, onImageGenerated, forgetHealedWound, clearAllHealedWounds, onRegenerateId }) => {
     const { t } = useLocalization();
     const [isJournalOpen, setIsJournalOpen] = useState(false);
     const factionMapById = new Map((encounteredFactions || []).filter(f => f.factionId).map(f => [f.factionId, f]));
@@ -447,8 +448,18 @@ const NpcDetailsRenderer: React.FC<NpcDetailsProps> = ({ npc, onOpenImageModal, 
                     </div>
                 </Section>
             )}
+            
+            {allowHistoryManipulation && onRegenerateId && (
+                <Section title={t("System Information")} icon={CogIcon}>
+                    <IdDisplay
+                        id={npc.NPCId}
+                        name={npc.name}
+                        onRegenerate={() => onRegenerateId(npc, 'NPC')}
+                    />
+                </Section>
+            )}
 
-            {npc.NPCId && allowHistoryManipulation && (
+            {allowHistoryManipulation && (
                 <Section title={t("Actions")} icon={CogIcon}>
                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                          <button
@@ -470,17 +481,15 @@ const NpcDetailsRenderer: React.FC<NpcDetailsProps> = ({ npc, onOpenImageModal, 
                 </Section>
             )}
 
-            {npc.journalEntries && npc.journalEntries.length > 0 && npc.NPCId && (
-                <JournalModal
-                    isOpen={isJournalOpen}
-                    onClose={() => setIsJournalOpen(false)}
-                    journalEntries={npc.journalEntries}
-                    npcName={npc.name}
-                    isEditable={allowHistoryManipulation}
-                    onSaveEntry={handleSaveJournalEntry}
-                    onDeleteOldest={onDeleteOldestNpcJournalEntries ? () => onDeleteOldestNpcJournalEntries(npc.NPCId!) : undefined}
-                />
-            )}
+            <JournalModal
+                isOpen={isJournalOpen}
+                onClose={() => setIsJournalOpen(false)}
+                journalEntries={npc.journalEntries || []}
+                npcName={npc.name}
+                isEditable={allowHistoryManipulation && !!npc.NPCId}
+                onSaveEntry={handleSaveJournalEntry}
+                onDeleteOldest={onDeleteOldestNpcJournalEntries && npc.NPCId ? () => onDeleteOldestNpcJournalEntries(npc.NPCId) : undefined}
+            />
              <ConfirmationModal
                 isOpen={confirmClear}
                 onClose={() => setConfirmClear(false)}

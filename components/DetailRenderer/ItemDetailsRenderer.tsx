@@ -6,7 +6,7 @@ import Section from './Shared/Section';
 import DetailRow from './Shared/DetailRow';
 import EditableField from './Shared/EditableField';
 import CombatActionDetails from './Shared/CombatActionDetails';
-import FateCardDetailsRenderer from './Shared/FateCardDetailsRenderer';
+import IdDisplay from './Shared/IdDisplay';
 import { qualityColorMap } from './utils';
 import ImageRenderer from '../ImageRenderer';
 import { useLocalization } from '../../context/LocalizationContext';
@@ -23,7 +23,7 @@ interface ItemDetailsProps extends Omit<DetailRendererProps, 'data'> {
   item: Item;
 }
 
-const ItemDetailsRenderer: React.FC<ItemDetailsProps> = ({ item, onOpenImageModal, allowHistoryManipulation, onEditItemData, playerCharacter, disassembleItem, onCloseModal, gameSettings, imageCache, onImageGenerated }) => {
+const ItemDetailsRenderer: React.FC<ItemDetailsProps> = ({ item, onOpenImageModal, allowHistoryManipulation, onEditItemData, playerCharacter, disassembleItem, onCloseModal, gameSettings, imageCache, onImageGenerated, onRegenerateId }) => {
     const { t } = useLocalization();
     const [isDisassembleConfirmOpen, setIsDisassembleConfirmOpen] = useState(false);
     const canHaveBond = ['Rare', 'Epic', 'Legendary', 'Unique'].includes(item.quality);
@@ -214,13 +214,13 @@ const ItemDetailsRenderer: React.FC<ItemDetailsProps> = ({ item, onOpenImageModa
             )}
         </Section>
         
-        {item.fateCards && item.fateCards.length > 0 && (
-            <Section title={t("Fate Cards")} icon={SparklesIcon}>
-                <div className="space-y-3">
-                    {item.fateCards.map((card) => (
-                       <FateCardDetailsRenderer key={card.cardId} card={card} onOpenImageModal={onOpenImageModal} imageCache={imageCache} onImageGenerated={onImageGenerated} />
-                    ))}
-                </div>
+        {allowHistoryManipulation && onRegenerateId && (
+            <Section title={t("System Information")} icon={CogIcon}>
+                <IdDisplay 
+                    id={item.existedId} 
+                    name={item.name} 
+                    onRegenerate={() => onRegenerateId(item, 'Item')}
+                />
             </Section>
         )}
 

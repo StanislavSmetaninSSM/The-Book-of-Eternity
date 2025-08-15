@@ -1,7 +1,6 @@
 
-
-import { useState, useCallback, useRef, useEffect } from 'react';
-import { GameState, GameContext, ChatMessage, GameResponse, LocationData, Item, NPC, SaveFile, Location, PlayerCharacter, WorldState, GameSettings, Quest, Faction, PlotOutline, Language, DBSaveSlotInfo, Wound } from '../types';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
+import { GameState, GameContext, ChatMessage, GameResponse, LocationData, Item, NPC, SaveFile, Location, PlayerCharacter, WorldState, GameSettings, Quest, Faction, PlotOutline, Language, DBSaveSlotInfo, Wound, CustomState } from '../types';
 import { executeTurn, askGmQuestion, getMusicSuggestionFromAi, getModelForStep } from '../utils/gameApi';
 import { createInitialContext, buildNextContext, updateWorldMap, recalculateDerivedStats } from '../utils/gameContext';
 import { processAndApplyResponse, checkAndApplyLevelUp } from '../utils/responseProcessor';
@@ -840,6 +839,48 @@ export function useGameLogic({ language, setLanguage }: UseGameLogicProps) {
     });
   }, []);
 
+  const deleteCustomState = useCallback((stateIdToDelete: string) => {
+    setGameState(prevState => {
+      if (!prevState || !prevState.playerCustomStates) return prevState;
+
+      const newCustomStates = prevState.playerCustomStates.filter(state => state.stateId !== stateIdToDelete);
+
+      const newPc = { ...prevState.playerCharacter, playerCustomStates: newCustomStates };
+      const newState = { ...prevState, playerCharacter: newPc, playerCustomStates: newCustomStates };
+
+      if (gameContextRef.current) {
+        // Update the mutable ref immediately
+        const newContext = {
+            ...gameContextRef.current,
+            playerCharacter: newPc,
+            playerCustomStates: newCustomStates,
+        };
+        gameContextRef.current = newContext;
+        
+        // Construct save data with the new state and context
+        const saveData: SaveFile = {
+          gameContext: newContext,
+          gameState: newState,
+          gameHistory: gameHistory,
+          gameLog: gameLog,
+          combatLog: combatLog,
+          lastJsonResponse: lastJsonResponse,
+          sceneImagePrompt: sceneImagePrompt,
+          timestamp: new Date().toISOString(),
+        };
+        
+        // Call the save to DB function directly for immediate persistence.
+        saveToDB(saveData).then(() => {
+            setAutosaveTimestamp(saveData.timestamp);
+        }).catch(e => {
+            console.error("Autosave on custom state delete failed", e);
+        });
+      }
+      
+      return newState;
+    });
+  }, [gameHistory, gameLog, combatLog, lastJsonResponse, sceneImagePrompt]);
+
   // Save/Load Management
   const saveGame = useCallback(async () => {
     const saveData = packageSaveData();
@@ -1080,6 +1121,115 @@ export function useGameLogic({ language, setLanguage }: UseGameLogicProps) {
         return newState;
     });
   }, []);
+  
+  const onRegenerateId = useCallback((entity: any, entityType: string) => {
+    if (!gameSettings?.allowHistoryManipulation) return;
+    const newId = generateId(entityType.toLowerCase());
+
+    const updateLogic = (prevState: GameState | null) => {
+        if (!prevState) return null;
+
+        const newState = JSON.parse(JSON.stringify(prevState));
+        let wasUpdated = false;
+
+        const findAndUpdateByIdOrName = (items: any[], idField: string, nameField: string) => {
+            const index = items.findIndex(item => 
+                (entity[idField] && item[idField] === entity[idField]) ||
+                (!entity[idField] && item[nameField] === entity[nameField] && !item[idField])
+            );
+            if (index > -1) {
+                const oldId = items[index][idField];
+                items[index][idField] = newId;
+                wasUpdated = true;
+                return oldId;
+            }
+            return undefined;
+        };
+
+        switch (entityType) {
+            case 'Item': {
+                const oldId = findAndUpdateByIdOrName(newState.playerCharacter.inventory, 'existedId', 'name');
+                if (wasUpdated) {
+                    Object.keys(newState.playerCharacter.equippedItems).forEach(slot => {
+                        if (newState.playerCharacter.equippedItems[slot] === oldId) {
+                            newState.playerCharacter.equippedItems[slot] = newId;
+                        }
+                    });
+                }
+                break;
+            }
+            case 'NPC': {
+                findAndUpdateByIdOrName(newState.encounteredNPCs, 'NPCId', 'name');
+                break;
+            }
+            case 'Quest': {
+                if (!findAndUpdateByIdOrName(newState.activeQuests, 'questId', 'questName')) {
+                    findAndUpdateByIdOrName(newState.completedQuests, 'questId', 'questName');
+                }
+                break;
+            }
+        }
+        
+        if (wasUpdated) {
+            if (gameContextRef.current) {
+                gameContextRef.current = {
+                    ...gameContextRef.current,
+                    playerCharacter: newState.playerCharacter,
+                    encounteredNPCs: newState.encounteredNPCs,
+                    activeQuests: newState.activeQuests,
+                    completedQuests: newState.completedQuests,
+                };
+            }
+            return newState;
+        }
+        return prevState;
+    };
+
+    setGameState(updateLogic);
+
+    if (entityType === 'Location') {
+        const updateLocationState = (prev: Location[]) => {
+            let wasUpdated = false;
+            const newLocations = prev.map(loc => {
+                const match = (entity.locationId && loc.locationId === entity.locationId) || 
+                              (!entity.locationId && loc.name === entity.name && !loc.locationId);
+                if (match) {
+                    wasUpdated = true;
+                    const newLoc = { ...loc, locationId: newId };
+                    if (gameContextRef.current) {
+                        gameContextRef.current.worldMap[newId] = newLoc;
+                        // Cannot reliably delete old map key if it was null/undefined
+                    }
+                    return newLoc;
+                }
+                return loc;
+            });
+            return wasUpdated ? newLocations : prev;
+        };
+
+        setVisitedLocations(prev => {
+            const newLocations = updateLocationState(prev);
+            if (gameContextRef.current && newLocations !== prev) {
+                gameContextRef.current.visitedLocations = newLocations;
+            }
+            return newLocations;
+        });
+
+        setGameState(prev => {
+            if (!prev) return null;
+            const match = (entity.locationId && prev.currentLocationData.locationId === entity.locationId) || 
+                        (!entity.locationId && prev.currentLocationData.name === entity.name && !prev.currentLocationData.locationId);
+            if (match) {
+                const newCurrent = { ...prev.currentLocationData, locationId: newId };
+                if (gameContextRef.current) {
+                    gameContextRef.current.currentLocation = newCurrent;
+                }
+                return { ...prev, currentLocationData: newCurrent };
+            }
+            return prev;
+        });
+    }
+  }, [gameSettings?.allowHistoryManipulation]);
 
 
   return {
@@ -1151,5 +1301,7 @@ export function useGameLogic({ language, setLanguage }: UseGameLogicProps) {
     onImageGenerated,
     forgetHealedWound,
     clearAllHealedWounds,
+    onRegenerateId,
+    deleteCustomState,
   };
 }

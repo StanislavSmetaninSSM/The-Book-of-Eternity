@@ -1,5 +1,4 @@
 
-
 import { GameState, GameResponse, PlayerCharacter, Item, ActiveSkill, PassiveSkill, NPC, LocationData, Quest, EnemyCombatObject, AllyCombatObject, CustomState, Wound, Faction, SkillMastery, Effect, Recipe, UnlockedMemory, WorldStateFlag } from '../types';
 import { recalculateDerivedStats } from './gameContext';
 import { recalculateAllWeights } from './inventoryManager';
@@ -155,6 +154,11 @@ function upsertEntities<T extends { [key: string]: any }>(
         if (existingIndex !== -1) {
             const existingEntity = newEntities[existingIndex];
             
+            // DEFENSIVE FIX: Prevent overwriting a valid ID with a null/undefined one from the AI.
+            if (existingEntity[idKey] && !change[idKey]) {
+                delete (change as {[key: string]: any})[idKey as string];
+            }
+
             // SPECIAL PRESERVATION LOGIC FOR NPC JOURNALS
             if (idKey === 'NPCId') {
                 const npcChange = change as unknown as Partial<NPC>;
@@ -868,7 +872,10 @@ export const processAndApplyResponse = (response: GameResponse, baseState: GameS
         const npc = findNpc(change);
         if (npc) {
             if (!npc.wounds) npc.wounds = [];
-            npc.wounds = upsertEntities(npc.wounds, asArray((change as any).woundChanges), 'woundId', 'woundName');
+            // This assumes the AI might send a nested structure for consistency,
+            // where the top-level object identifies the NPC and contains a `woundChanges` array.
+            const woundsToAdd = (change as any).woundChanges || [change];
+            npc.wounds = upsertEntities(npc.wounds, asArray(woundsToAdd), 'woundId', 'woundName');
         }
     });
 

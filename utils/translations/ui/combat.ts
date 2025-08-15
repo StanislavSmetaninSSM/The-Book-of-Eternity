@@ -53,6 +53,8 @@ export const combat = {
     "CombatantStats": "Stats",
     "Skills": "Skills",
     "Inventory": "Inventory",
+    "Threat {level}": "Threat {level}",
+    "effectiveLevelTooltip": "Effective Level (EL): A measure of this unit's combat power for this specific encounter, scaled based on party strength and location difficulty. It is not a character level.",
   },
   ru: {
     // Combat UI
@@ -111,5 +113,7 @@ export const combat = {
     "CombatantStats": "Статистика",
     "Skills": "Навыки",
     "Inventory": "Инвентарь",
+    "Threat {level}": "УГР {level}",
+    "effectiveLevelTooltip": "Эффективный Уровень (ЭУ): Показатель боевой мощи этого юнита в данном столкновении, масштабированный в зависимости от силы группы и сложности локации. Это не уровень персонажа.",
   }
 };
