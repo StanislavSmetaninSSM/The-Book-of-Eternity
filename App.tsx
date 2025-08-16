@@ -1,4 +1,5 @@
 
+
 import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import ChatWindow from './components/ChatWindow';
 import InputBar from './components/InputBar';
@@ -89,6 +90,9 @@ export default function App(): React.ReactNode {
     clearAllHealedWounds,
     onRegenerateId,
     deleteCustomState,
+    updateNpcSortOrder,
+    updateItemSortOrder,
+    updateItemSortSettings,
   } = useGameLogic({ language, setLanguage });
   const [hasStarted, setHasStarted] = useState(false);
   const [isInventoryOpen, setIsInventoryOpen] = useState(false);
@@ -391,6 +395,7 @@ export default function App(): React.ReactNode {
               clearAllHealedWounds={clearAllHealedWounds}
               onRegenerateId={onRegenerateId}
               deleteCustomState={deleteCustomState}
+              updateNpcSortOrder={updateNpcSortOrder}
             />
           )}
         </aside>
@@ -418,6 +423,8 @@ export default function App(): React.ReactNode {
           onOpenImageModal={handleShowImageModal}
           imageCache={gameState?.imageCache ?? {}}
           onImageGenerated={onImageGenerated}
+          updateItemSortOrder={updateItemSortOrder}
+          updateItemSortSettings={updateItemSortSettings}
         />
       )}
        {messageModalContent && (

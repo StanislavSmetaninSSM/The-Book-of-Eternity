@@ -79,6 +79,7 @@ export const item = {
     "Split Stack": "Split Stack",
     "Amount to split off (1 - {max})": "Amount to split off (1 - {max})",
     "Split": "Split",
+    "Manual": "Manual",
   },
   ru: {
     // Item Details
@@ -159,5 +160,6 @@ export const item = {
     "Split Stack": "Разделить стопку",
     "Amount to split off (1 - {max})": "Количество для отделения (1 - {max})",
     "Split": "Разделить",
+    "Manual": "Вручную",
   }
 };

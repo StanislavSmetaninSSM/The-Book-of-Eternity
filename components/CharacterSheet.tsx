@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo } from 'react';
 import { PlayerCharacter, Item, ActiveSkill, PassiveSkill, Effect, Wound, GameSettings, StructuredBonus, CustomState } from '../types';
 import {
@@ -81,6 +80,11 @@ const qualityColorMap: Record<string, string> = {
     'Unique': 'text-yellow-400 border-yellow-600/80',
 };
 
+const qualityOrder: Record<string, number> = {
+    'Trash': 0, 'Common': 1, 'Uncommon': 2, 'Good': 3,
+    'Rare': 4, 'Epic': 5, 'Legendary': 6, 'Unique': 7,
+};
+
 const TABS = [
     { name: 'Stats', icon: AcademicCapIcon },
     { name: 'Combat', icon: ShieldCheckSolidIcon },
@@ -127,7 +131,7 @@ export default function CharacterSheet({ character, gameSettings, onOpenModal, o
     const equippedItemIds = new Set(Object.values(character.equippedItems));
 
     character.inventory.forEach((item: Item) => {
-        if (!item.existedId || !equippedItemIds.has(item.existedId)) return;
+        if (!item || !item.existedId || !equippedItemIds.has(item.existedId)) return;
 
         if (item.structuredBonuses && item.structuredBonuses.length > 0) {
             item.structuredBonuses.forEach((bonus: StructuredBonus) => {
@@ -217,7 +221,7 @@ export default function CharacterSheet({ character, gameSettings, onOpenModal, o
     if (!character) return [];
     const equippedItemIds = new Set(Object.values(character.equippedItems));
     const itemsWithBonuses = character.inventory
-        .filter(item => item.existedId && equippedItemIds.has(item.existedId) && item.structuredBonuses && item.structuredBonuses.length > 0)
+        .filter(item => item && item.existedId && equippedItemIds.has(item.existedId) && item.structuredBonuses && item.structuredBonuses.length > 0)
         .map(item => {
             const relevantBonuses = item.structuredBonuses!.filter(bonus => bonus.application === 'Conditional' || bonus.bonusType !== 'Characteristic');
             return { item, bonuses: relevantBonuses };
@@ -225,6 +229,89 @@ export default function CharacterSheet({ character, gameSettings, onOpenModal, o
         .filter(entry => entry.bonuses.length > 0);
     return itemsWithBonuses;
   }, [character]);
+  
+  const rootInventoryItems = useMemo(() => {
+    return character.inventory.filter(item => item && !item.contentsPath);
+  }, [character.inventory]);
+  
+  const sortedInventory = useMemo(() => {
+    const allRootItems = [...rootInventoryItems];
+    const { itemSortCriteria = 'manual', itemSortDirection = 'asc', itemSortOrder = [] } = character;
+
+    // 1. Separate equipped from unequipped items.
+    const equippedItemIds = new Set(Object.values(character.equippedItems).filter(id => id !== null));
+    const equippedItems: Item[] = [];
+    const unequippedItems: Item[] = [];
+
+    allRootItems.forEach(item => {
+        if (item && item.existedId && equippedItemIds.has(item.existedId)) {
+            equippedItems.push(item);
+        } else if (item) {
+            unequippedItems.push(item);
+        }
+    });
+
+    // 2. Sort ONLY the unequipped items using the existing logic.
+    let sortedUnequippedItems: Item[];
+    const itemsToSort = unequippedItems;
+
+    if (itemSortCriteria === 'manual' && itemSortOrder && itemSortOrder.length > 0) {
+        const itemMap = new Map(itemsToSort.map(item => [item.existedId, item]));
+        const sorted = itemSortOrder.map(id => itemMap.get(id!))
+            .filter((item): item is Item => !!item && itemsToSort.some(i => i.existedId === item.existedId));
+        const newItems = itemsToSort.filter(item => item.existedId && !itemSortOrder.includes(item.existedId));
+        sortedUnequippedItems = [...sorted, ...newItems];
+    } else {
+        const sortFn = (a: Item, b: Item) => {
+            if (!a || typeof a !== 'object') return 1;
+            if (!b || typeof b !== 'object') return -1;
+            
+            let valA: string | number;
+            let valB: string | number;
+
+            switch (itemSortCriteria) {
+                case 'quality':
+                    valA = qualityOrder[typeof a.quality === 'string' ? a.quality.toLowerCase().replace(/\s/g, '') : ''] ?? -1;
+                    valB = qualityOrder[typeof b.quality === 'string' ? b.quality.toLowerCase().replace(/\s/g, '') : ''] ?? -1;
+                    break;
+                case 'weight':
+                    valA = (a.weight || 0) * (a.count || 1);
+                    valB = (b.weight || 0) * (b.count || 1);
+                    break;
+                case 'price':
+                    valA = (a.price || 0) * (a.count || 1);
+                    valB = (b.price || 0) * (b.count || 1);
+                    break;
+                case 'type':
+                    valA = (typeof a.type === 'string' ? a.type : '').toLowerCase();
+                    valB = (typeof b.type === 'string' ? b.type : '').toLowerCase();
+                    break;
+                default: // name
+                    valA = (typeof a.name === 'string' ? a.name : '').toLowerCase();
+                    valB = (typeof b.name === 'string' ? b.name : '').toLowerCase();
+                    break;
+            }
+
+            let comparison = 0;
+            if (typeof valA === 'string' && typeof valB === 'string') {
+                comparison = valA.localeCompare(valB);
+            } else {
+                if (valA < valB) comparison = -1;
+                if (valA > valB) comparison = 1;
+            }
+            
+            return itemSortDirection === 'asc' ? comparison : -comparison;
+        };
+
+        const containers = itemsToSort.filter(i => i && i.isContainer);
+        const normalItems = itemsToSort.filter(i => i && !i.isContainer);
+        sortedUnequippedItems = [...containers.sort(sortFn), ...normalItems.sort(sortFn)];
+    }
+
+    // 3. Concatenate the lists. Equipped items first.
+    return [...equippedItems, ...sortedUnequippedItems];
+    
+  }, [rootInventoryItems, character.equippedItems, character.itemSortCriteria, character.itemSortDirection, character.itemSortOrder]);
 
   if (!character) {
       return null;
@@ -291,30 +378,38 @@ export default function CharacterSheet({ character, gameSettings, onOpenModal, o
     </div>
   );
   
-  const renderInventory = (items: Item[]) => (
-    <div className="space-y-2">
-      <div className="flex justify-end mb-2">
-        <button
-          onClick={onOpenInventory}
-          className="flex items-center gap-2 px-3 py-1.5 text-xs font-semibold text-cyan-300 bg-cyan-500/10 rounded-md hover:bg-cyan-500/20 transition-colors"
-        >
-          <Squares2X2Icon className="w-4 h-4" />
-          {t('Manage Inventory')}
-        </button>
-      </div>
-      {(items ?? []).length > 0 ? (items ?? []).map((item, index) => (
-        <button key={item.existedId || index} onClick={() => onOpenModal(t("Item: {name}", { name: item.name }), item)} className={`w-full text-left p-3 rounded-md border-l-4 ${qualityColorMap[item.quality] || 'border-gray-500'} bg-gray-700/50 shadow-sm hover:bg-gray-700/80 hover:border-cyan-400 transition-colors`}>
-          <div className="flex justify-between items-start">
-            <span className={`font-semibold ${qualityColorMap[item.quality]?.split(' ')[0] || 'text-gray-200'}`}>
-                {item.name} {item.count > 1 ? `(x${item.count})` : ''}
-            </span>
-            {isEquipped(item.existedId) && <span className="text-xs bg-cyan-500/20 text-cyan-300 px-2 py-0.5 rounded-full">{t('Equipped')}</span>}
+  const renderInventory = () => {
+    return (
+        <div className="space-y-2">
+          <div className="flex justify-end mb-2">
+            <button
+              onClick={onOpenInventory}
+              className="flex items-center gap-2 px-3 py-1.5 text-xs font-semibold text-cyan-300 bg-cyan-500/10 rounded-md hover:bg-cyan-500/20 transition-colors"
+            >
+              <Squares2X2Icon className="w-4 h-4" />
+              {t('Manage Inventory')}
+            </button>
           </div>
-          <p className="text-sm text-gray-400 italic my-1 line-clamp-2">{item.description}</p>
-        </button>
-      )) : <p className="text-sm text-gray-500 text-center p-4">{t('Your pockets are empty.')}</p>}
-    </div>
-  );
+          {sortedInventory.length > 0 ? sortedInventory.map((item, index) => {
+            if (!item || typeof item.name !== 'string' || typeof item.description !== 'string') {
+              return null; // Don't render corrupted items
+            }
+            const itemName = item.name;
+            return (
+                <button key={item.existedId || index} onClick={() => onOpenModal(t("Item: {name}", { name: itemName }), item)} className={`w-full text-left p-3 rounded-md border-l-4 ${qualityColorMap[item.quality] || 'border-gray-500'} bg-gray-700/50 shadow-sm hover:bg-gray-700/80 hover:border-cyan-400 transition-colors`}>
+                  <div className="flex justify-between items-start">
+                    <span className={`font-semibold ${qualityColorMap[item.quality]?.split(' ')[0] || 'text-gray-200'}`}>
+                        {itemName} {item.count > 1 ? `(x${item.count})` : ''}
+                    </span>
+                    {isEquipped(item.existedId) && <span className="text-xs bg-cyan-500/20 text-cyan-300 px-2 py-0.5 rounded-full">{t('Equipped')}</span>}
+                  </div>
+                  <p className="text-sm text-gray-400 italic my-1 line-clamp-2">{item.description}</p>
+                </button>
+            );
+          }) : <p className="text-sm text-gray-500 text-center p-4">{t('Your pockets are empty.')}</p>}
+        </div>
+      );
+  };
 
   const renderSkills = (active: ActiveSkill[], passive: PassiveSkill[]) => {
     const Section = ({ title, children }: { title: string; children: React.ReactNode }) => (
@@ -644,7 +739,7 @@ export default function CharacterSheet({ character, gameSettings, onOpenModal, o
       <div className="mt-2">
           {activeTab === 'Stats' && renderStats()}
           {activeTab === 'Combat' && renderCombat()}
-          {activeTab === 'Inventory' && renderInventory(character.inventory)}
+          {activeTab === 'Inventory' && renderInventory()}
           {activeTab === 'Skills' && renderSkills(character.activeSkills, character.passiveSkills)}
           {activeTab === 'Bonuses' && renderBonuses()}
           {activeTab === 'Conditions' && renderConditions(character.activePlayerEffects, character.playerWounds, character.playerCustomStates)}

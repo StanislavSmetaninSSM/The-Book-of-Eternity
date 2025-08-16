@@ -71,6 +71,7 @@ export interface GameState {
   temporaryStash?: Item[];
   worldStateFlags: Record<string, WorldStateFlag>;
   playerStatus?: PlayerStatus;
+  npcSortOrder?: string[];
   imageCache: Record<string, string>;
 }
 
@@ -166,6 +167,9 @@ export interface PlayerCharacter {
     lastUsedCharacteristic: string | null;
     consecutivePartialSuccesses: number;
   } | null;
+  itemSortOrder?: string[];
+  itemSortCriteria?: 'manual' | 'name' | 'quality' | 'weight' | 'price' | 'type';
+  itemSortDirection?: 'asc' | 'desc';
 }
 
 export interface Characteristics {

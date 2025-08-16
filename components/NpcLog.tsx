@@ -1,28 +1,31 @@
 
-import React from 'react';
-import { NPC, Faction } from '../types';
-import { UserGroupIcon, UserIcon, UserPlusIcon } from '@heroicons/react/24/outline';
+
+import React, { useState, useMemo, useEffect, useRef } from 'react';
+import { NPC, Faction, GameState } from '../types';
+import { UserGroupIcon, UserIcon, UserPlusIcon, ArrowsUpDownIcon } from '@heroicons/react/24/outline';
+import { CheckIcon, Bars3Icon } from '@heroicons/react/24/solid';
 import { useLocalization } from '../context/LocalizationContext';
 import ImageRenderer from './ImageRenderer';
 
 interface NpcLogProps {
+  gameState: GameState | null;
   npcs: NPC[];
   encounteredFactions: Faction[];
   onOpenModal: (title: string, data: any) => void;
   imageCache: Record<string, string>;
   onImageGenerated: (prompt: string, base64: string) => void;
+  updateNpcSortOrder: (newOrder: string[]) => void;
 }
 
-const attitudeColorMap: Record<string, string> = {
-    'Hateful': 'text-red-500',
-    'Hostile': 'text-red-400',
-    'Neutral': 'text-gray-400',
-    'Friendly': 'text-green-400',
-    'Loyal': 'text-cyan-400',
-    'Devoted': 'text-yellow-400',
-};
-
-const NpcItem: React.FC<{ npc: NPC, faction: Faction | undefined, factionName: string | undefined, onOpenModal: (title: string, data: any) => void, imageCache: Record<string, string>, onImageGenerated: (prompt: string, base64: string) => void }> = ({ npc, faction, factionName, onOpenModal, imageCache, onImageGenerated }) => {
+const NpcItem: React.FC<{ 
+    npc: NPC, 
+    faction: Faction | undefined, 
+    factionName: string | undefined, 
+    onOpenModal: (title: string, data: any) => void, 
+    imageCache: Record<string, string>, 
+    onImageGenerated: (prompt: string, base64: string) => void,
+    isSorting: boolean
+}> = ({ npc, faction, factionName, onOpenModal, imageCache, onImageGenerated, isSorting }) => {
     const { t } = useLocalization();
     const primaryAffiliation = npc.factionAffiliations?.[0];
     const displayFactionName = faction ? faction.name : (factionName || t('Unknown Faction'));
@@ -41,6 +44,11 @@ const NpcItem: React.FC<{ npc: NPC, faction: Faction | undefined, factionName: s
             onClick={() => onOpenModal(t("NPC: {name}", { name: npc.name }), npc)}
             className="w-full text-left bg-gray-900/40 p-3 rounded-lg border border-gray-700/50 shadow-md transition-all hover:ring-1 hover:ring-cyan-500/50 hover:border-cyan-500/50 flex items-start gap-4"
         >
+            {isSorting && (
+                <div className="text-gray-500 cursor-grab active:cursor-grabbing">
+                    <Bars3Icon className="w-5 h-5" />
+                </div>
+            )}
             <div className="w-12 h-12 rounded-md overflow-hidden flex-shrink-0 bg-gray-800 flex items-center justify-center">
                 {imagePrompt ? (
                     <ImageRenderer prompt={imagePrompt} alt={npc.name} className="w-full h-full object-cover" imageCache={imageCache} onImageGenerated={onImageGenerated} />
@@ -71,35 +79,100 @@ const NpcItem: React.FC<{ npc: NPC, faction: Faction | undefined, factionName: s
     );
 };
 
-export default function NpcLog({ npcs, encounteredFactions, onOpenModal, imageCache, onImageGenerated }: NpcLogProps): React.ReactNode {
+const attitudeColorMap: Record<string, string> = {
+    'Hateful': 'text-red-500',
+    'Hostile': 'text-red-400',
+    'Neutral': 'text-gray-400',
+    'Friendly': 'text-green-400',
+    'Loyal': 'text-cyan-400',
+    'Devoted': 'text-yellow-400',
+};
+
+
+export default function NpcLog({ gameState, npcs, encounteredFactions, onOpenModal, imageCache, onImageGenerated, updateNpcSortOrder }: NpcLogProps): React.ReactNode {
   const { t } = useLocalization();
   const factionMapById = new Map((encounteredFactions || []).filter(f => f.factionId).map(f => [f.factionId, f]));
   const factionMapByName = new Map((encounteredFactions || []).map(f => [f.name.toLowerCase(), f]));
   
+  const [isSorting, setIsSorting] = useState(false);
+  const [localNpcs, setLocalNpcs] = useState<NPC[]>([]);
+  const dragItemIndex = useRef<number | null>(null);
+  const dragOverItemIndex = useRef<number | null>(null);
+
+  useEffect(() => {
+    const sortOrder = gameState?.npcSortOrder || [];
+    const sorted = [...npcs].sort((a, b) => {
+        if (!a.NPCId || !b.NPCId) return 0;
+        const aIndex = sortOrder.indexOf(a.NPCId);
+        const bIndex = sortOrder.indexOf(b.NPCId);
+        if (aIndex === -1 && bIndex === -1) return 0;
+        if (aIndex === -1) return 1;
+        if (bIndex === -1) return -1;
+        return aIndex - bIndex;
+    });
+    setLocalNpcs(sorted);
+  }, [npcs, gameState?.npcSortOrder]);
+
+  const handleSort = () => {
+    if (dragItemIndex.current === null || dragOverItemIndex.current === null) return;
+    let _localNpcs = [...localNpcs];
+    const draggedItemContent = _localNpcs.splice(dragItemIndex.current, 1)[0];
+    _localNpcs.splice(dragOverItemIndex.current, 0, draggedItemContent);
+    dragItemIndex.current = null;
+    dragOverItemIndex.current = null;
+    setLocalNpcs(_localNpcs);
+  };
+
+  const handleSortToggle = () => {
+    if (isSorting) {
+        const newOrder = localNpcs.map(npc => npc.NPCId).filter(Boolean) as string[];
+        updateNpcSortOrder(newOrder);
+    }
+    setIsSorting(!isSorting);
+  };
+
   return (
     <div className="space-y-4">
-      <h3 className="text-xl font-bold text-cyan-400 mb-3 narrative-text">{t('Encountered NPCs')}</h3>
-      {npcs && npcs.length > 0 ? (
+      <div className="flex justify-between items-center">
+        <h3 className="text-xl font-bold text-cyan-400 narrative-text">{t('Encountered NPCs')}</h3>
+        <button
+            onClick={handleSortToggle}
+            className="flex items-center gap-2 px-3 py-1.5 text-xs font-semibold text-cyan-300 bg-cyan-500/10 rounded-md hover:bg-cyan-500/20 transition-colors"
+        >
+            {isSorting ? <CheckIcon className="w-4 h-4" /> : <ArrowsUpDownIcon className="w-4 h-4" />}
+            {isSorting ? t('Done') : t('Sort')}
+        </button>
+      </div>
+      {localNpcs && localNpcs.length > 0 ? (
         <div className="space-y-3">
-          {npcs.map((npc) => {
+          {localNpcs.map((npc, index) => {
             const primaryAffiliation = npc.factionAffiliations?.[0];
             let faction: Faction | undefined = undefined;
             if (primaryAffiliation) {
-                // First, try to find by ID
-                if (primaryAffiliation.factionId) {
-                    faction = factionMapById.get(primaryAffiliation.factionId);
-                }
-                // If not found by ID, try by name (case-insensitive)
-                if (!faction && primaryAffiliation.factionName) {
-                    faction = factionMapByName.get(primaryAffiliation.factionName.toLowerCase());
-                }
-                // Fallback for when ID contains the name
-                if (!faction && primaryAffiliation.factionId) {
-                    faction = factionMapByName.get(primaryAffiliation.factionId.toLowerCase());
-                }
+                if (primaryAffiliation.factionId) faction = factionMapById.get(primaryAffiliation.factionId);
+                if (!faction && primaryAffiliation.factionName) faction = factionMapByName.get(primaryAffiliation.factionName.toLowerCase());
+                if (!faction && primaryAffiliation.factionId) faction = factionMapByName.get(primaryAffiliation.factionId.toLowerCase());
             }
             return (
-              <NpcItem key={npc.NPCId || npc.name} npc={npc} faction={faction} factionName={primaryAffiliation?.factionName} onOpenModal={onOpenModal} imageCache={imageCache} onImageGenerated={onImageGenerated} />
+              <div
+                key={npc.NPCId || npc.name}
+                draggable={isSorting}
+                onDragStart={() => (dragItemIndex.current = index)}
+                onDragEnter={() => (dragOverItemIndex.current = index)}
+                onDragEnd={handleSort}
+                onDragOver={(e) => e.preventDefault()}
+                className={isSorting ? 'cursor-move' : ''}
+              >
+                <NpcItem 
+                    npc={npc} 
+                    faction={faction} 
+                    factionName={primaryAffiliation?.factionName} 
+                    onOpenModal={onOpenModal} 
+                    imageCache={imageCache} 
+                    onImageGenerated={onImageGenerated}
+                    isSorting={isSorting}
+                />
+              </div>
             )
           })}
         </div>

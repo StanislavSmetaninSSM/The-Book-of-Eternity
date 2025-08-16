@@ -65,6 +65,7 @@ interface SidePanelProps {
   clearAllHealedWounds: (characterType: 'player' | 'npc', characterId: string | null) => void;
   onRegenerateId: (entity: any, entityType: string) => void;
   deleteCustomState: (stateId: string) => void;
+  updateNpcSortOrder: (newOrder: string[]) => void;
 }
 
 type Tab = 'Character' | 'Quests' | 'Factions' | 'NPCs' | 'Locations' | 'Map' | 'Combat' | 'Log' | 'Guide' | 'Debug' | 'Game' | 'Stash' | 'Crafting' | 'World';
@@ -165,6 +166,7 @@ export default function SidePanel({
     clearAllHealedWounds,
     onRegenerateId,
     deleteCustomState,
+    updateNpcSortOrder,
 }: SidePanelProps): React.ReactNode {
   const [activeTab, setActiveTab] = useState<Tab>('Character');
   const { language, t } = useLocalization();
@@ -253,7 +255,7 @@ export default function SidePanel({
           {activeTab === 'Quests' && gameState && <QuestLog activeQuests={gameState.activeQuests} completedQuests={gameState.completedQuests} onOpenModal={onOpenDetailModal} lastUpdatedQuestId={lastUpdatedQuestId} />}
           {activeTab === 'World' && <WorldPanel worldState={worldState} worldStateFlags={worldStateFlags} turnNumber={turnNumber} />}
           {activeTab === 'Factions' && gameState && <FactionLog factions={gameState.encounteredFactions} onOpenModal={onOpenDetailModal} />}
-          {activeTab === 'NPCs' && gameState && <NpcLog npcs={gameState.encounteredNPCs} encounteredFactions={gameState.encounteredFactions} onOpenModal={onOpenDetailModal} imageCache={gameState?.imageCache ?? {}} onImageGenerated={onImageGenerated} />}
+          {activeTab === 'NPCs' && gameState && <NpcLog gameState={gameState} npcs={gameState.encounteredNPCs} encounteredFactions={gameState.encounteredFactions} onOpenModal={onOpenDetailModal} imageCache={gameState?.imageCache ?? {}} onImageGenerated={onImageGenerated} updateNpcSortOrder={updateNpcSortOrder} />}
           {activeTab === 'Locations' && gameState && <LocationLog locations={visitedLocations} currentLocation={gameState.currentLocationData} onOpenModal={onOpenDetailModal} allowHistoryManipulation={gameSettings?.allowHistoryManipulation ?? false} onEditLocationData={editLocationData} />}
           {activeTab === 'Map' && gameState && <LocationViewer visitedLocations={visitedLocations} currentLocation={gameState.currentLocationData} onOpenModal={onOpenDetailModal} />}
           {activeTab === 'Combat' && gameState && <CombatTracker 

@@ -1,6 +1,6 @@
 
-import React, { useState, useMemo } from 'react';
-import { GameState, Item } from '../types';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
+import { GameState, Item, PlayerCharacter } from '../types';
 import Modal from './Modal';
 import {
     AcademicCapIcon, 
@@ -15,7 +15,7 @@ import {
     ArrowDownIcon,
     ExclamationTriangleIcon
 } from '@heroicons/react/24/outline';
-import { ArchiveBoxIcon as ArchiveBoxSolidIcon } from '@heroicons/react/24/solid';
+import { ArchiveBoxIcon as ArchiveBoxSolidIcon, ArrowsUpDownIcon, CheckIcon } from '@heroicons/react/24/solid';
 import ImageRenderer from './ImageRenderer';
 import { useLocalization } from '../context/LocalizationContext';
 
@@ -49,6 +49,8 @@ interface InventoryScreenProps {
     onOpenImageModal: (prompt: string) => void;
     imageCache: Record<string, string>;
     onImageGenerated: (prompt: string, base64: string) => void;
+    updateItemSortOrder: (newOrder: string[]) => void;
+    updateItemSortSettings: (criteria: PlayerCharacter['itemSortCriteria'], direction: PlayerCharacter['itemSortDirection']) => void;
 }
 
 const qualityOrder: Record<string, number> = {
@@ -56,14 +58,34 @@ const qualityOrder: Record<string, number> = {
     'Rare': 4, 'Epic': 5, 'Legendary': 6, 'Unique': 7,
 };
 
-export default function InventoryScreen({ gameState, onClose, onEquip, onUnequip, onDropItem, onMoveItem, onSplitItem, onMergeItems, onOpenDetailModal, onOpenImageModal, imageCache, onImageGenerated }: InventoryScreenProps) {
+export default function InventoryScreen({ 
+    gameState, 
+    onClose, 
+    onEquip, 
+    onUnequip, 
+    onDropItem, 
+    onMoveItem, 
+    onSplitItem, 
+    onMergeItems, 
+    onOpenDetailModal, 
+    onOpenImageModal, 
+    imageCache, 
+    onImageGenerated, 
+    updateItemSortOrder,
+    updateItemSortSettings 
+}: InventoryScreenProps) {
     const { playerCharacter } = gameState;
     const [viewingContainer, setViewingContainer] = useState<Item | null>(null);
-    const [sortCriteria, setSortCriteria] = useState<'name' | 'quality' | 'weight' | 'price' | 'type'>('name');
-    const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
     const [splitItem, setSplitItem] = useState<Item | null>(null);
     const [splitAmount, setSplitAmount] = useState('1');
     const { t } = useLocalization();
+    
+    const [isSorting, setIsSorting] = useState(false);
+    const [localItems, setLocalItems] = useState<Item[]>([]);
+    const dragItemIndex = useRef<number | null>(null);
+    const dragOverItemIndex = useRef<number | null>(null);
+
+    const { itemSortCriteria = 'manual', itemSortDirection = 'asc' } = playerCharacter;
 
     const handleSplit = () => {
         if (!splitItem) return;
@@ -92,78 +114,19 @@ export default function InventoryScreen({ gameState, onClose, onEquip, onUnequip
         { id: 'Finger2', label: 'Finger 2', icon: FingerPrintIcon },
     ];
 
-    const DraggableItem = ({ item, isEquipped = false, isFromContainer = false }: { item: Item; isEquipped?: boolean; isFromContainer?: boolean }) => {
+    const ItemCard = ({ item }: { item: Item }) => {
         const isBroken = item.durability === '0%';
-
-        const handleDragStart = (e: React.DragEvent<HTMLDivElement>) => {
-            if (isBroken) {
-                e.preventDefault();
-                return;
-            }
-            const dragData: DragData = { item, isEquipped, isFromContainer };
-            e.dataTransfer.setData('application/json', JSON.stringify(dragData));
-            e.currentTarget.style.opacity = '0.4';
-        };
-        const handleDragEnd = (e: React.DragEvent<HTMLDivElement>) => {
-            e.currentTarget.style.opacity = '1';
-        };
-
-        const handleClick = () => {
-            if (isBroken) return;
-            onOpenDetailModal(t("Item: {name}", { name: item.name }), item);
-        };
-        
         const imagePrompt = item.image_prompt || `A detailed, photorealistic fantasy art image of a single ${item.quality} ${item.name}. ${item.description.split('. ')[0]}`;
 
         const handleImageClick = (e: React.MouseEvent) => {
             e.stopPropagation();
             onOpenImageModal(imagePrompt);
         };
-        
-        const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
-            if (isBroken) return;
-            e.preventDefault();
-        };
 
-        const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
-            if (isBroken) return;
-            e.preventDefault();
-            e.stopPropagation();
-            try {
-                const data: DragData = JSON.parse(e.dataTransfer.getData('application/json'));
-                const droppedItem = data.item;
-                
-                const canMerge = droppedItem.name === item.name &&
-                    !droppedItem.equipmentSlot && !item.equipmentSlot &&
-                    (droppedItem.resource === undefined || 
-                        (droppedItem.resource === droppedItem.maximumResource && item.resource === item.maximumResource)
-                    );
-                
-                if (canMerge && droppedItem.existedId !== item.existedId) {
-                    onMergeItems(droppedItem, item);
-                }
-            } catch(err) {}
-        };
-
-        const handleContextMenu = (e: React.MouseEvent<HTMLDivElement>) => {
-            e.preventDefault();
-            if (item.count > 1 && !isBroken) {
-                setSplitItem(item);
-                setSplitAmount('1');
-            }
-        };
-    
         return (
             <div
-                onClick={handleClick}
-                onDrop={handleDrop}
-                onDragOver={handleDragOver}
-                onContextMenu={handleContextMenu}
-                draggable={!isBroken}
-                onDragStart={handleDragStart}
-                onDragEnd={handleDragEnd}
-                className={`w-20 h-20 bg-gray-900/50 rounded-md flex flex-col justify-center items-center border-2 ${qualityColorMap[item.quality] || 'border-gray-600'} shadow-lg transition-all relative group overflow-hidden ${isBroken ? 'cursor-not-allowed' : 'cursor-pointer hover:shadow-cyan-500/20 hover:scale-105'}`}
-                title={isBroken ? t("This item is broken and cannot be equipped.") : item.name}
+                className={`w-20 h-20 bg-gray-900/50 rounded-md flex flex-col justify-center items-center border-2 ${qualityColorMap[item.quality] || 'border-gray-600'} shadow-lg transition-all relative group overflow-hidden ${isBroken ? '' : 'hover:shadow-cyan-500/20 hover:scale-105'}`}
+                title={isBroken ? t("This item is broken and cannot be equipped.") : (typeof item.name === 'string' ? item.name : '')}
             >
                 <ImageRenderer prompt={imagePrompt} alt={item.name} className={`absolute inset-0 w-full h-full object-cover ${isBroken ? 'filter grayscale brightness-50' : ''}`} imageCache={imageCache} onImageGenerated={onImageGenerated} />
                  {isBroken && (
@@ -172,7 +135,7 @@ export default function InventoryScreen({ gameState, onClose, onEquip, onUnequip
                     </div>
                 )}
                 <div className="absolute inset-x-0 bottom-0 bg-black/70 p-1 text-center">
-                    <p className="text-xs text-white line-clamp-1 font-semibold">{item.name}</p>
+                    <p className="text-xs text-white line-clamp-1 font-semibold">{typeof item.name === 'string' ? item.name : `[${t('corrupted_item')}]`}</p>
                 </div>
                 {item.count > 1 && <div className="absolute top-1 right-1 text-xs bg-gray-900/80 px-1.5 py-0.5 rounded-full font-mono text-white">{item.count}</div>}
                 {item.resource !== undefined && item.maximumResource !== undefined && (
@@ -180,14 +143,14 @@ export default function InventoryScreen({ gameState, onClose, onEquip, onUnequip
                         {item.resource}/{item.maximumResource}
                     </div>
                 )}
-                <div onClick={handleImageClick} className="absolute top-1 left-1 bg-gray-900/50 p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-cyan-500/50">
+                <div onClick={handleImageClick} className="absolute top-1 left-1 bg-gray-900/50 p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-cyan-500/50 cursor-pointer">
                     <MagnifyingGlassPlusIcon className="w-4 h-4 text-white" />
                 </div>
             </div>
         );
     };
     
-    const EquipmentSlotComponent = ({ slot, item, onDrop }: { slot: { id: string, label: string, icon: React.ElementType }, item: Item | null, onDrop: (item: Item, slotId: string) => void }) => {
+    const EquipmentSlotComponent = ({ slot, item }: { slot: { id: string, label: string, icon: React.ElementType }, item: Item | null }) => {
         const [isOver, setIsOver] = useState(false);
         const Icon = slot.icon;
     
@@ -212,12 +175,23 @@ export default function InventoryScreen({ gameState, onClose, onEquip, onUnequip
                 if (!data.isEquipped && data.item.durability !== '0%') {
                     const validSlots = Array.isArray(data.item.equipmentSlot) ? data.item.equipmentSlot : [data.item.equipmentSlot];
                     if (validSlots.includes(slot.id)) {
-                        onDrop(data.item, slot.id);
+                        onEquip(data.item, slot.id);
                     }
                 }
             } catch(e) {
                 console.error("Failed to parse dropped item data:", e);
             }
+        };
+        
+        const handleDragStart = (e: React.DragEvent<HTMLDivElement>) => {
+            if (!item) return;
+            const dragData: DragData = { item, isEquipped: true, isFromContainer: false };
+            e.dataTransfer.setData('application/json', JSON.stringify(dragData));
+            e.currentTarget.style.opacity = '0.4';
+        };
+        
+        const handleDragEnd = (e: React.DragEvent<HTMLDivElement>) => {
+            e.currentTarget.style.opacity = '1';
         };
     
         return (
@@ -227,82 +201,16 @@ export default function InventoryScreen({ gameState, onClose, onEquip, onUnequip
                 onDragLeave={handleDragLeave}
                 className={`w-24 h-24 border-2 border-dashed rounded-md flex flex-col items-center justify-center transition-colors ${isOver ? 'border-cyan-400 bg-cyan-500/10' : 'border-gray-600'}`}
             >
-                {item ? <DraggableItem item={item} isEquipped={true} /> : (
+                {item ? (
+                    <div draggable onDragStart={handleDragStart} onDragEnd={handleDragEnd} className="cursor-pointer">
+                        <ItemCard item={item} />
+                    </div>
+                ) : (
                     <div className="text-center text-gray-500 pointer-events-none">
                         <Icon className="w-8 h-8 mx-auto mb-1" />
                         <div className="text-xs font-semibold">{t(slot.label)}</div>
                     </div>
                 )}
-            </div>
-        );
-    };
-
-    const ContainerItem = ({ item, onClick, onDrop, onOpenImageModal }: { item: Item, onClick: () => void, onDrop: (droppedItem: Item) => void, onOpenImageModal: (prompt: string) => void }) => {
-        const [isOver, setIsOver] = useState(false);
-        const imagePrompt = item.image_prompt || `A detailed, photorealistic fantasy art image of a single ${item.quality} ${item.name}. ${item.description.split('. ')[0]}`;
-
-        const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
-            e.preventDefault();
-            setIsOver(true);
-        };
-        const handleDragLeave = () => setIsOver(false);
-        
-        const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
-            e.preventDefault();
-            setIsOver(false);
-            try {
-                const data: DragData = JSON.parse(e.dataTransfer.getData('application/json'));
-                if (data.item.existedId !== item.existedId) { // Can't drop a container in itself
-                    onDrop(data.item);
-                }
-            } catch (err) {}
-        };
-        
-        const handleImageClick = (e: React.MouseEvent) => {
-            e.stopPropagation();
-            onOpenImageModal(imagePrompt);
-        };
-
-        const handleDragStart = (e: React.DragEvent<HTMLDivElement>) => {
-            const dragData: DragData = { item, isEquipped: false, isFromContainer: !!viewingContainer };
-            e.dataTransfer.setData('application/json', JSON.stringify(dragData));
-            e.currentTarget.style.opacity = '0.4';
-        };
-
-        const handleDragEnd = (e: React.DragEvent<HTMLDivElement>) => {
-            e.currentTarget.style.opacity = '1';
-        };
-
-        const isDraggable = !!item.equipmentSlot;
-
-        return (
-            <div onDrop={handleDrop} onDragOver={handleDragOver} onDragLeave={handleDragLeave}>
-                <div 
-                    onClick={onClick}
-                    draggable={isDraggable}
-                    onDragStart={isDraggable ? handleDragStart : undefined}
-                    onDragEnd={isDraggable ? handleDragEnd : undefined}
-                    className={`w-20 h-20 rounded-md flex flex-col justify-center items-center ${isDraggable ? 'cursor-grab' : 'cursor-pointer'} border-2 shadow-lg hover:shadow-cyan-500/20 hover:scale-105 transition-all relative group overflow-hidden
-                    ${isOver ? 'border-cyan-400 bg-cyan-500/10' : qualityColorMap[item.quality] || 'border-gray-600'}
-                    `}
-                    title={t('Open {name}', { name: item.name })}
-                >
-                    <ImageRenderer prompt={imagePrompt} alt={item.name} className="absolute inset-0 w-full h-full object-cover" imageCache={imageCache} onImageGenerated={onImageGenerated} />
-                    <div className="absolute inset-0 bg-cyan-900/30 flex items-center justify-center pointer-events-none">
-                        <ArchiveBoxSolidIcon className="w-8 h-8 text-cyan-200/80" />
-                    </div>
-                    <div className="absolute inset-x-0 bottom-0 bg-black/70 p-1 text-center">
-                        <p className="text-xs text-white line-clamp-1 font-semibold">{item.name}</p>
-                    </div>
-                    {item.resource !== undefined && item.maximumResource !== undefined && (
-                        <div className="absolute bottom-1 left-1 text-xs bg-cyan-700/90 px-1.5 py-0.5 rounded-full font-mono text-white border border-cyan-400/50">
-                            {item.resource}/{item.maximumResource}
-                        </div>
-                    )}
-                     <div onClick={handleImageClick} className="absolute top-1 left-1 bg-gray-900/50 p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-cyan-500/50">
-                        <MagnifyingGlassPlusIcon className="w-4 h-4 text-white" />
-                    </div>
-                </div>
             </div>
         );
     };
@@ -329,6 +237,99 @@ export default function InventoryScreen({ gameState, onClose, onEquip, onUnequip
             return unequipped.filter(item => item.contentsPath?.join('/') === containerPath.join('/'));
         }
     }, [playerCharacter.inventory, playerCharacter.equippedItems, viewingContainer]);
+
+    const sortedItems = useMemo(() => {
+        const items = [...itemsInView];
+        if (itemSortCriteria === 'manual') {
+            const customOrder = playerCharacter.itemSortOrder || [];
+            if (customOrder.length > 0) {
+                const itemMap = new Map(items.map(item => [item.existedId, item]));
+                const sorted = customOrder.map(id => itemMap.get(id!))
+                    .filter((item): item is Item => !!item && itemsInView.some(i => i.existedId === item.existedId));
+                const newItems = items.filter(item => item.existedId && !customOrder.includes(item.existedId));
+                return [...sorted, ...newItems];
+            }
+            return items;
+        }
+
+        const containers = items.filter(i => i.isContainer);
+        const normalItems = items.filter(i => !i.isContainer);
+        
+        const sortFn = (a: Item, b: Item) => {
+            let valA: string | number;
+            let valB: string | number;
+
+            switch (itemSortCriteria) {
+                case 'quality':
+                    valA = qualityOrder[a.quality] ?? -1;
+                    valB = qualityOrder[b.quality] ?? -1;
+                    break;
+                case 'weight':
+                    valA = (a.weight || 0) * (a.count || 1);
+                    valB = (b.weight || 0) * (b.count || 1);
+                    break;
+                case 'price':
+                    valA = (a.price || 0) * (a.count || 1);
+                    valB = (b.price || 0) * (b.count || 1);
+                    break;
+                case 'type':
+                    valA = (a.type || '').toLowerCase();
+                    valB = (b.type || '').toLowerCase();
+                    break;
+                default: // name
+                    valA = (a.name || '').toLowerCase();
+                    valB = (b.name || '').toLowerCase();
+                    break;
+            }
+
+            let comparison = 0;
+            if (typeof valA === 'string' && typeof valB === 'string') {
+                comparison = valA.localeCompare(valB);
+            } else {
+                if (valA < valB) comparison = -1;
+                if (valA > valB) comparison = 1;
+            }
+            
+            return itemSortDirection === 'asc' ? comparison : -comparison;
+        };
+
+        const sortedContainers = [...containers].sort(sortFn);
+        const sortedNormal = [...normalItems].sort(sortFn);
+
+        return [...sortedContainers, ...sortedNormal];
+    }, [itemsInView, itemSortCriteria, itemSortDirection, playerCharacter.itemSortOrder]);
+
+    useEffect(() => {
+        setLocalItems(sortedItems);
+    }, [sortedItems]);
+    
+    const handleSortDragEnd = () => {
+        if (dragItemIndex.current === null || dragOverItemIndex.current === null) return;
+        let _localItems = [...localItems];
+        const draggedItemContent = _localItems.splice(dragItemIndex.current, 1)[0];
+        _localItems.splice(dragOverItemIndex.current, 0, draggedItemContent);
+        dragItemIndex.current = null;
+        dragOverItemIndex.current = null;
+        setLocalItems(_localItems);
+        // Immediately persist the new manual order and criteria
+        const newOrder = _localItems.map(item => item.existedId).filter(Boolean) as string[];
+        updateItemSortOrder(newOrder);
+        if (itemSortCriteria !== 'manual') {
+            updateItemSortSettings('manual', itemSortDirection);
+        }
+    };
+
+    const handleSortToggle = () => {
+        if (isSorting) { // Finishing sort
+            const newOrder = localItems.map(item => item.existedId).filter(Boolean) as string[];
+            updateItemSortOrder(newOrder);
+        } else { // Starting sort
+            if (itemSortCriteria !== 'manual') {
+                updateItemSortSettings('manual', itemSortDirection);
+            }
+        }
+        setIsSorting(!isSorting);
+    };
     
     const handleDropOnInventory = (e: React.DragEvent<HTMLDivElement>) => {
         e.preventDefault();
@@ -350,55 +351,52 @@ export default function InventoryScreen({ gameState, onClose, onEquip, onUnequip
         } catch(err) {}
     };
     
-    const allowDrop = (e: React.DragEvent<HTMLDivElement>) => e.preventDefault();
+    const handleDropOnItem = (e: React.DragEvent<HTMLDivElement>, targetItem: Item) => {
+        if (isSorting) return;
+        e.preventDefault();
+        e.stopPropagation();
+        try {
+            const data: DragData = JSON.parse(e.dataTransfer.getData('application/json'));
+            const droppedItem = data.item;
 
-    const sortItems = (items: Item[]) => {
-        const itemsToSort = [...items];
-        itemsToSort.sort((a, b) => {
-            let valA: string | number;
-            let valB: string | number;
-
-            switch (sortCriteria) {
-                case 'quality':
-                    valA = qualityOrder[a.quality] ?? -1;
-                    valB = qualityOrder[b.quality] ?? -1;
-                    break;
-                case 'weight':
-                    valA = a.weight * a.count;
-                    valB = b.weight * b.count;
-                    break;
-                case 'price':
-                    valA = a.price * a.count;
-                    valB = b.price * b.count;
-                    break;
-                case 'type':
-                    valA = a.type || 'zzzz'; // Push undefined types to the end
-                    valB = b.type || 'zzzz';
-                    break;
-                default: // name
-                    valA = a.name;
-                    valB = b.name;
-                    break;
-            }
-
-            let comparison = 0;
-            if (typeof valA === 'string' && typeof valB === 'string') {
-                comparison = valA.localeCompare(valB);
+            if (targetItem.isContainer && droppedItem.existedId !== targetItem.existedId) {
+                onMoveItem(droppedItem, targetItem.existedId!);
             } else {
-                if (valA < valB) comparison = -1;
-                if (valA > valB) comparison = 1;
+                const canMerge = droppedItem.name === targetItem.name &&
+                    !droppedItem.equipmentSlot && !targetItem.equipmentSlot &&
+                    (droppedItem.resource === undefined || 
+                        (droppedItem.resource === droppedItem.maximumResource && targetItem.resource === targetItem.maximumResource)
+                    );
+                
+                if (canMerge && droppedItem.existedId !== targetItem.existedId) {
+                    onMergeItems(droppedItem, targetItem);
+                }
             }
-            
-            return sortDirection === 'asc' ? comparison : -comparison;
-        });
-        return itemsToSort;
+        } catch(err) {}
     };
 
-    const normalItemsInView = useMemo(() => itemsInView.filter(i => !i.isContainer), [itemsInView]);
-    const containersInView = useMemo(() => itemsInView.filter(i => i.isContainer), [itemsInView]);
+    const handleItemDragStart = (e: React.DragEvent<HTMLDivElement>, index: number, item: Item) => {
+        if (isSorting) {
+            dragItemIndex.current = index;
+        } else {
+            if (item.durability === '0%') { e.preventDefault(); return; }
+            const dragData: DragData = { item, isEquipped: false, isFromContainer: !!viewingContainer };
+            e.dataTransfer.setData('application/json', JSON.stringify(dragData));
+            e.currentTarget.style.opacity = '0.4';
+        }
+    };
+    
+    const handleItemDragEnd = (e: React.DragEvent<HTMLDivElement>) => {
+        if (isSorting) {
+            handleSortDragEnd();
+        } else {
+            e.currentTarget.style.opacity = '1';
+        }
+    };
 
-    const sortedNormalItemsInView = useMemo(() => sortItems(normalItemsInView), [normalItemsInView, sortCriteria, sortDirection]);
-    const sortedContainersInView = useMemo(() => sortItems(containersInView), [containersInView, sortCriteria, sortDirection]);
+    const allowDrop = (e: React.DragEvent<HTMLDivElement>) => e.preventDefault();
+
+    const itemsToDisplay = isSorting ? localItems : sortedItems;
 
     return (
         <Modal title={t("Inventory & Equipment")} isOpen={true} onClose={onClose}>
@@ -412,7 +410,6 @@ export default function InventoryScreen({ gameState, onClose, onEquip, onUnequip
                                 key={slot.id} 
                                 slot={slot} 
                                 item={equippedItemsMap.get(slot.id) || null}
-                                onDrop={onEquip}
                             />
                         ))}
                     </div>
@@ -425,25 +422,41 @@ export default function InventoryScreen({ gameState, onClose, onEquip, onUnequip
                             {viewingContainer ? viewingContainer.name : t('Inventory')}
                         </h3>
                          <div className="flex items-center gap-2">
-                            <label htmlFor="sort-criteria" className="text-sm text-gray-400 flex-shrink-0">{t('Sort by:')}</label>
-                            <select
-                                id="sort-criteria"
-                                value={sortCriteria}
-                                onChange={(e) => setSortCriteria(e.target.value as any)}
-                                className="bg-gray-700/50 border border-gray-600 rounded-md py-1 px-2 text-xs text-gray-200 focus:ring-1 focus:ring-cyan-500 transition"
+                            <fieldset disabled={isSorting} className="flex items-center gap-2">
+                                <label htmlFor="sort-criteria" className="text-sm text-gray-400 flex-shrink-0">{t('Sort by:')}</label>
+                                <select
+                                    id="sort-criteria"
+                                    value={itemSortCriteria}
+                                    onChange={(e) => {
+                                        const newCriteria = e.target.value as typeof itemSortCriteria;
+                                        updateItemSortSettings(newCriteria, itemSortDirection);
+                                        if (newCriteria !== 'manual') {
+                                            setIsSorting(false);
+                                        }
+                                    }}
+                                    className="bg-gray-700/50 border border-gray-600 rounded-md py-1 px-2 text-xs text-gray-200 focus:ring-1 focus:ring-cyan-500 transition"
+                                >
+                                    <option value="manual">{t('Manual')}</option>
+                                    <option value="name">{t('Name')}</option>
+                                    <option value="quality">{t('Quality')}</option>
+                                    <option value="weight">{t('Weight')}</option>
+                                    <option value="price">{t('Price')}</option>
+                                    <option value="type">{t('Type')}</option>
+                                </select>
+                                <button
+                                    onClick={() => updateItemSortSettings(itemSortCriteria, itemSortDirection === 'asc' ? 'desc' : 'asc')}
+                                    className="p-1 bg-gray-700/50 border border-gray-600 rounded-md text-gray-200 hover:bg-gray-700"
+                                    title={itemSortDirection === 'asc' ? t('Ascending') : t('Descending')}
+                                >
+                                    {itemSortDirection === 'asc' ? <ArrowUpIcon className="w-4 h-4" /> : <ArrowDownIcon className="w-4 h-4" />}
+                                </button>
+                            </fieldset>
+                             <button
+                                onClick={handleSortToggle}
+                                className="flex items-center gap-2 px-3 py-1.5 text-xs font-semibold text-cyan-300 bg-cyan-500/10 rounded-md hover:bg-cyan-500/20 transition-colors"
                             >
-                                <option value="name">{t('Name')}</option>
-                                <option value="quality">{t('Quality')}</option>
-                                <option value="weight">{t('Weight')}</option>
-                                <option value="price">{t('Price')}</option>
-                                <option value="type">{t('Type')}</option>
-                            </select>
-                            <button
-                                onClick={() => setSortDirection(d => d === 'asc' ? 'desc' : 'asc')}
-                                className="p-1 bg-gray-700/50 border border-gray-600 rounded-md text-gray-200 hover:bg-gray-700"
-                                title={sortDirection === 'asc' ? t('Ascending') : t('Descending')}
-                            >
-                                {sortDirection === 'asc' ? <ArrowUpIcon className="w-4 h-4" /> : <ArrowDownIcon className="w-4 h-4" />}
+                                {isSorting ? <CheckIcon className="w-4 h-4" /> : <ArrowsUpDownIcon className="w-4 h-4" />}
+                                {isSorting ? t('Done') : t('Sort')}
                             </button>
                             {viewingContainer && (
                                 <button onClick={() => setViewingContainer(null)} className="flex items-center gap-2 px-3 py-1.5 text-xs font-semibold text-cyan-300 bg-cyan-500/10 rounded-md hover:bg-cyan-500/20 transition-colors">
@@ -460,14 +473,24 @@ export default function InventoryScreen({ gameState, onClose, onEquip, onUnequip
                     >
                        <div className="flex-1">
                             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                                {sortedContainersInView.map(item => (
-                                    item.existedId ? <ContainerItem key={item.existedId} item={item} onClick={() => setViewingContainer(item)} onDrop={(droppedItem) => onMoveItem(droppedItem, item.existedId!)} onOpenImageModal={onOpenImageModal} /> : null
-                                ))}
-                                {sortedNormalItemsInView.map(item => (
-                                    item.existedId ? <DraggableItem key={item.existedId} item={item} isFromContainer={!!viewingContainer} /> : null
+                                {itemsToDisplay.map((item, index) => (
+                                    <div
+                                        key={item.existedId}
+                                        draggable={item.durability !== '0%'}
+                                        onDragStart={(e) => handleItemDragStart(e, index, item)}
+                                        onDragEnd={handleItemDragEnd}
+                                        onDragEnter={isSorting ? () => (dragOverItemIndex.current = index) : undefined}
+                                        onDragOver={(e) => e.preventDefault()}
+                                        onDrop={(e) => handleDropOnItem(e, item)}
+                                        onClick={() => !isSorting && (item.isContainer ? setViewingContainer(item) : onOpenDetailModal(t("Item: {name}", { name: item.name }), item))}
+                                        onContextMenu={(e) => { e.preventDefault(); if (!isSorting && item.count > 1) { setSplitItem(item); setSplitAmount('1'); } }}
+                                        className={`${isSorting ? 'cursor-move' : 'cursor-pointer'}`}
+                                    >
+                                        <ItemCard item={item} />
+                                    </div>
                                 ))}
                             </div>
-                            {itemsInView.length === 0 && <p className="text-gray-500 text-center mt-16">{t('This space is empty.')}</p>}
+                            {itemsToDisplay.length === 0 && <p className="text-gray-500 text-center mt-16">{t('This space is empty.')}</p>}
                        </div>
                        <div 
                         onDrop={handleDropOnDropZone} 

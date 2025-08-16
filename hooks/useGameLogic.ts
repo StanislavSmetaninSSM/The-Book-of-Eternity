@@ -1,4 +1,5 @@
 
+
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { GameState, GameContext, ChatMessage, GameResponse, LocationData, Item, NPC, SaveFile, Location, PlayerCharacter, WorldState, GameSettings, Quest, Faction, PlotOutline, Language, DBSaveSlotInfo, Wound, CustomState } from '../types';
 import { executeTurn, askGmQuestion, getMusicSuggestionFromAi, getModelForStep } from '../utils/gameApi';
@@ -880,6 +881,90 @@ export function useGameLogic({ language, setLanguage }: UseGameLogicProps) {
       return newState;
     });
   }, [gameHistory, gameLog, combatLog, lastJsonResponse, sceneImagePrompt]);
+  
+  const updateNpcSortOrder = useCallback((newOrder: string[]) => {
+    setGameState(prevState => {
+        if (!prevState) return null;
+        const newState = { ...prevState, npcSortOrder: newOrder };
+
+        if (gameContextRef.current) {
+            const saveData: SaveFile = {
+              gameContext: gameContextRef.current,
+              gameState: newState,
+              gameHistory: gameHistory,
+              gameLog: gameLog,
+              combatLog: combatLog,
+              lastJsonResponse: lastJsonResponse,
+              sceneImagePrompt: sceneImagePrompt,
+              timestamp: new Date().toISOString(),
+            };
+            
+            saveToDB(saveData).then(() => {
+                setAutosaveTimestamp(saveData.timestamp);
+            }).catch(e => {
+                console.error("Autosave on NPC sort order change failed", e);
+            });
+        }
+        return newState;
+    });
+  }, [gameHistory, gameLog, combatLog, lastJsonResponse, sceneImagePrompt]);
+  
+  const updateItemSortOrder = useCallback((newOrder: string[]) => {
+    setGameState(prevState => {
+        if (!prevState) return null;
+        const newPlayerCharacter = { ...prevState.playerCharacter, itemSortOrder: newOrder };
+        const newState = { ...prevState, playerCharacter: newPlayerCharacter };
+
+        if (gameContextRef.current) {
+            gameContextRef.current.playerCharacter = newPlayerCharacter;
+            const saveData: SaveFile = {
+              gameContext: gameContextRef.current,
+              gameState: newState,
+              gameHistory: gameHistory,
+              gameLog: gameLog,
+              combatLog: combatLog,
+              lastJsonResponse: lastJsonResponse,
+              sceneImagePrompt: sceneImagePrompt,
+              timestamp: new Date().toISOString(),
+            };
+            
+            saveToDB(saveData).then(() => {
+                setAutosaveTimestamp(saveData.timestamp);
+            }).catch(e => {
+                console.error("Autosave on item sort order change failed", e);
+            });
+        }
+        return newState;
+    });
+  }, [gameHistory, gameLog, combatLog, lastJsonResponse, sceneImagePrompt]);
+
+  const updateItemSortSettings = useCallback((criteria: PlayerCharacter['itemSortCriteria'], direction: PlayerCharacter['itemSortDirection']) => {
+    setGameState(prevState => {
+        if (!prevState) return null;
+        const newPlayerCharacter = { 
+            ...prevState.playerCharacter, 
+            itemSortCriteria: criteria,
+            itemSortDirection: direction 
+        };
+        const newState = { ...prevState, playerCharacter: newPlayerCharacter };
+
+        if (gameContextRef.current) {
+            gameContextRef.current.playerCharacter = newPlayerCharacter;
+            const saveData: SaveFile | null = packageSaveData();
+            if (saveData) {
+                // Update the game state in the save data before saving
+                saveData.gameState.playerCharacter = newPlayerCharacter;
+                saveToDB(saveData).then(() => {
+                    setAutosaveTimestamp(saveData.timestamp);
+                }).catch(e => {
+                    console.error("Autosave on item sort settings change failed", e);
+                });
+            }
+        }
+        return newState;
+    });
+  }, [packageSaveData]);
+
 
   // Save/Load Management
   const saveGame = useCallback(async () => {
@@ -1303,5 +1388,8 @@ export function useGameLogic({ language, setLanguage }: UseGameLogicProps) {
     clearAllHealedWounds,
     onRegenerateId,
     deleteCustomState,
+    updateNpcSortOrder,
+    updateItemSortOrder,
+    updateItemSortSettings,
   };
 }

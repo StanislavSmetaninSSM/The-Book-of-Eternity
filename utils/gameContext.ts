@@ -1,8 +1,6 @@
 
 
 
-
-
 import { GameState, GameContext, ChatMessage, GameResponse, PlayerCharacter, LocationData, Characteristics, Location, Faction, Language, LootTemplate, UnlockedMemory, Recipe, Item, WorldStateFlag, SkillMastery, GameSettings, WorldState } from '../types';
 import { gameData } from './localizationGameData';
 import { generateLootTemplates } from './lootGenerator';
@@ -299,6 +297,9 @@ export const createInitialContext = (creationData: any, language: Language): Gam
     skillMasteryData: [],
     knownRecipes: [],
     inventory: [],
+    itemSortOrder: [],
+    itemSortCriteria: 'manual',
+    itemSortDirection: 'asc',
     equippedItems: {
         Head: null, Neck: null, Chest: null, Back: null, MainHand: null, OffHand: null,
         Hands: null, Wrists: null, Waist: null, Legs: null, Feet: null,
