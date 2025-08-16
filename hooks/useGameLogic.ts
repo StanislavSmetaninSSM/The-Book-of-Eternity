@@ -1,5 +1,7 @@
 
 
+
+
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { GameState, GameContext, ChatMessage, GameResponse, LocationData, Item, NPC, SaveFile, Location, PlayerCharacter, WorldState, GameSettings, Quest, Faction, PlotOutline, Language, DBSaveSlotInfo, Wound, CustomState } from '../types';
 import { executeTurn, askGmQuestion, getMusicSuggestionFromAi, getModelForStep } from '../utils/gameApi';
@@ -210,10 +212,6 @@ export function useGameLogic({ language, setLanguage }: UseGameLogicProps) {
           setIsLoading(false);
           return;
       }
-
-      if (context.gameSettings.adultMode && finalResponse.response) {
-          finalResponse.response = finalResponse.response.replace(/~~/g, '');
-      }
       
       setLastJsonResponse(JSON.stringify(finalResponse, null, 2));
       if (finalResponse.items_and_stat_calculations) {
@@ -410,10 +408,6 @@ export function useGameLogic({ language, setLanguage }: UseGameLogicProps) {
         };
 
         const response: GameResponse = await askGmQuestion(context, abortControllerRef.current.signal, onStreamingChunk, onStepStart);
-
-        if (context.gameSettings.adultMode && response.response) {
-            response.response = response.response.replace(/~~/g, '');
-        }
 
         setLastJsonResponse(JSON.stringify(response, null, 2));
         if (response.items_and_stat_calculations) {

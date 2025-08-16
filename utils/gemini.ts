@@ -1,3 +1,4 @@
+
 import { GoogleGenAI } from "@google/genai";
 import { GameContext } from '../types';
 // @ts-ignore
@@ -15,7 +16,7 @@ export class RegenerationRequiredError extends Error {
 
 
 async function callOpenRouter(prompt: string, context: GameContext, signal?: AbortSignal, onChunk?: (chunkText: string) => void, modelName?: string, apiKey?: string): Promise<any> {
-    const MAX_SYNTAX_RETRIES = 5;
+    const MAX_SYNTAX_RETRIES = 10;
     const MAX_SERVER_ERROR_RETRIES = 5;
     const lang = context.gameSettings.language || 'en';
 
@@ -184,7 +185,7 @@ export async function callGenerativeApi(
     }
     
     // Gemini with retry logic for SYNTAX CORRECTION
-    const MAX_SYNTAX_RETRIES = 5;
+    const MAX_SYNTAX_RETRIES = 10;
     const MAX_SERVER_ERROR_RETRIES = 5;
     const lang = context.gameSettings.language || 'en';
 

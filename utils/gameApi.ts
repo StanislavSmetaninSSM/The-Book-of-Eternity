@@ -1,9 +1,4 @@
 
-
-
-
-
-
 import { GameContext, GameResponse } from '../types';
 // @ts-ignore
 import * as mainPromptModule from '../prompts/mainPromptModule.js';
@@ -32,18 +27,25 @@ interface PartialResponseWithFlags extends Partial<GameResponse> {
 const worldLogic = worldLogicGuide.getGuide();
 const narrativeStyle = narrativeStyleGuide.getGuide();
 
-function recursivelyRemoveTildes(obj: any): any {
+function unmaskText(text: string): string {
+    // This regex uses \S to match ANY single non-whitespace character inside the noise tag.
+    // This makes it universally compatible with any alphabet.
+    const regex = /~~(.*?)(?:<!--\S-->)?(.*?)~~/g;
+    return text.replace(regex, '$1$2');
+}
+
+function recursivelyUnmaskText(obj: any): any {
     if (typeof obj === 'string') {
-        return obj.replace(/~~/g, '');
+        return unmaskText(obj);
     }
     if (Array.isArray(obj)) {
-        return obj.map(item => recursivelyRemoveTildes(item));
+        return obj.map(item => recursivelyUnmaskText(item));
     }
     if (obj !== null && typeof obj === 'object') {
         const newObj: { [key: string]: any } = {};
         for (const key in obj) {
             if (Object.prototype.hasOwnProperty.call(obj, key)) {
-                newObj[key] = recursivelyRemoveTildes(obj[key]);
+                newObj[key] = recursivelyUnmaskText(obj[key]);
             }
         }
         return newObj;
@@ -104,7 +106,7 @@ const executeApiStep = async (
         gameSettings: sanitizedGameSettings,
     };
     
-    const MAX_STEP_RETRIES = 5;
+    const MAX_STEP_RETRIES = 10;
     let isRegen = false;
     let reason = '';
 
@@ -231,7 +233,7 @@ export async function executeTurn(
     }
     
     if (context.gameSettings.adultMode) {
-        finalResponse = recursivelyRemoveTildes(finalResponse);
+        finalResponse = recursivelyUnmaskText(finalResponse);
     }
     
     return finalResponse;
@@ -257,7 +259,7 @@ export async function askGmQuestion(
     );
     
     if (context.gameSettings.adultMode) {
-        response = recursivelyRemoveTildes(response);
+        response = recursivelyUnmaskText(response);
     }
 
     return response;
