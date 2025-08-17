@@ -1198,6 +1198,26 @@ export const getGameMasterGuideRules = (configuration) => {
                 Reports new factions or changes to the player's reputation/rank within factions. 
                 Structure defined in InstructionBlock '21'.",
 
+                "NPCInventoryAdds": "(array of npc_inventory_add_objects or null)
+                Used to add one or more NEW items to an NPC's inventory.
+                This is the primary method for giving items to NPCs or for them finding items.
+                This command can optionally specify a 'destinationContainerId' to place the new item directly into a container owned by the NPC.
+                The structure for each object is defined in the new InstructionBlock '19.A'.",
+
+                "NPCInventoryUpdates": "(array of npc_inventory_update_objects or null)
+                Used to report PARTIAL changes to an EXISTING item in an NPC's inventory (e.g., durability change, count update).
+                This follows the Law of Partial Updates (ID + only changed fields).
+                The structure for each object is defined in the new InstructionBlock '19.A'.",
+
+                "NPCInventoryRemovals": "(array of npc_inventory_remove_objects or null)
+                Used to permanently remove an item stack from an NPC's inventory.
+                This is for when an NPC gives an item away, consumes it, or it is destroyed.
+                The structure for each object is defined in the new InstructionBlock '19.A'.",
+
+                "NPCEquipmentChanges": "(array of npc_equipment_change_objects or null)
+                Used to report changes in an NPC's equipped gear. This is the sole method for an NPC to equip or unequip an item.
+                The structure is defined in the new InstructionBlock '19.B'.",
+
                 "itemFateCardUnlocks": "(array of item_fate_card_unlock_reporting_objects or null) 
                 Reports Fate Cards unlocked for items this turn. 
                 Structure: { 
@@ -3414,6 +3434,35 @@ export const getGameMasterGuideRules = (configuration) => {
                         </Content>
                     </Example>
                 </Examples>
+            </Rule>
+
+            <Rule id="5.8.A.1">
+                <Title>Special Protocol: Turn-Local Reference Tags ('initialId')</Title>
+                <Description>
+                    This protocol defines the single, strictly controlled exception to the Law of ID Generation. 
+                    It is used ONLY for linking newly created objects within the same JSON response.
+                </Description>
+                <Content type="rule_text">
+                    <![CDATA[
+               
+                    The Exception: You are permitted to invent a temporary string, referred to as a "Turn-Local Reference Tag", ONLY under the following conditions:
+                    1.  You are creating a NEW NPC (whose 'NPCId' is 'null').
+                    2.  You are defining this NPC's initial inventory and equipped items in the SAME JSON response.
+                    3.  The tag is placed in the 'initialId' field of an item object within that new NPC's 'inventory' array.
+
+                    Purpose: The sole purpose of this tag is to create a temporary link between a new item and an equipment slot before the system has assigned a permanent GUID.
+
+                    Mandatory Format: The tag you invent MUST follow the format 'temp - [context] - [description]' (e.g., "temp-kaelen-sword", "temp-elara-armor"). 
+                    This format signals to the system that it is a temporary placeholder.
+
+                    System Behavior: 
+                    The game system will consume this temporary tag, assign a real, permanent GUID to the new item, and automatically link it in the 'equippedItems' object. 
+                    The 'initialId' field and the temporary tag will NOT be saved in the database.
+
+                    This is the ONLY context in which you are permitted to invent an identifier-like string. All other uses remain strictly forbidden.
+
+                    ]]>
+                </Content>
             </Rule>
 
             <Rule id="5.9">
@@ -7197,10 +7246,20 @@ export const getGameMasterGuideRules = (configuration) => {
 
                             <Rule id="6.1.6.3">
                                 <Title>'actions' (Array of Combat Action Objects)</Title>
+                                <InstructionText>
+                                    <![CDATA[
+                                    
+                                    CRITICAL DIRECTIVE: An NPC's available attacks are determined ONLY by the items in their 'equippedItems' object (specifically 'MainHand' and 'OffHand' slots). 
+                                    You are forbidden from granting an NPC an attack with a weapon that is in their general inventory but not currently equipped. 
+                                    An unarmed NPC can only perform basic unarmed strikes.
+                                    
+                                    ]]>
+                                </InstructionText>
                                 <Content type="rule_text">
                                     <![CDATA[
 
-                                    Define the NPC's combat actions based on their 'activeSkills', known 'inventory' (especially weapons), and narrative role. Refer to #5.5. Combat Action Structure Overview.
+                                    Define the NPC's combat actions based on their 'activeSkills', known 'inventory' (especially weapons), and narrative role.
+                                    Refer to #5.5. Combat Action Structure Overview.
 
                                     a) Determine Number and Nature of Actions:
                                     Based on the NPC's skills and general equipment concept.
@@ -7219,10 +7278,11 @@ export const getGameMasterGuideRules = (configuration) => {
                                             ii. If action is a weapon attack:
                         
                                             Identify Primary Weapon(s): 
-                                            From the 'NPC.inventory' in Context, the GM must logically determine the primary weapon(s) the NPC would use in combat based on their role and other inventory items (e.g., a knight would likely use a sword if present, a hunter a bow). 
-                                            If multiple suitable weapons exist, the GM may define actions for the most characteristic ones or the most powerful one.
+                                            From the NPC's 'equippedItems' object in the Context, identify the item(s) in the 'MainHand' and 'OffHand' slots. 
+                                            These are the only weapons available for this combat turn. If a slot is empty or contains a non-weapon, the NPC cannot attack with it. 
+                                            If both are empty, the NPC can only make a basic unarmed attack (e.g., "Fist Punch" with a low 'bludgeoning' damage value).
                     
-                                            Use the chosen weapon's 'combatEffect' (which should primarily be a 'Damage' type from an item) as the base for this action's damage effect.
+                                            Use the chosen equipped weapon's 'combatEffect' (which should primarily be a 'Damage' type from an item) as the base for this action's damage effect.
                                             Calculate:
                             
                                                 NPC_LevelAttackBonus% = 5 + floor(NPC.level / 10) * 2
@@ -7242,7 +7302,8 @@ export const getGameMasterGuideRules = (configuration) => {
                                             'effectDescription' summarizes this damage.
 
                                             iii. For other abilities (not direct skills/weapon attacks, e.g., innate creature abilities, tactical maneuvers): 
-                                            Define 'effectType', 'value', 'targetType', 'duration' (if any), and 'effectDescription' based on the ability's narrative description and the NPC's power level (using 'NPC.level' as a guide for magnitude similar to how 'EL' is used for generic enemies).
+                                            Define 'effectType', 'value', 'targetType', 'duration' (if any), and 'effectDescription' based on the ability's narrative description and the NPC's power level 
+                                            (using 'NPC.level' as a guide for magnitude similar to how 'EL' is used for generic enemies).
                     
                                         3) "isActivatedEffect": (boolean, optional)
                                         For actions derived from an NPC's active skills or weapon use, this will generally be 'true' (or can be omitted, implying activation). 
@@ -7259,10 +7320,18 @@ export const getGameMasterGuideRules = (configuration) => {
 
                             <Rule id="6.1.6.4">
                                 <Title>'resistances' (Array of resistance objects)</Title>
+                                <InstructionText>
+                                    <![CDATA[
+                                    
+                                    CRITICAL DIRECTIVE: An NPC's resistances from gear are determined ONLY by items in their 'equippedItems' object (e.g., 'Chest', 'Head', 'OffHand' for shields). 
+                                    You are forbidden from applying resistance from an armor piece that is in their general inventory but not currently equipped.
+                                    
+                                    ]]>
+                                </InstructionText>
                                 <Content type="rule_text">
                                     <![CDATA[
 
-                                    Define based on NPC's 'inventory' (especially armor or protective items) and 'passiveSkills'.
+                                    Define based on NPC's equipped items and 'passiveSkills'.
 
                                     a) Base Resistances from Level and Constitution:
 
@@ -7273,23 +7342,25 @@ export const getGameMasterGuideRules = (configuration) => {
                                         (applies to 'all' types).
 
                                     b) Resistances from "Equipped" Items:
-                                    Identify Primary Armor/Protective Item(s): 
-                                    From the 'NPC.inventory' in Context, the GM must logically determine the primary armor or protective item(s) (e.g., shield, amulet of protection) the NPC would be benefiting from in combat based on their role and other inventory items.
+                                    Identify ALL Armor/Protective Item(s): 
+                                    From the NPC's 'equippedItems' object in the Context, identify all items in slots like 'Chest', 'Head', 'Legs', 'Feet', 'Hands', and 'OffHand' (for shields).
                 
-                                    If such items are identified and have a 'combatEffect' (with 'isActivatedEffect:false') providing 'DamageReduction' or 'Buff' to 'resist', include these in the 'resistances' array.
+                                    For each of these equipped items, check if it has a passive 'combatEffect' (with 'isActivatedEffect:false') providing 'DamageReduction' or a 'Buff' to 'resist'. 
+                                    Sum all applicable bonuses from all equipped pieces.
                 
                                     c) Resistances from Passive Skills: 
                                     Check 'NPC.passiveSkills' for skills granting resistance (via their 'combatEffect').
 
                                     d) Compile 'resistances' Array:
-                                    Start with base resistances from level and constitution (usually as an 'all' type resistance object if no other specific 'all' resistance is provided by gear).
-                                    Add specific resistances from identified gear/skills. If multiple sources provide resistance to the same 'resistType', generally use the highest value, or sum if they are from different distinct named sources.
-                                    GM should decide the most logical stacking, default to highest single source for a given type unless sources are clearly additive. 'All' resistance stacks with specific type resistances.
+                                    Start with base resistances from level and constitution (usually as an 'all' type resistance object).
+                                    Add specific resistances from identified equipped gear and active skills. 
+                                    If multiple sources provide resistance to the same 'resistType', you MUST sum their values (e.g., a helm with +5% fire resist and an amulet with +10% fire resist results in +15% fire resist). 
+                                    'All' resistance stacks with specific type resistances.
                 
                                     Ensure each resistance object has 'resistanceName' (e.g., "Knight's Plate Armor", "Natural Troll Hide", "Warding Amulet"), 'resistanceValue', 'resistType', and 'resistTypeDisplayName'.
                                     Total resistance for any type is capped at 90% (as per #5.7.5).
                 
-                                    e) Record Calculations for all resistances in 'items_and_stat_calculations'.
+                                    e) Record Calculations for all resistances in 'items_and_stat_calculations', explicitly listing each piece of equipped gear that contributes.
 
                                     ]]>
                                 </Content>
@@ -10500,6 +10571,81 @@ export const getGameMasterGuideRules = (configuration) => {
                                             </Rule>
                                         </Content>
                                     </Rule>
+
+                                    <Rule id="10.1.1.d">
+                                        <Title>CRITICAL DIRECTIVE: Looting Named NPCs</Title>
+                                        <Description>This is a mandatory protocol that overrides standard loot generation when a named NPC is defeated.</Description>
+                                        <InstructionText>
+                                            <![CDATA[
+
+                                            When generating loot from a defeated named NPC (an NPC with a full entry in 'Context.encounteredNPCs'), you MUST prioritize their actual gear to maintain world consistency.
+
+                                            ]]>
+                                        </InstructionText>
+                                        <Content type="rule_text">
+                                            <![CDATA[
+
+                                            1.  Identify Source:
+                                                Confirm that the source of the loot is a defeated named NPC.
+        
+                                            2.  Prioritize Actual Inventory: 
+                                                The primary items made available to the player as loot MUST be selected from the NPC's 'inventory' and 'equippedItems' as listed in their object within 'Context.encounteredNPCs'. 
+                                                It is forbidden to ignore an NPC's significant gear (like their signature weapon or armor) and only provide random items.
+
+                                            3.  Determine Loot Condition: 
+                                                As the GM, you have discretion over the condition of the looted items. 
+                                                A fierce battle might result in a "Damaged" or "Broken" version of the NPC's armor, or reduce its 'durability'. You must narrate this logically.
+
+                                            4.  Supplement with 'lootForCurrentTurn' (Optional): 
+                                                You may add items from the 'lootForCurrentTurn' list as supplementary loot (e.g., coins, consumables), but these items CANNOT replace the NPC's primary, defining gear.
+
+                                            5.  Logging: 
+                                                You MUST log this decision process in 'items_and_stat_calculations', clearly stating which items were taken from the NPC's inventory to become loot.
+   
+                                            6.  Mechanical Execution:
+                                                CRITICAL DIRECTIVE: The transfer of loot from a defeated NPC to the player MUST be executed using two distinct commands in the same JSON response:
+                                                
+                                                a) Removal from NPC: 
+                                                An 'NPCInventoryRemovals' command (or 'NPCInventoryUpdates' to change the count if only part of a stack is looted) MUST be issued for the NPC.
+                                                
+                                                b) Addition to Player: 
+                                                A corresponding 'inventoryItemsData' command MUST be issued to add the item(s) to the player's inventory.
+
+                                                This two-step process ensures the item is properly transferred and not duplicated in the game state.
+
+                                            ]]>
+                                        </Content>
+                                        <Examples>
+                                            <Example type="bad">
+                                                <Title>INCORRECT - Ignores NPC's actual gear</Title>
+                                                <ScenarioContext>
+                                                    Player defeats "Captain Thorne", who was wearing "Veteran's Plate Armor" and wielding a "Masterwork Longsword".
+                                                </ScenarioContext>
+                                                <ResponseNarrative>
+                                                    <![CDATA[
+
+                                                    You search Captain Thorne's body and find a "Common Leather Jerkin" and 15 gold pieces.
+                                                    // REASONING ERROR: The loot completely ignores the valuable and plot-relevant items the NPC actually had, breaking immersion.
+
+                                                    ]]>
+                                                </ResponseNarrative>
+                                            </Example>
+                                            <Example type="good">
+                                                <Title>CORRECT - Loot is consistent with NPC's gear</Title>
+                                                <ScenarioContext>
+                                                    Player defeats "Captain Thorne", who was wearing "Veteran's Plate Armor" and wielding a "Masterwork Longsword".
+                                                </ScenarioContext>
+                                                <ResponseNarrative>
+                                                    <![CDATA[
+
+                                                    You search Captain Thorne's body. His "Masterwork Longsword" is still in good condition, but his "Veteran's Plate Armor" has been badly dented in the fight, reducing its effectiveness. You also find a small pouch with 15 gold pieces.
+                                                    // GM would report the armor and sword as new items for the player, potentially with reduced durability on the armor.
+                                                    
+                                                    ]]>
+                                                </ResponseNarrative>
+                                            </Example>
+                                        </Examples>
+                                    </Rule>
                                 </Content>
                             </Rule>
 
@@ -11799,7 +11945,11 @@ export const getGameMasterGuideRules = (configuration) => {
                                         -   When 'resource' reaches 0: The system understands that one item from the stack is now empty and effectively "used up". 
                                         Your responsibility is simply to report the resource change. 
                                         The system will handle the eventual removal of the empty item from the stack if necessary.
-                                         
+                                    
+                                    CRITICAL NOTE FOR NPCs: 
+                                    When an NPC uses an item with internal resources, the change MUST be reported via the 'NPCInventoryResourcesChanges' command as defined in Rule #10.8.
+                                    The logic of consumption (decreasing 'resource' vs. 'count') is identical to the player's.
+
                                     ]]>
                                 </Content>
                                 <Examples>
@@ -17309,7 +17459,14 @@ export const getGameMasterGuideRules = (configuration) => {
                                 },
                                 "passiveSkills": [ /* Array of Passive Skill Objects */ ],
                                 "activeSkills": [ /* Array of Active Skill Objects */ ],
-                                "inventory": [ /* Array of Item Objects */ ],                                
+                                "inventory": [ 
+                                    /* MANDATORY FOR NEW NPCS. This field defines the complete, initial inventory when an NPC is first created. 
+                                    It is DEPRECATED for updates to existing NPCs. Use the commands in Block 19.A for all subsequent changes. 
+                                */ ], 
+                                "equippedItems": { 
+                                    /* Object mapping equipment slots to item IDs, identical to the player's structure. 
+                                    Maintained by the GM. 
+                                */ },
                                 "fateCards": [
                                     {
                                         "cardId": "unique_fate_card_id_string",
@@ -17429,6 +17586,11 @@ export const getGameMasterGuideRules = (configuration) => {
                             Their mastery must be initialized/updated via 'NPCSkillMasteryChanges'.
 
                             17. "inventory": (array of Item Objects) A list of notable items the NPC possesses, defined as per InstructionBlock '10'.
+
+                            17.1. "equippedItems": (object) 
+                            An object that maps equipment slot names (e.g., 'MainHand', 'Chest') to the 'existedId' of the item currently equipped in that slot. 
+                            This structure is identical to the player's 'equippedItems'. 
+                            The GM is responsible for maintaining this state based on the NPC's actions and situation (e.g., equipping armor for battle).
 
                             18. "fateCards": (array of Fate Card Objects) Generated when the NPC is first created (typically 3-5 cards).
                                 - "cardId": Unique identifier for this card for this NPC.
@@ -19383,6 +19545,901 @@ export const getGameMasterGuideRules = (configuration) => {
                         </JsonResponse>
                     </Step>
                 </ActionSequence>
+            </Example>
+        </Examples>
+    </InstructionBlock>
+
+    <InstructionBlock id="19.A">
+        <Title>CRITICAL DIRECTIVE: NPC Inventory Management Protocol</Title>
+        <Description>
+            This section defines the mandatory, granular commands for managing NPC inventories. 
+            This protocol is designed to prevent data loss and ensure data integrity by replacing the old method of overwriting the entire inventory.
+        </Description>
+        <InstructionText>
+            <![CDATA[
+
+            You are STRICTLY FORBIDDEN from modifying an NPC's inventory by re-sending their entire 'inventory' array within the 'NPCsData' object.
+            That method is now deprecated and is known to cause data corruption.
+
+            Instead, you MUST use the following specific, targeted commands to manage NPC inventory changes:
+            - To ADD new items: Use the 'NPCInventoryAdds' array.
+            - To UPDATE existing items: Use the 'NPCInventoryUpdates' array.
+            - To REMOVE existing items: Use the 'NPCInventoryRemovals' array.
+
+            This ensures all inventory operations are explicit, atomic, and safe.
+
+            ]]>
+        </InstructionText>
+        <Content type="ruleset">
+            <Rule id="19.A.1">
+                <Title>Adding Items to NPC Inventory ('NPCInventoryAdds')</Title>
+                <Description>Use this command when an NPC receives or finds a new item.</Description>
+                <Content type="code_example" language="json">
+                    <![CDATA[
+
+                    Structure for each object in 'NPCInventoryAdds':
+                    {
+                        "NPCId": "guid_of_the_target_npc",
+                        "NPCName": "name_of_the_target_npc",
+                        "item": { /* Complete Item Object (as per Block 10) */ },
+                        "destinationContainerId": "guid_of_container_in_npc_inventory_optional"
+                    }
+
+                    // The "item" object MUST be a full definition of the new item being added.
+                    // Its 'existedId' field should be 'null'.
+
+                    ]]>
+                </Content>
+                <Content type="ruleset">
+                    <Rule id="19.A.1.1">
+                        <Title>Using the optional 'destinationContainerId' field</Title>
+                        <Content type="rule_text">
+                            <![CDATA[
+
+                            1. If an NPC logically stores a newly acquired item (e.g., placing a potion in a pouch, a scroll in a case), you MUST use the 'destinationContainerId' field.
+                            
+                            2. The ID provided MUST correspond to a container item that exists in the target NPC's inventory (from Context).
+                            
+                            3. If this field is omitted or 'null', the new item is added to the NPC's root inventory.
+                            
+                            4. Before using this, you MUST verify that the destination container has sufficient capacity and volume, following the logic from rules #10.1.0.2.1 and #10.1.0.2.2. 
+                            If the check fails, the item must be added to the NPC's root inventory. 
+                            You MUST log the result of this check in 'items_and_stat_calculations'. 
+                            
+                            ]]>
+                        </Content>
+                    </Rule>
+                </Content>
+            </Rule>
+
+            <Rule id="19.A.2">
+                <Title>Updating Existing NPC Items ('NPCInventoryUpdates')</Title>
+                <InstructionText>
+                    <![CDATA[
+
+                    CRITICAL CLARIFICATION: Consuming the Last Item in a Stack.
+                    If an NPC consumes the last item from a stack (e.g., drinks their last healing potion, which had a 'count' of 1), you MUST report this by setting the 'count' to '0' within the 'itemUpdate' object.
+                    It is strictly FORBIDDEN to use the 'NPCInventoryRemovals' command for this purpose.
+                    The game system will automatically handle the final deletion of the item stack from the NPC's inventory once its count reaches zero.
+
+                    ]]>
+                </InstructionText>
+                <Description>Use this command for partial updates like changing durability, count, or description.</Description>
+                <Content type="code_example" language="json">
+                    <![CDATA[
+
+                    Structure for each object in 'NPCInventoryUpdates':
+                    {
+                        "NPCId": "guid_of_the_target_npc",
+                        "NPCName": "name_of_the_target_npc",
+                        "itemUpdate": {
+                            "existedId": "guid_of_the_item_to_update",
+                            // ... ONLY include the fields that have changed ...
+                            "durability": "75%", // Example change
+                            "count": 5 // Example change
+                        }
+                    }
+
+                    // This MUST follow the Law of Partial Updates: ID + only the changed fields.
+                    // Do NOT include fields that have not changed.
+
+                    ]]>
+                </Content>
+            </Rule>
+
+            <Rule id="19.A.3">
+                <Title>Removing Items from NPC Inventory ('NPCInventoryRemovals')</Title>
+                <Description>Use this command to permanently remove an entire item stack from an NPC.</Description>
+                <Content type="code_example" language="json">
+                    <![CDATA[
+
+                    Structure for each object in 'NPCInventoryRemovals':
+                    {
+                        "NPCId": "guid_of_the_target_npc",
+                        "NPCName": "name_of_the_target_npc",
+                        "itemId": "guid_of_the_item_stack_to_remove"
+                    }
+
+                    // This command removes the entire stack, regardless of its count.
+                    // For partial removal, use 'NPCInventoryUpdates' to change the 'count'.
+                    // Note: This command is also used as part of the mandatory protocol for looting defeated NPCs, as described in Rule #10.1.1.d.
+
+                    ]]>
+                </Content>
+            </Rule>
+
+            <Rule id="19.A.3.1">
+                <Title>CRITICAL CLARIFICATION: Partial vs. Complete Stack Removal for NPCs</Title>
+                <Description>This rule clarifies the MANDATORY distinction between removing some items from a stack and removing the entire stack.</Description>
+                <InstructionText>
+                    <![CDATA[
+        
+                    - To remove SOME items from an NPC's stack, you MUST use 'NPCInventoryUpdates' and provide the new, lower 'count'.
+                    - To remove the ENTIRE stack from an NPC's inventory, you MUST use 'NPCInventoryRemovals'.
+        
+                    Confusing these two commands will lead to data errors.
+        
+                    ]]>
+                </InstructionText>
+                <Examples>
+                    <Example type="good" contentType="json_fragment">
+                        <Title>Example 1 (PARTIAL Removal): Kaelen gives the player 5 arrows from his stack of 20.</Title>
+                        <JsonResponse>
+                            <NPCInventoryUpdates>
+                                <![CDATA[
+
+                                [
+                                    {
+                                        "NPCId": "npc-kaelen-001",
+                                        "NPCName": "Kaelen",
+                                        "itemUpdate": {
+                                            "existedId": "item-kaelen-arrows-01",
+                                            "count": 15
+                                        }
+                                    }
+                                ]
+
+                                ]]>
+                            </NPCInventoryUpdates>
+                            <!-- Simultaneously, the player would gain 5 arrows via inventoryItemsData -->
+                        </JsonResponse>
+                    </Example>
+
+                    <Example type="good" contentType="json_fragment">
+                        <Title>Example 2 (COMPLETE Removal): Kaelen gives the player his entire stack of 20 arrows.</Title>
+                        <JsonResponse>
+                            <NPCInventoryRemovals>
+                                <![CDATA[
+
+                                [
+                                    {
+                                        "NPCId": "npc-kaelen-001",
+                                        "NPCName": "Kaelen",
+                                        "itemId": "item-kaelen-arrows-01"
+                                    }
+                                ]
+
+                                ]]>
+                            </NPCInventoryRemovals>
+                             <!-- Simultaneously, the player would gain 20 arrows via inventoryItemsData -->
+                        </JsonResponse>
+                    </Example>
+                </Examples>
+            </Rule>
+
+            <Rule id="19.A.4">
+                <Title>CRITICAL LAW: The Principle of Inventory Permanence for NPCs</Title>
+                <Description>
+                    This rule clarifies that an NPC's inventory is a persistent state, not a reflection of their current attire. 
+                    This prevents accidental data loss during narrative actions.
+                </Description>
+                <InstructionText>
+                    <![CDATA[
+                    
+                    An NPC's 'inventory' list represents all the items they own, regardless of whether they are currently wearing, holding, or using them.
+                    
+                    It is STRICTLY FORBIDDEN to remove an item from an NPC's inventory simply because a narrative event describes them as not currently wearing or holding it. 
+                    An item can ONLY be removed from an NPC's inventory by using the explicit 'NPCInventoryRemovals' or 'NPCInventoryUpdates' (to set count to 0) commands.
+
+                    ]]>
+                </InstructionText>
+                <Examples>
+                    <Example type="bad">
+                        <Title>INCORRECT - Violates Inventory Permanence</Title>
+                        <ScenarioContext>
+                            Narrative in 'response': "Капитан Каэлен снимает свой тяжелый нагрудник и вешает его на стойку, чтобы отдохнуть."
+                        </ScenarioContext>
+                        <Content type="json_fragment">
+                            <![CDATA[
+
+                            // INCORRECT ACTION: The GM removes the "Plate Armor" from Kaelen's inventory.
+                            "NPCInventoryRemovals": [ { 
+                                "NPCId": "npc-kaelen-001", 
+                                "NPCName": "Капитан Каэлен", 
+                                "itemId": "item-kaelen-armor-01" 
+                            } ]
+                            // REASONING ERROR: The armor is still owned by Kaelen. Removing it means he no longer possesses it.
+
+                            ]]>
+                        </Content>
+                    </Example>
+                    <Example type="good">
+                        <Title>CORRECT - Respects Inventory Permanence</Title>
+                        <ScenarioContext>
+                            Narrative in 'response': "Капитан Каэлен снимает свой тяжелый нагрудник и вешает его на стойку, чтобы отдохнуть."
+                        </ScenarioContext>
+                        <Content type="json_fragment">
+                            <![CDATA[
+
+                            // CORRECT ACTION: The GM makes NO changes to Kaelen's inventory.
+                            "NPCInventoryAdds": null, "NPCInventoryUpdates": null, "NPCInventoryRemovals": null
+                            // REASONING: The armor remains part of Kaelen's possessions. His combat readiness might be lower in the narrative, but his inventory state is unchanged.
+                            
+                            ]]>
+                        </Content>
+                    </Example>
+                </Examples>
+            </Rule>
+
+            <Rule id="19.A.5">
+                <Title>CRITICAL DIRECTIVE: The Principle of Primary State vs. Atomic Updates</Title>
+                <Description>This rule establishes a strict hierarchy to prevent data conflicts when generating or updating NPCs.</Description>
+                <InstructionText>
+                    <![CDATA[
+                    
+                    You MUST differentiate between two distinct operations: Creation and Modification.
+
+                    1.  For NEW NPCs (Creation):
+                        -   The NPC's complete, initial inventory MUST be defined exclusively within the 'inventory' array of their main object in the 'NPCsData' key.
+                        -   The commands 'NPCInventoryAdds', 'NPCInventoryUpdates', and 'NPCInventoryRemovals' MUST NOT be used for this new NPC in the same turn it is created.
+
+                    2.  For EXISTING NPCs (Modification):
+                        -   An "existing" NPC is one that has an 'NPCId' in your 'Context.encounteredNPCs'.
+                        -   You are STRICTLY FORBIDDEN from modifying their inventory by re-sending a new 'inventory' array within an 'NPCsData' object. This is a deprecated method that causes data loss.
+                        -   ALL subsequent changes to an existing NPC's inventory MUST be done using the atomic commands: 'NPCInventoryAdds', 'NPCInventoryUpdates', 'NPCInventoryRemovals'.
+
+                    ]]>
+                </InstructionText>
+                <Examples>
+                    <Example type="bad">
+                        <Title>INCORRECT (Creation) - Conflict and Data Redundancy</Title>
+                        <ScenarioContext>GM generates a new NPC, Kaelen, for the first time.</ScenarioContext>
+                        <Content type="json_fragment">
+                            <![CDATA[
+
+                            // VIOLATION: Using both 'inventory' and 'NPCInventoryAdds' for a new NPC.
+                            "NPCsData": [ 
+                                { 
+                                    "NPCId": null, 
+                                    "name": "Kaelen", 
+                                    "inventory": [ 
+                                        { "name": "Iron Sword", ... } 
+                                    ] 
+                                } 
+                            ],
+                            "NPCInventoryAdds": [ 
+                                { 
+                                    "NPCId": null, 
+                                    "NPCName": "Kaelen", 
+                                    "item": { "name": "Health Potion", ... } 
+                                } 
+                            ]
+
+                            ]]>
+                        </Content>
+                    </Example>
+                    <Example type="good">
+                        <Title>CORRECT (Creation) - Using the Primary State Location</Title>
+                        <ScenarioContext>GM generates a new NPC, Kaelen, for the first time.</ScenarioContext>
+                        <Content type="json_fragment">
+                            <![CDATA[
+
+                            // CORRECT: All initial items are placed within the NPC's own 'inventory' array.
+                            "NPCsData": [ 
+                                { 
+                                    "NPCId": null, 
+                                    "name": "Kaelen",
+                                    "inventory": [ 
+                                        { "name": "Iron Sword", ... }, 
+                                        { "name": "Health Potion", ... } 
+                                    ] 
+                                } 
+                            ],
+                            "NPCInventoryAdds": null
+
+                            ]]>
+                        </Content>
+                    </Example>
+
+                    <Example type="bad">
+                        <Title>INCORRECT (Update) - Overwriting Inventory (causes data loss!)</Title>
+                        <ScenarioContext>An existing NPC, Elara, has 5 items in her inventory in the Context. In this turn, the durability of her "Mortar" changes.</ScenarioContext>
+                        <Content type="json_fragment">
+                            <![CDATA[
+
+                            // VIOLATION: Re-sending the entire 'inventory' array just to update one item. This will DELETE the other 4 items.
+                            "NPCsData": [ 
+                                { 
+                                    "NPCId": "npc-elara-01", 
+                                    "name": "Elara", 
+                                    "inventory": [ 
+                                        { 
+                                            "existedId": "item-mortar-01", 
+                                            "name": "Mortar", 
+                                            "durability": "85%", ... 
+                                        } 
+                                    ] 
+                                } 
+                            ]
+                           
+                            ]]>
+                        </Content>
+                    </Example>
+                    <Example type="good">
+                        <Title>CORRECT (Update) - Using the Atomic 'NPCInventoryUpdates' Command</Title>
+                        <ScenarioContext>An existing NPC, Elara, has 5 items in her inventory. The durability of her "Mortar" changes.</ScenarioContext>
+                        <Content type="json_fragment">
+                            <![CDATA[
+
+                            // CORRECT: Only the specific change is sent. The other 4 items in her inventory are untouched and safe.
+                            "NPCInventoryUpdates": [ 
+                                { 
+                                    "NPCId": "npc-elara-01", 
+                                    "NPCName": "Elara",
+                                    "itemUpdate": { 
+                                        "existedId": "item-mortar-01", 
+                                        "durability": "85%" 
+                                    } 
+                                } 
+                            ]
+                            
+                            ]]>
+                        </Content>
+                    </Example>
+
+                    <Example type="bad">
+                        <Title>INCORRECT (Removal) - Overwriting Inventory</Title>
+                        <ScenarioContext>An existing NPC, Kaelen, has a Sword and a Potion. He gives the Potion to the player.</ScenarioContext>
+                        <Content type="json_fragment">
+                            <![CDATA[
+
+                            // VIOLATION: Re-sending the inventory array without the Potion. This is inefficient and error-prone.
+                            "NPCsData": [ 
+                                { 
+                                    "NPCId": "npc-kaelen-01", 
+                                    "name": "Kaelen", 
+                                    "inventory": [ 
+                                        { 
+                                            "existedId": "item-sword-01", 
+                                            "name": "Iron Sword", 
+                                            ... 
+                                        } 
+                                    ] 
+                                } 
+                            ]
+
+                            ]]>
+                        </Content>
+                    </Example>
+
+                    <Example type="good">
+                        <Title>CORRECT (Removal) - Using the Atomic 'NPCInventoryRemovals' Command</Title>
+                        <ScenarioContext>An existing NPC, Kaelen, has a Sword and a Potion. He gives the Potion to the player.</ScenarioContext>
+                        <Content type="json_fragment">
+                            <![CDATA[
+
+                            // CORRECT: A single, clear command is issued to remove a specific item.
+                            "NPCInventoryRemovals": [ 
+                                { 
+                                    "NPCId": "npc-kaelen-01",
+                                    "NPCName": "Kaelen",
+                                    "itemId": "item-potion-01" 
+                                } 
+                            ]
+
+                            ]]>
+                        </Content>
+                    </Example>
+                </Examples>
+            </Rule>
+
+            <Rule id="19.A.6">
+                <Title>Protocol for NPC-to-NPC Item Transfers</Title>
+                <Description>This rule defines the mandatory procedure for transferring an item from one NPC to another.</Description>
+                <InstructionText>
+                    <![CDATA[
+        
+                    To transfer an item from one NPC (the Giver) to another (the Receiver), you MUST perform two distinct atomic operations within the same JSON response: one removal and one addition.
+                    
+                    CRITICAL DIRECTIVE: 
+                    When transferring a container item, you MUST also issue separate transfer commands for EACH item currently inside that container. 
+                    You must verify the contents of the container from the Context before issuing the transfer commands.
+                    
+                    ]]>
+                </InstructionText>
+                <Content type="rule_text">
+                    <![CDATA[
+        
+                    1.  Removal from Giver:
+                    You MUST add an object to the 'NPCInventoryRemovals' array targeting the Giver NPC and the item ID being transferred.
+                    
+                    2.  Addition to Receiver: 
+                    You MUST add an object to the 'NPCInventoryAdds' array targeting the Receiver NPC, containing a complete Item Object for the transferred item (with a new 'null' ID, as it's a new instance in a new inventory).
+        
+                    This two-step process ensures the transfer is explicit and does not corrupt either NPC's inventory.
+        
+                    ]]>
+                </Content>
+                <Examples>
+                    <Example type="good" contentType="json_fragment">
+                        <Title>Example: Kaelen gives Elara a "Healing Potion".</Title>
+                        <ScenarioContext>
+                            Kaelen (npc-kaelen-001) has a "Healing Potion" (item-potion-k-01) in his inventory. Elara (npc-elara-01) does not.
+                        </ScenarioContext>
+                        <JsonResponse>
+                            <NPCInventoryRemovals>
+                                <![CDATA[
+
+                                [
+                                    {
+                                        "NPCId": "npc-kaelen-001",
+                                        "NPCName": "Kaelen",
+                                        "itemId": "item-potion-k-01"
+                                    }
+                                ]
+
+                                ]]>
+                            </NPCInventoryRemovals>
+                            <NPCInventoryAdds>
+                                <![CDATA[
+
+                                [
+                                    {
+                                        "NPCId": "npc-elara-01",
+                                        "NPCName": "Elara Meadowlight",
+                                        "item": {
+                                            "existedId": null,
+                                            "name": "Healing Potion",
+                                            "description": "A standard potion that restores health.",
+                                            "quality": "Uncommon",
+                                            "count": 1
+                                            // ... all other fields for a new item ...
+                                        }
+                                    }
+                                ]
+
+                                ]]>
+                            </NPCInventoryAdds>
+                        </JsonResponse>
+                    </Example>
+                </Examples>
+            </Rule>
+
+            <Rule id="19.A.7">
+                <Title>Protocol for NPC-to-Player Item Transfers</Title>
+                <Description>
+                    This rule defines the mandatory procedure for transferring an item from an NPC's inventory to the player's inventory.
+                </Description>
+                <InstructionText>
+                    <![CDATA[
+
+                    When an NPC gives an item to the player, you MUST perform two distinct atomic operations within the same JSON response to ensure the item is correctly transferred and not duplicated.
+        
+                    CRITICAL DIRECTIVE: 
+                    When transferring a container item, you MUST also issue separate transfer commands for EACH item currently inside that container. 
+                    You must verify the contents of the container from the Context before issuing the transfer commands.
+
+                    ]]>
+                </InstructionText>
+                <Content type="rule_text">
+                    <![CDATA[
+
+                    1.  Removal from NPC:
+                    You MUST add an object to the 'NPCInventoryRemovals' array (for a full stack) or 'NPCInventoryUpdates' array 
+                    (to change the 'count' for a partial stack) targeting the Giver NPC and the item being transferred.
+
+                    2.  Addition to Player: 
+                    You MUST add an object to the 'inventoryItemsData' array to add the item to the player's inventory. 
+                    This object MUST be a complete Item Object definition with a 'null' ID, as it is a new instance in the player's possession.
+        
+                    ]]>
+                </Content>
+            </Rule>
+
+            <Rule id="19.A.8">
+                <Title>Protocol for Player-Initiated NPC Inventory Removal (Theft/Force)</Title>
+                <Description>This rule defines the procedure when the player takes an item from an NPC, rather than being given it.</Description>
+                <Content type="rule_text">
+                    <![CDATA[
+
+                    If the player successfully takes an item from an NPC's inventory (e.g., through a successful Sleight of Hand check, an Intimidation check, or by force), 
+                    you MUST use the appropriate atomic inventory commands to reflect this transfer.
+
+                    1.  Removal from NPC: An item MUST be removed from the NPC's inventory.
+                        - To remove the entire stack, use the 'NPCInventoryRemovals' command.
+                        - To remove a partial amount from a stack, use the 'NPCInventoryUpdates' command to set the new, lower 'count'.
+
+                    2.  Addition to Player: Simultaneously, you MUST add the item to the player's inventory using the 'inventoryItemsData' command.
+
+                    This ensures that theft and forceful acquisition are mechanically consistent with other forms of item transfer.
+
+                    ]]>
+                </Content>
+            </Rule>
+        </Content>
+        <Examples>
+            <Example type="good" contentType="json_fragment">
+                <Title>Example Scenario: Player gives Elara a new "Healing Potion".</Title>
+                <JsonResponse>
+                    <NPCInventoryAdds>
+                        <![CDATA[
+
+                        [
+                            {
+                                "NPCId": "npc-elara-meadowlight-01",
+                                "NPCName": "Elara Meadowlight",
+                                "item": {
+                                    "existedId": null,
+                                    "name": "Healing Potion",
+                                    "description": "A standard potion that restores health.",
+                                    "quality": "Uncommon",
+                                    "count": 1
+                                    // ... all other fields for a new item ...
+                                }
+                            }
+                        ]
+
+                        ]]>
+                    </NPCInventoryAdds>
+                </JsonResponse>
+            </Example>
+
+            <Example type="good" contentType="json_fragment">
+                <Title>Example Scenario: Kaelen's sword takes damage in a fight.</Title>
+                <JsonResponse>
+                    <NPCInventoryUpdates>
+                        <![CDATA[
+
+                        [
+                            {
+                                "NPCId": "npc-kaelen-001",
+                                "NPCName": "Kaelen, the Mercenary Captain",
+                                "itemUpdate": {
+                                    "existedId": "item-kaelen-sword-01",
+                                    "durability": "65%"
+                                }
+                            }
+                        ]
+
+                        ]]>
+                    </NPCInventoryUpdates>
+                </JsonResponse>
+            </Example>
+
+            <Example type="good" contentType="json_fragment">
+                <Title>Example Scenario: Elara gives the player her last "Healing Salve".</Title>
+                <JsonResponse>
+                    <NPCInventoryRemovals>
+                        <![CDATA[
+
+                        [
+                            {
+                                "NPCId": "npc-elara-meadowlight-01",
+                                "NPCName": "Elara Meadowlight",
+                                "itemId": "item-elara-salve-01"
+                            }
+                        ]
+
+                        ]]>
+                    </NPCInventoryRemovals>
+                    <!-- Simultaneously, there would be an entry in 'inventoryItemsData' to add the salve to the player's inventory -->
+                </JsonResponse>
+            </Example>
+
+            <Example type="good" contentType="json_fragment">
+                <Title>Example Scenario: Elara finds a rare herb and puts it in her pouch.</Title>
+                <JsonResponse>
+                    <NPCInventoryAdds>
+                        <![CDATA[
+
+                        [
+                            {
+                                "NPCId": "npc-elara-meadowlight-01",
+                                "NPCName": "Elara Meadowlight",
+                                "item": {
+                                    "existedId": null,
+                                    "name": "Glowpetal",
+                                    "description": "A rare herb that glows with a soft, silver light.",
+                                    "quality": "Rare",
+                                    "count": 1,
+                                    "type": "Herb",
+                                    "weight": 0.05,
+                                    "price": 75
+                                    // ... all other fields for a new item ...
+                                },
+                                "destinationContainerId": "item-elara-herb-pouch-01"
+                            }
+                        ]
+
+                        ]]>
+                    </NPCInventoryAdds>
+                </JsonResponse>
+            </Example>
+        </Examples>
+    </InstructionBlock>
+
+    <InstructionBlock id="19.B">
+        <Title>CRITICAL DIRECTIVE: NPC Equipment Management Protocol</Title>
+        <Description>
+            This section defines the mandatory protocol for managing an NPC's equipped items. This system makes an NPC's current gear an explicit state, which you, the GM, must actively manage to ensure logical consistency in combat and narrative.
+        </Description>
+        <InstructionText>
+            <![CDATA[
+            
+            Every non-static NPC now has an 'equippedItems' object, identical to the player's. You are responsible for keeping this state updated based on the NPC's situation and intent.
+            All changes to an NPC's equipped gear MUST be reported via the 'NPCEquipmentChanges' command.
+
+            ]]>
+        </InstructionText>
+        <Content type="ruleset">
+            <Rule id="19.B.1">
+                <Title>Initial Equipment on NPC Creation (Using Turn-Local Reference Tags)</Title>
+                <InstructionText>
+                    <![CDATA[
+
+                    To prevent ambiguity, when you create a new NPC, you MUST explicitly define their starting equipped gear using a special temporary linking mechanism. 
+                    This is a special case that is an EXCEPTION to the Law of ID Generation (Rule #5.8.A).
+                    
+                    ]]>
+                </InstructionText>
+                <Content type="rule_text">
+                    <![CDATA[
+        
+                    When creating a new NPC and defining their initial 'inventory' array, for every item that should be equipped from the start, you MUST:
+
+                    1.  Add a Turn-Local Reference Tag:
+                    In the item object within the 'inventory' array, add a new field:
+                    "initialId": "temp-[item-name]-[slot]"
+    
+                    This is NOT a real ID. It is a temporary, human-readable reference tag that exists ONLY for this turn to link the new item to an equipment slot. 
+                    Example: "initialId": "temp-longsword-mainhand"
+
+                    2.  Link in 'equippedItems':
+                    In the NPC's 'equippedItems' object, map the appropriate equipment slot to this exact temporary reference tag.
+
+                    The game system is designed to understand this link. 
+                    It will replace your temporary reference tag with a permanent, unique GUID for both the item in the inventory and its entry in the 'equippedItems' object. 
+                    Refer to the explicit exception protocol in Rule #5.8.A.1.
+        
+                    ]]>
+                </Content>
+                <Examples>
+                    <Example type="good" contentType="json_fragment">
+                        <Title>Example: Correctly initializing a new NPC's equipment</Title>
+                        <Content type="json">
+                            <![CDATA[
+
+                            "NPCsData": [
+                                {
+                                    "NPCId": null,
+                                    "name": "Kaelen",
+                                    "inventory": [
+                                        {
+                                            "initialId": "temp-kaelen-sword-01",
+                                            "name": "Longsword",
+                                            // ... other item properties ...
+                                        },
+                                        {
+                                            "initialId": "temp-kaelen-armor-01",
+                                            "name": "Steel Armor",
+                                            // ... other item properties ...
+                                        }
+                                    ],
+                                    "equippedItems": {
+                                        "MainHand": "temp-kaelen-sword-01",
+                                        "Chest": "temp-kaelen-armor-01"
+                                    }
+                                    // ... other NPC properties ...
+                                }
+                            ]
+
+                            ]]>
+                        </Content>
+                    </Example>
+                </Examples>
+            </Rule>
+
+            <Rule id="19.B.2">
+                <Title>Triggers for Changing Equipment (The GM's Logic)</Title>
+                <Description>An NPC should change their equipment in response to logical triggers.</Description>
+                <Content type="rule_text">
+                    <![CDATA[
+                    
+                    You MUST consider changing an NPC's equipment under the following circumstances:
+                    1.  Combat Readiness: When combat is imminent or begins, an NPC will equip their best available weapon(s) and armor from their inventory. A peaceful scholar won't be wearing plate mail in a library, but will put it on before a battle.
+                    2.  Environmental Adaptation: An NPC will equip appropriate gear for the environment. (e.g., putting on a "Warm Cloak" in a snowstorm, taking off a helmet inside a tavern).
+                    3.  Social Appropriateness: An NPC will change into appropriate attire for a social situation (e.g., "Formal Robes" for a royal audience).
+                    4.  Plot-Driven Changes: An NPC might equip a specific quest item or a newly acquired magical artifact.
+
+                    ]]>
+                </Content>
+            </Rule>
+
+            <Rule id="19.B.3">
+                <Title>The Process of Changing Equipment</Title>
+                <Content type="rule_text">
+                    <![CDATA[
+                    
+                    When a trigger from '19.B.2' occurs, you must:
+                    1.  Scan Inventory: Check the NPC's 'inventory' for the most suitable item(s).
+                    2.  Handle Conflicts: If equipping a new item requires unequipping another (e.g., equipping a two-handed axe requires removing a sword and shield), you must process the unequip action first.
+                    3.  Narrate the Action: Describe the NPC changing their gear in the 'response'. (e.g., "Капитан Каэлен быстро надевает свой шлем, его лицо становится серьезным.", "Элара убирает свой гримуар и достает маленький кинжал, готовясь к бою.").
+                    4.  Report the Change: You MUST report every single equip and unequip action using the 'NPCEquipmentChanges' command.
+
+                    ]]>
+                </Content>
+            </Rule>
+
+            <Rule id="19.B.4">
+                <Title>Reporting Structure ('NPCEquipmentChanges')</Title>
+                <Description>This command is a direct parallel to the player's 'equipmentChanges'.</Description>
+                <Content type="code_example" language="json">
+                    <![CDATA[
+                    
+                    Structure for each object in the 'NPCEquipmentChanges' array:
+                    {
+                        "NPCId": "guid_of_the_target_npc",
+                        "NPCName": "name_of_the_target_npc",
+                        "action": "'equip' or 'unequip'",
+                        "itemId": "guid_of_the_item_being_changed",
+                        "itemName": "name_of_the_item",
+                        "targetSlots": ["slot_name_1"], // For 'equip'
+                        "sourceSlots": ["slot_name_1"]  // For 'unequip'
+                    }
+                    
+                    ]]>
+                </Content>
+            </Rule>
+
+            <Rule id="19.B.4.1">
+                <Title>CRITICAL DIRECTIVE: Equipping Newly Acquired Items in the Same Turn</Title>
+                <Description>This rule defines the mandatory protocol for an existing NPC equipping an item that they have just received in the same turn.</Description>
+                <InstructionText>
+                    <![CDATA[
+                    
+                    When an existing NPC (one that already has an 'NPCId' in your Context) acquires a new item and equips it immediately, a logical conflict arises: the new item does not yet have a permanent 'itemId' that can be used in the 'NPCEquipmentChanges' command.
+    
+                    To resolve this, you MUST follow this two-step protocol.
+
+                    ]]>
+                </InstructionText>
+                <Content type="rule_text">
+                    <![CDATA[
+
+                    1.  Step 1: Add the Item to Inventory.
+                    You MUST first add the new item to the NPC's inventory using the 'NPCInventoryAdds' command. 
+                    The item object within this command will have its 'existedId' set to 'null'.
+
+                    2.  Step 2: Equip the New Item using a Link.
+                    You MUST then add an 'equip' entry to the 'NPCEquipmentChanges' array. This entry MUST follow a special format to create a link to the newly added item:
+                    -   The 'itemId' field MUST be set to 'null'.
+                    -   You MUST add a new field, 'itemName', and set its value to the exact, case-sensitive name of the item you are adding in the 'NPCInventoryAdds' command.
+
+                    The game system is designed to understand this link: when it sees an 'equip' command with 'itemId: null' and a valid 'itemName', 
+                    it will look for a new item with that exact name being added to that same NPC in the 'NPCInventoryAdds' array in the same turn, and equip it.
+
+                    ]]>
+                </Content>
+                <Examples>
+                    <Example type="good" contentType="json_fragment">
+                        <Title>Example: Player gives Elara a "Circlet of Wisdom", and she equips it.</Title>
+                        <JsonResponse>
+                            <!-- Step 1: The item is added to her inventory -->
+                            <NPCInventoryAdds>
+                                <![CDATA[
+
+                                [
+                                    {
+                                        "NPCId": "npc-elara-01",
+                                        "NPCName": "Elara Meadowlight",
+                                        "item": {
+                                            "existedId": null,
+                                            "name": "Circlet of Wisdom",
+                                            "quality": "Rare",
+                                            "equipmentSlot": "Head",
+                                            "bonuses": ["+5 to Wisdom"],
+                                            // ... all other item properties ...
+                                        }
+                                    }
+                                ]
+
+                                ]]>
+                            </NPCInventoryAdds>
+
+                            <!-- Step 2: A linked command is issued to equip the new item -->
+                            <NPCEquipmentChanges>
+                                <![CDATA[
+
+                                [
+                                    {
+                                        "NPCId": "npc-elara-01",
+                                        "NPCName": "Elara Meadowlight",
+                                        "action": "equip",
+                                        "itemId": null,
+                                        "itemName": "Circlet of Wisdom",
+                                        "targetSlots": ["Head"]
+                                    }
+                                ]
+
+                                ]]>
+                            </NPCEquipmentChanges>
+                        </JsonResponse>
+                    </Example>
+                </Examples>
+            </Rule>
+
+            <Rule id="19.B.5">
+                <Title>CRITICAL DIRECTIVE: Pre-Combat Readiness Protocol</Title>
+                <Description>This protocol ensures NPCs react logically when combat begins.</Description>
+                <Content type="rule_text">
+                    <![CDATA[
+        
+                    When combat becomes active (e.g., as determined in Block 13) and it is the turn of an NPC who is not optimally equipped for battle 
+                    (e.g., their primary weapon is not in their 'equippedItems.MainHand', or their armor is not in 'equippedItems.Chest'), you must follow this logic:
+
+                    1.  Prioritize Readiness: 
+                    Unless the NPC is surprised and unable to act, their first action in combat MUST be to equip their best available combat gear from their inventory.
+
+                    2.  Report the Change: 
+                    This action is resolved by generating the appropriate 'equip' entries for the 'NPCEquipmentChanges' array.
+
+                    3.  Narrate the Action: 
+                    The 'response' must reflect this. 
+                    For example: "Caught off guard, Kaelen quickly draws his longsword from its scabbard, readying himself for the fight."
+
+                    This action takes precedence over attacking or using other skills, representing the realistic need to prepare for a fight. 
+                    An NPC who is already fully equipped at the start of combat can act normally.
+        
+                    ]]>
+                </Content>
+            </Rule>
+        </Content>
+        <Examples>
+            <Example type="good" contentType="json_fragment">
+                <Title>Example: Kaelen prepares for a fight.</Title>
+                <ScenarioContext>Kaelen (in a tavern) is challenged to a duel. He has a "Steel Armor" and a "Longsword" in his inventory but they are not equipped.</ScenarioContext>
+                <JsonResponse>
+                    <response>
+                        <![CDATA[
+
+                        Услышав вызов, Каэлен спокойно встает из-за стола. "Очень глупо", - бормочет он, надевая свой стальной нагрудник. 
+                        С лязгом он вынимает из ножен свой верный длинный меч.
+                        
+                        ]]>
+                    </response>
+                    <NPCEquipmentChanges>
+                        <![CDATA[
+                        [
+                            {
+                                "NPCId": "npc-kaelen-001",
+                                "NPCName": "Kaelen",
+                                "action": "equip",
+                                "itemId": "item-kaelen-armor-01",
+                                "itemName": "Steel Armor",
+                                "targetSlots": ["Chest"]
+                            },
+                            {
+                                "NPCId": "npc-kaelen-001",
+                                "NPCName": "Kaelen",
+                                "action": "equip",
+                                "itemId": "item-kaelen-sword-01",
+                                "itemName": "Longsword",
+                                "targetSlots": ["MainHand"]
+                            }
+                        ]
+                        ]]>
+                    </NPCEquipmentChanges>
+                </JsonResponse>
             </Example>
         </Examples>
     </InstructionBlock>
