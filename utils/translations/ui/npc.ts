@@ -1,7 +1,4 @@
 
-
-
-
 export const npc = {
   en: {
     // NPC Details
@@ -46,6 +43,7 @@ export const npc = {
     "Custom Image Prompt": "Custom Image Prompt",
     "Default prompt from AI:": "Default prompt from AI:",
     "Corrupted Journal Entry": "Corrupted Journal Entry",
+    "corrupted_item": "Corrupted Item",
 
 
     // NPC Log
@@ -123,6 +121,7 @@ export const npc = {
     "Custom Image Prompt": "Пользовательский промпт",
     "Default prompt from AI:": "Промпт по умолчанию от ИИ:",
     "Corrupted Journal Entry": "Поврежденная запись в журнале",
+    "corrupted_item": "Поврежденный предмет",
 
     // NPC Log
     "Encountered NPCs": "Встреченные NPC",

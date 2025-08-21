@@ -1,5 +1,7 @@
 
-import { GameState, GameResponse, PlayerCharacter, Item, ActiveSkill, PassiveSkill, NPC, LocationData, Quest, EnemyCombatObject, AllyCombatObject, CustomState, Wound, Faction, SkillMastery, Effect, Recipe, UnlockedMemory, WorldStateFlag } from '../types';
+
+
+import { GameState, GameResponse, PlayerCharacter, Item, ActiveSkill, PassiveSkill, NPC, LocationData, Quest, EnemyCombatObject, AllyCombatObject, CustomState, Wound, Faction, SkillMastery, Effect, Recipe, UnlockedMemory, WorldStateFlag, NPCCustomStateChange } from '../types';
 import { recalculateDerivedStats } from './gameContext';
 import { recalculateAllWeights } from './inventoryManager';
 import { characteristics as charTranslations } from './translations/characteristics';
@@ -118,9 +120,9 @@ function upsertEntities<T extends { [key: string]: any }>(
     entityChanges.forEach(change => {
         // Specific fix for NPC Fate Card IDs to ensure uniqueness before merging.
         // This prevents React key conflicts and rendering bugs.
-        if (idKey === 'NPCId' && change.fateCards && Array.isArray(change.fateCards)) {
+        if (idKey === 'NPCId' && (change as any).fateCards && Array.isArray((change as any).fateCards)) {
             const seenIds = new Set();
-            (change.fateCards as any[]).forEach((card: any) => {
+            ((change as any).fateCards as any[]).forEach((card: any) => {
                 if (!card.cardId || seenIds.has(card.cardId)) {
                     // If cardId is missing, duplicated, or invalid, generate a new unique one.
                     card.cardId = generateId(`fatecard-${(change as any).name || 'npc'}`);
@@ -178,9 +180,45 @@ function upsertEntities<T extends { [key: string]: any }>(
             // Deep merge new data into the existing entity
             newEntities[existingIndex] = deepMerge(existingEntity, change);
         } else {
-            // It's a new entity. Ensure it has a generated ID if one wasn't provided.
+            // It's a new entity.
+            
+            // SPECIAL PROTOCOL: Handle initial equipment for new NPCs using temporary IDs.
+            if (idKey === 'NPCId' && (change as any).inventory) {
+                const tempIdMap = new Map<string, string>();
+
+                const newInventory = ((change as any).inventory as any[]).map((item: any) => {
+                    const newItem = { ...item };
+                    // Assign a permanent ID to all new items.
+                    if (!newItem.existedId) {
+                        newItem.existedId = generateId('item');
+                    }
+                    // If a temporary 'initialId' exists, map it to the new permanent ID.
+                    if (newItem.initialId) {
+                        tempIdMap.set(newItem.initialId, newItem.existedId);
+                        delete newItem.initialId; // Clean up the temporary field.
+                    }
+                    return newItem;
+                });
+                (change as any).inventory = newInventory;
+
+                // If equippedItems uses temporary IDs, replace them with the new permanent IDs.
+                if ((change as any).equippedItems && tempIdMap.size > 0) {
+                    const newEquippedItems: { [key: string]: string | null } = {};
+                    for (const slot in ((change as any).equippedItems as any)) {
+                        const tempId = ((change as any).equippedItems as any)[slot];
+                        if (typeof tempId === 'string' && tempIdMap.has(tempId)) {
+                            newEquippedItems[slot] = tempIdMap.get(tempId)!;
+                        } else {
+                            newEquippedItems[slot] = tempId;
+                        }
+                    }
+                    (change as any).equippedItems = newEquippedItems;
+                }
+            }
+            
+            // Ensure the new entity itself has a generated ID if one wasn't provided.
             if (!change[idKey]) {
-                change[idKey] = generateId(String(idKey).replace('Id', '')) as any;
+                change[idKey] = generateId(idKey.toString().replace('Id', '')) as any;
             }
             newEntities.push(change as T);
         }
@@ -233,7 +271,7 @@ export function checkAndApplyLevelUp(pc: PlayerCharacter, t: TFunction): { pc: P
     return { pc: newPc, logs };
 }
 
-export const processAndApplyResponse = (response: GameResponse, baseState: GameState, t: TFunction): { newState: GameState, logsToAdd: string[], combatLogsToAdd: string[] } => {
+export const processAndApplyResponse = (response: GameResponse, baseState: GameState, t: TFunction, advanceTurn: boolean): { newState: GameState, logsToAdd: string[], combatLogsToAdd: string[] } => {
     const newState: GameState = JSON.parse(JSON.stringify(baseState));
     let pc = newState.playerCharacter;
     const logsToAdd: string[] = [];
@@ -666,7 +704,7 @@ export const processAndApplyResponse = (response: GameResponse, baseState: GameS
     }
 
     existingEffectsToProcess.forEach(existingEffect => {
-        if (existingEffect.duration < 999 && existingEffect.duration > 0) {
+        if (advanceTurn && existingEffect.duration < 999 && existingEffect.duration > 0) {
             newNextPlayerEffects.push({ ...existingEffect, duration: existingEffect.duration - 1 });
         } else {
             newNextPlayerEffects.push(existingEffect);
@@ -694,13 +732,36 @@ export const processAndApplyResponse = (response: GameResponse, baseState: GameS
         }
         return true;
     });
-    pc.playerWounds = upsertEntities(pc.playerWounds, asArray(response.playerWoundChanges), 'woundId', 'woundName');
+    
+    const playerWoundChangesCleaned = asArray(response.playerWoundChanges).map(change => {
+        const woundData: Partial<Wound> = {
+            woundId: change.woundId,
+            woundName: change.woundName,
+            severity: change.severity,
+            descriptionOfEffects: change.descriptionOfEffects,
+            generatedEffects: change.generatedEffects,
+            healingState: change.healingState,
+        };
+        if (!woundData.healingState) {
+            woundData.healingState = {
+                currentState: 'Untreated',
+                description: 'The wound is fresh and requires attention.',
+                treatmentProgress: 0,
+                progressNeeded: 20, // A reasonable default
+                nextState: 'Stabilized',
+                canBeImprovedBy: ['First Aid check']
+            };
+        }
+        return woundData;
+    });
+    pc.playerWounds = upsertEntities(pc.playerWounds, playerWoundChangesCleaned, 'woundId', 'woundName');
+
 
     // --- NPCs ---
     newState.encounteredNPCs = upsertEntities(newState.encounteredNPCs, asArray(response.NPCsData), 'NPCId', 'name');
     
     asArray(response.NPCsRenameData).forEach(rename => {
-        const npc = newState.encounteredNPCs.find(n => n.name.toLowerCase() === rename.oldName.toLowerCase());
+        const npc = newState.encounteredNPCs.find(n => n.name && n.name.toLowerCase() === rename.oldName.toLowerCase());
         if(npc) npc.name = rename.newName;
     });
 
@@ -712,7 +773,7 @@ export const processAndApplyResponse = (response: GameResponse, baseState: GameS
         if (!npc) {
             const nameToFind = change.NPCName || change.name;
             if (nameToFind) {
-                npc = newState.encounteredNPCs.find(n => n.name.toLowerCase() === String(nameToFind).toLowerCase());
+                npc = newState.encounteredNPCs.find(n => n.name && n.name.toLowerCase() === String(nameToFind).toLowerCase());
             }
         }
         return npc;
@@ -809,7 +870,7 @@ export const processAndApplyResponse = (response: GameResponse, baseState: GameS
         }
 
         existingNpcEffectsToProcess.forEach(existingEffect => {
-            if (existingEffect.duration < 999 && existingEffect.duration > 0) {
+            if (advanceTurn && existingEffect.duration < 999 && existingEffect.duration > 0) {
                 nextNpcEffects.push({ ...existingEffect, duration: existingEffect.duration - 1 });
             } else {
                 nextNpcEffects.push(existingEffect);
@@ -871,11 +932,175 @@ export const processAndApplyResponse = (response: GameResponse, baseState: GameS
     asArray(response.NPCWoundChanges).forEach(change => {
         const npc = findNpc(change);
         if (npc) {
-            if (!npc.wounds) npc.wounds = [];
-            // This assumes the AI might send a nested structure for consistency,
-            // where the top-level object identifies the NPC and contains a `woundChanges` array.
-            const woundsToAdd = (change as any).woundChanges || [change];
-            npc.wounds = upsertEntities(npc.wounds, asArray(woundsToAdd), 'woundId', 'woundName');
+            if (!npc.wounds) {
+                npc.wounds = [];
+            }
+            const woundData: Partial<Wound> = {
+                woundId: change.woundId,
+                woundName: change.woundName,
+                severity: change.severity,
+                descriptionOfEffects: change.descriptionOfEffects,
+                generatedEffects: change.generatedEffects,
+                healingState: change.healingState,
+            };
+            // If healingState is missing, create a default one. This makes the system more robust against AI errors.
+            if (!woundData.healingState) {
+                woundData.healingState = {
+                    currentState: 'Untreated',
+                    description: 'The wound is fresh and requires attention.',
+                    treatmentProgress: 0,
+                    progressNeeded: 20, // A reasonable default
+                    nextState: 'Stabilized',
+                    canBeImprovedBy: ['First Aid check']
+                };
+            }
+            npc.wounds = upsertEntities(npc.wounds, [woundData], 'woundId', 'woundName');
+        }
+    });
+    
+    asArray(response.NPCCustomStateChanges).forEach((change: NPCCustomStateChange) => {
+        const npc = findNpc(change);
+        if (npc) {
+            if (!npc.customStates) {
+                npc.customStates = [];
+            }
+            npc.customStates = upsertEntities(npc.customStates, asArray(change.stateChanges), 'stateId', 'stateName');
+        }
+    });
+
+    // --- NPC Inventory & Equipment Management ---
+    const newlyAddedNpcItems = new Map<string, Map<string, Item>>();
+
+    asArray((response as any).NPCInventoryAdds).forEach((add: any) => {
+        const npc = findNpc(add);
+        if (npc) {
+            if (!npc.inventory) npc.inventory = [];
+            const newItem = { ...add.item };
+            if (!newItem.existedId) {
+                newItem.existedId = generateId('item');
+            }
+
+            if (npc.NPCId) {
+                if (!newlyAddedNpcItems.has(npc.NPCId)) {
+                    newlyAddedNpcItems.set(npc.NPCId, new Map());
+                }
+                newlyAddedNpcItems.get(npc.NPCId)!.set(newItem.name, newItem as Item);
+            }
+
+            const isStackable = !newItem.equipmentSlot && (newItem.isConsumption || newItem.type === 'Material' || typeof newItem.count === 'number');
+            if (isStackable) {
+                const existingStack = npc.inventory.find(i => i.name === newItem.name && !i.equipmentSlot);
+                if (existingStack) {
+                    existingStack.count += newItem.count || 1;
+                    return;
+                }
+            }
+            npc.inventory.push(newItem as Item);
+        }
+    });
+
+    asArray((response as any).NPCInventoryUpdates).forEach((update: any) => {
+        const npc = findNpc(update);
+        if (npc && npc.inventory) {
+            const itemToUpdate = npc.inventory.find(i => i.existedId === update.itemUpdate.existedId);
+            if (itemToUpdate) {
+                Object.assign(itemToUpdate, update.itemUpdate);
+            }
+        }
+    });
+
+    newState.encounteredNPCs.forEach(npc => {
+        if (npc.inventory) {
+            npc.inventory = npc.inventory.filter(item => {
+                if (item.count <= 0) {
+                    if (npc.equippedItems) {
+                        Object.keys(npc.equippedItems).forEach(slot => {
+                            if (npc.equippedItems?.[slot] === item.existedId) {
+                                npc.equippedItems[slot] = null;
+                            }
+                        });
+                    }
+                    return false;
+                }
+                return true;
+            });
+        }
+    });
+
+    asArray((response as any).NPCInventoryRemovals).forEach((removal: any) => {
+        const npc = findNpc(removal);
+        if (npc && npc.inventory) {
+            if (npc.equippedItems) {
+                Object.keys(npc.equippedItems).forEach(slot => {
+                    if (npc.equippedItems?.[slot] === removal.itemId) {
+                        npc.equippedItems[slot] = null;
+                    }
+                });
+            }
+            npc.inventory = npc.inventory.filter(i => i.existedId !== removal.itemId);
+        }
+    });
+    
+    asArray((response as any).NPCEquipmentChanges).forEach((change: any) => {
+        const npc = findNpc(change);
+        if (!npc) return;
+
+        if (!npc.inventory) npc.inventory = [];
+        if (!npc.equippedItems) {
+            npc.equippedItems = { Head: null, Neck: null, Chest: null, Back: null, MainHand: null, OffHand: null, Hands: null, Wrists: null, Waist: null, Legs: null, Feet: null, Finger1: null, Finger2: null };
+        }
+
+        if (change.action === 'equip') {
+            let itemToEquip: Item | undefined;
+
+            if (!change.itemId && change.itemName && npc.NPCId) {
+                itemToEquip = newlyAddedNpcItems.get(npc.NPCId)?.get(change.itemName);
+            } else if (change.itemId) {
+                itemToEquip = npc.inventory.find(i => i.existedId === change.itemId);
+            }
+
+            if (itemToEquip && itemToEquip.existedId && change.targetSlots) {
+                const slotsToClear = new Set<string>();
+                const inventory = npc.inventory as Item[];
+
+                if (itemToEquip.requiresTwoHands) {
+                    slotsToClear.add('MainHand');
+                    slotsToClear.add('OffHand');
+                } else {
+                    change.targetSlots.forEach((slot: string) => slotsToClear.add(slot));
+                    const mainHandId = npc.equippedItems['MainHand'];
+                    if (mainHandId && mainHandId === npc.equippedItems['OffHand']) {
+                        const mainHandItem = inventory.find(i => i.existedId === mainHandId);
+                        if (mainHandItem && mainHandItem.requiresTwoHands) {
+                            slotsToClear.add('MainHand');
+                            slotsToClear.add('OffHand');
+                        }
+                    }
+                }
+                
+                slotsToClear.forEach(slot => {
+                    if (npc.equippedItems?.[slot]) {
+                        npc.equippedItems[slot] = null;
+                    }
+                });
+
+                if (itemToEquip.requiresTwoHands) {
+                    npc.equippedItems['MainHand'] = itemToEquip.existedId;
+                    npc.equippedItems['OffHand'] = itemToEquip.existedId;
+                } else {
+                    change.targetSlots.forEach((slot: string) => {
+                        if(npc.equippedItems) npc.equippedItems[slot] = itemToEquip!.existedId;
+                    });
+                }
+            }
+        } else if (change.action === 'unequip') {
+            if (change.sourceSlots) {
+                change.sourceSlots.forEach((slot: string) => {
+                    if (npc.equippedItems?.[slot] === change.itemId) {
+                        npc.equippedItems[slot] = null;
+                    }
+                });
+            }
         }
     });
 
@@ -883,6 +1108,21 @@ export const processAndApplyResponse = (response: GameResponse, baseState: GameS
     pc = recalculateDerivedStats(pc);
     pc = recalculateAllWeights(pc);
     newState.playerCharacter = pc;
+
+    // Recalculate derived stats for ALL encountered NPCs to ensure data consistency
+    newState.encounteredNPCs = newState.encounteredNPCs.map(npc => {
+        let updatedNpc = recalculateDerivedStats(npc);
+        updatedNpc = recalculateAllWeights(updatedNpc);
+        if (updatedNpc.totalWeight !== undefined && updatedNpc.maxWeight !== undefined) {
+            updatedNpc.isOverloaded = updatedNpc.totalWeight > updatedNpc.maxWeight;
+        } else {
+            updatedNpc.isOverloaded = false;
+        }
+        if (updatedNpc.criticalExcessWeight === undefined) {
+            updatedNpc.criticalExcessWeight = 15;
+        }
+        return updatedNpc;
+    });
 
     if (response.currentLocationData) {
         // FIX: Ensure new locations from the GM get a unique ID.
@@ -895,9 +1135,20 @@ export const processAndApplyResponse = (response: GameResponse, baseState: GameS
         newState.currentLocationData = newLocationDataWithId;
     }
     
+    // First, update the list of active quests with any changes from the response.
+    // This will add new quests or update the status of existing ones.
     newState.activeQuests = upsertEntities(newState.activeQuests, asArray(response.questUpdates), 'questId', 'questName');
-    newState.completedQuests = newState.activeQuests.filter(q => q.status === 'Completed' || q.status === 'Failed');
+    
+    // Identify any quests in the (now updated) active list that have been completed or failed this turn.
+    const justCompletedOrFailed = newState.activeQuests.filter(q => q.status === 'Completed' || q.status === 'Failed');
+
+    // Add these newly completed/failed quests to the persistent list of completed quests.
+    // upsertEntities will prevent duplicates if a quest was somehow already there.
+    newState.completedQuests = upsertEntities(newState.completedQuests, justCompletedOrFailed, 'questId', 'questName');
+    
+    // Now, filter the active quests list to remove those that are no longer active.
     newState.activeQuests = newState.activeQuests.filter(q => q.status !== 'Completed' && q.status !== 'Failed');
+    
     newState.lastUpdatedQuestId = response.questUpdates && response.questUpdates.length > 0 ? response.questUpdates[response.questUpdates.length - 1].questId : null;
     
     newState.encounteredFactions = upsertEntities(newState.encounteredFactions, asArray(response.factionDataChanges), 'factionId', 'name');

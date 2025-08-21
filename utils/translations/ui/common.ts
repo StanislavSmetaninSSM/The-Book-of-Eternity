@@ -1,4 +1,9 @@
 
+
+
+import { ui as ui_overrides } from './ui_overrides';
+
+
 export const common = {
   en: {
     "Edit": "Edit",
@@ -67,6 +72,7 @@ export const common = {
     "Crafting": "Crafting",
     "Stats": "Stats",
     "Inventory": "Inventory",
+    "Your Inventory": "Your Inventory",
     "Skills": "Skills",
     "Bonuses": "Bonuses",
     "Conditions": "Conditions",
@@ -139,6 +145,15 @@ export const common = {
     'Are you sure you want to regenerate the ID for "{name}"?': 'Are you sure you want to regenerate the ID for "{name}"?',
     'This can fix issues with uneditable objects but might have unintended side effects. This action cannot be undone.': 'This can fix issues with uneditable objects but might have unintended side effects. This action cannot be undone.',
     "System Information": "System Information",
+    "StashWarning": "Items in this temporary stash, whether dropped or moved due to overload, will be **permanently deleted** at the start of your next turn if you don't retrieve them. To retrieve items, ensure you have space in your inventory.",
+    "items_moved_to_stash_log": "[SYSTEM] Your inventory is critically full! The heaviest newly acquired items have been moved to a temporary stash. Access them from the 'Stash' tab before your next turn, or they will be lost.",
+    "npc_overloaded_refusal": "This NPC cannot carry any more weight. They refuse to take the item.",
+    "Forget Faction": "Forget Faction",
+    "forget_faction_confirm": "Are you sure you want to forget about the faction \"{name}\"? This action cannot be undone.",
+    "Delete Flag": "Delete Flag",
+    'delete_flag_title': 'Delete Flag "{name}"',
+    'delete_flag_confirm': 'Are you sure you want to permanently delete the "{name}" flag? This will remove it from the game and cannot be undone.',
+    ...ui_overrides.en
   },
   ru: {
     "Edit": "Редактировать",
@@ -207,6 +222,7 @@ export const common = {
     "Crafting": "Ремесло",
     "Stats": "Характеристики",
     "Inventory": "Инвентарь",
+    "Your Inventory": "Ваш инвентарь",
     "Skills": "Навыки",
     "Bonuses": "Бонусы",
     "Conditions": "Состояния",
@@ -279,5 +295,14 @@ export const common = {
     'Are you sure you want to regenerate the ID for "{name}"?': 'Вы уверены, что хотите пересоздать ID для «{name}»?',
     'This can fix issues with uneditable objects but might have unintended side effects. This action cannot be undone.': 'Это может исправить проблемы с нередактируемыми объектами, но может иметь непредвиденные побочные эффекты. Это действие нельзя отменить.',
     "System Information": "Системная информация",
+    "StashWarning": "Предметы в этом временном тайнике, как выброшенные, так и перемещенные из-за перегрузки, будут **безвозвратно удалены** в начале вашего следующего хода, если их не забрать. Чтобы забрать предметы, убедитесь, что в инвентаре есть место.",
+    "items_moved_to_stash_log": "[СИСТЕМА] Ваш инвентарь критически переполнен! Самые тяжелые из только что полученных предметов были перемещены во временный тайник. Заберите их из вкладки 'Тайник' до начала вашего следующего хода, иначе они будут утеряны.",
+    "npc_overloaded_refusal": "Этот NPC не может нести больше веса. Он отказывается брать предмет.",
+    "Forget Faction": "Забыть фракцию",
+    "forget_faction_confirm": "Вы уверены, что хотите забыть фракцию «{name}»? Это действие необратимо.",
+    "Delete Flag": "Удалить флаг",
+    'delete_flag_title': 'Удалить флаг «{name}»',
+    'delete_flag_confirm': 'Вы уверены, что хотите навсегда удалить флаг «{name}»? Он будет безвозвратно удален из игры.',
+    ...ui_overrides.ru
   }
 };

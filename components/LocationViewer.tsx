@@ -4,12 +4,24 @@ import ReactDOM from 'react-dom';
 import { Location, LocationData } from '../types';
 import { 
     MapPinIcon, QuestionMarkCircleIcon, HomeModernIcon, BuildingStorefrontIcon, 
-    FireIcon, GlobeAltIcon, SunIcon, PlusIcon, MinusIcon, ArrowPathIcon, UserGroupIcon
+    FireIcon, GlobeAltIcon, SunIcon, PlusIcon, MinusIcon, ArrowPathIcon, UserGroupIcon,
+    DocumentTextIcon, ArrowRightIcon
 } from '@heroicons/react/24/outline';
 import { useLocalization } from '../context/LocalizationContext';
+import ImageRenderer from './ImageRenderer';
 
 // --- Tooltip Component ---
-const Tooltip = ({ location, position }: { location: Location | null; position: { top: number; left: number } }) => {
+const Tooltip = ({ 
+    location, 
+    position, 
+    imageCache, 
+    onImageGenerated 
+}: { 
+    location: Location | null; 
+    position: { top: number; left: number };
+    imageCache: Record<string, string>;
+    onImageGenerated: (prompt: string, base64: string) => void;
+}) => {
     const { t } = useLocalization();
     if (!location) return null;
     
@@ -17,12 +29,19 @@ const Tooltip = ({ location, position }: { location: Location | null; position: 
 
     const modalRoot = document.getElementById('modal-root');
     if (!modalRoot) return null;
+    
+    const imagePrompt = location.custom_image_prompt || location.image_prompt;
 
     return ReactDOM.createPortal(
         <div 
             className="map-tooltip" 
             style={{ top: position.top, left: position.left }}
         >
+            {imagePrompt && (
+                <div className="map-tooltip-image">
+                    <ImageRenderer prompt={imagePrompt} alt={location.name} imageCache={imageCache} onImageGenerated={onImageGenerated} />
+                </div>
+            )}
             <div className="map-tooltip-title">{location.name}</div>
             {location.description && <p className="map-tooltip-desc">{location.description}</p>}
             {profile && (
@@ -73,13 +92,53 @@ const getLocationIconAndStyle = (location: Location & { isVisited: boolean }) =>
 
 const CompassRose = () => (
     <svg className="compass-rose" viewBox="0 0 100 100">
-        <circle cx="50" cy="50" r="48" fill="#f3e9d2" stroke="#5a3d2b" strokeWidth="1"/>
-        <path d="M50 10 L55 50 L50 90 L45 50 Z" fill="#a0522d"/>
-        <path d="M50 10 L55 50 L50 90 L45 50 Z" fill="none" stroke="#5a3d2b" strokeWidth="1"/>
-        <path d="M10 50 L50 45 L90 50 L50 55 Z" fill="#d4c7a9"/>
-        <path d="M10 50 L50 45 L90 50 L50 55 Z" fill="none" stroke="#5a3d2b" strokeWidth="1"/>
-        <circle cx="50" cy="50" r="5" fill="#a0522d" stroke="#5a3d2b" strokeWidth="1"/>
-        <text x="50" y="8" textAnchor="middle" fontSize="10" fill="#5a3d2b" fontFamily="Lora">N</text>
+        <defs>
+            <radialGradient id="grad1" cx="50%" cy="50%" r="50%" fx="50%" fy="50%">
+                <stop offset="0%" style={{stopColor: '#d4c7a9', stopOpacity: 1}} />
+                <stop offset="100%" style={{stopColor: '#c6b89e', stopOpacity: 1}} />
+            </radialGradient>
+        </defs>
+        {/* Outer circle */}
+        <circle cx="50" cy="50" r="48" fill="url(#grad1)" stroke="#856d4b" strokeWidth="1"/>
+
+        {/* 16-point star background */}
+        <polygon points="50,10 52,48 50,50 48,48" fill="#a0522d80" /> {/* N */}
+        <polygon points="90,50 52,52 50,50 52,48" fill="#a0522d80" /> {/* E */}
+        <polygon points="50,90 48,52 50,50 52,52" fill="#a0522d80" /> {/* S */}
+        <polygon points="10,50 48,48 50,50 48,52" fill="#a0522d80" /> {/* W */}
+
+        {/* 8-point star (intercardinal) */}
+        <polygon points="50,20 58,42 50,50 42,42" fill="#c6b89e" stroke="#856d4b" strokeWidth="0.5"/>
+        <polygon points="78,22 58,42 50,50 58,58" fill="#c6b89e" stroke="#856d4b" strokeWidth="0.5"/>
+        <polygon points="80,50 58,58 50,50 58,42" fill="#c6b89e" stroke="#856d4b" strokeWidth="0.5"/>
+        <polygon points="78,78 58,58 50,50 42,58" fill="#c6b89e" stroke="#856d4b" strokeWidth="0.5"/>
+        <polygon points="50,80 42,58 50,50 58,58" fill="#c6b89e" stroke="#856d4b" strokeWidth="0.5"/>
+        <polygon points="22,78 42,58 50,50 42,42" fill="#c6b89e" stroke="#856d4b" strokeWidth="0.5"/>
+        <polygon points="20,50 42,42 50,50 42,58" fill="#c6b89e" stroke="#856d4b" strokeWidth="0.5"/>
+        <polygon points="22,22 42,42 50,50 42,58" fill="#c6b89e" stroke="#856d4b" strokeWidth="0.5"/>
+
+        {/* 4-point star (cardinal) */}
+        <polygon points="50,2 55,48 50,50" fill="#a0522d" />
+        <polygon points="50,2 45,48 50,50" fill="#856d4b" />
+        <polygon points="98,50 52,55 50,50" fill="#a0522d" />
+        <polygon points="98,50 52,45 50,50" fill="#856d4b" />
+        <polygon points="50,98 45,52 50,50" fill="#a0522d" />
+        <polygon points="50,98 55,52 50,50" fill="#856d4b" />
+        <polygon points="2,50 48,45 50,50" fill="#a0522d" />
+        <polygon points="2,50 48,55 50,50" fill="#856d4b" />
+
+        {/* Fleur-de-lis for North */}
+        <path d="M50 2 L 47 15 C 45 10, 40 12, 40 20 C 40 28, 50 30, 50 30 C 50 30, 60 28, 60 20 C 60 12, 55 10, 53 15 Z" fill="#5a3d2b" stroke="#f3e9d2" strokeWidth="0.5" />
+
+        {/* Center circle */}
+        <circle cx="50" cy="50" r="8" fill="#f3e9d2" stroke="#5a3d2b" strokeWidth="1"/>
+        <circle cx="50" cy="50" r="3" fill="#5a3d2b"/>
+
+        {/* Cardinal points text */}
+        <text x="50" y="18" textAnchor="middle" fontSize="10" fill="#f3e9d2" fontFamily="Lora" fontWeight="bold">N</text>
+        <text x="85" y="53" textAnchor="middle" fontSize="8" fill="#5a3d2b" fontFamily="Lora">E</text>
+        <text x="50" y="88" textAnchor="middle" fontSize="8" fill="#5a3d2b" fontFamily="Lora">S</text>
+        <text x="15" y="53" textAnchor="middle" fontSize="8" fill="#5a3d2b" fontFamily="Lora">W</text>
     </svg>
 );
 
@@ -88,9 +147,11 @@ interface LocationViewerProps {
   visitedLocations: Location[];
   currentLocation: LocationData;
   onOpenModal: (title: string, data: any) => void;
+  imageCache: Record<string, string>;
+  onImageGenerated: (prompt: string, base64: string) => void;
 }
 
-export default function LocationViewer({ visitedLocations, currentLocation, onOpenModal }: LocationViewerProps): React.ReactNode {
+export default function LocationViewer({ visitedLocations, currentLocation, onOpenModal, imageCache, onImageGenerated }: LocationViewerProps): React.ReactNode {
     const [hoveredLocation, setHoveredLocation] = useState<Location | null>(null);
     const [tooltipPosition, setTooltipPosition] = useState({ top: 0, left: 0 });
     const [zoom, setZoom] = useState(1);
@@ -100,6 +161,9 @@ export default function LocationViewer({ visitedLocations, currentLocation, onOp
     const panOffsetRef = useRef({ x: 0, y: 0 });
     const viewportRef = useRef<HTMLDivElement>(null);
     const { t } = useLocalization();
+
+    const [showAllLabels, setShowAllLabels] = useState(true);
+    const [goToCoords, setGoToCoords] = useState({ x: '', y: '' });
 
     // Guard clause to prevent rendering if essential data is missing
     if (!currentLocation) {
@@ -178,8 +242,7 @@ export default function LocationViewer({ visitedLocations, currentLocation, onOp
         };
     }, [isPanning, onMouseMove, onMouseUp]);
 
-
-    const { mapDimensions, locations, connections } = useMemo(() => {
+    const { mapDimensions, locations, connections, mapMetrics } = useMemo(() => {
         const allLocations = new Map<string, Location & { isVisited: boolean }>();
         
         visitedLocations.forEach(loc => {
@@ -213,7 +276,7 @@ export default function LocationViewer({ visitedLocations, currentLocation, onOp
         
         const locationsWithCoords = Array.from(allLocations.values());
         if (locationsWithCoords.length === 0) {
-            return { mapDimensions: { width: 100, height: 100 }, locations: [], connections: [] };
+            return { mapDimensions: { width: 100, height: 100 }, locations: [], connections: [], mapMetrics: { minX:0, minY:0, totalWidthUnits:1, totalHeightUnits:1} };
         }
 
         let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
@@ -264,10 +327,41 @@ export default function LocationViewer({ visitedLocations, currentLocation, onOp
         return {
             mapDimensions: { width: totalWidth * 50, height: totalHeight * 50 },
             locations: locationsWithPositions,
-            connections
+            connections,
+            mapMetrics: { minX, minY, totalWidthUnits: totalWidth, totalHeightUnits: totalHeight }
         };
     }, [visitedLocations]);
     
+    const handleGoToCoords = useCallback((e: React.FormEvent) => {
+        e.preventDefault();
+        const x = parseInt(goToCoords.x, 10);
+        const y = parseInt(goToCoords.y, 10);
+
+        if (isNaN(x) || isNaN(y) || !viewportRef.current) return;
+        
+        const { minX, minY, totalWidthUnits, totalHeightUnits } = mapMetrics;
+        const mapPadding = 1;
+
+        const targetXPercent = ((x - minX + mapPadding) / totalWidthUnits) * 100;
+        const targetYPercent = ((y - minY + mapPadding) / totalHeightUnits) * 100;
+
+        const targetXPixel = (targetXPercent / 100) * mapDimensions.width;
+        const targetYPixel = (targetYPercent / 100) * mapDimensions.height;
+
+        const viewportWidth = viewportRef.current.clientWidth;
+        const viewportHeight = viewportRef.current.clientHeight;
+
+        const newZoom = 1.2;
+        setZoom(newZoom);
+
+        setPan({
+            x: (viewportWidth / 2) - (targetXPixel * newZoom),
+            y: (viewportHeight / 2) - (targetYPixel * newZoom),
+        });
+
+    }, [goToCoords, mapMetrics, mapDimensions]);
+
+
     if (locations.length === 0) {
         return (
             <div>
@@ -301,7 +395,35 @@ export default function LocationViewer({ visitedLocations, currentLocation, onOp
                     <button className="map-control-button" onClick={handleReset} title={t("Reset View")}>
                         <ArrowPathIcon className="w-4 h-4" />
                     </button>
+                     <button 
+                        className={`map-control-button ${showAllLabels ? 'map-control-button--active' : ''}`} 
+                        onClick={() => setShowAllLabels(!showAllLabels)}
+                        title={t("Toggle Labels")}
+                    >
+                        <DocumentTextIcon className="w-4 h-4" />
+                    </button>
                 </div>
+                 <form className="map-goto-controls" onSubmit={handleGoToCoords}>
+                    <input 
+                        type="number" 
+                        className="map-goto-input" 
+                        placeholder="X" 
+                        value={goToCoords.x}
+                        onChange={(e) => setGoToCoords(prev => ({...prev, x: e.target.value}))}
+                        onClick={(e) => e.stopPropagation()}
+                    />
+                    <input 
+                        type="number" 
+                        className="map-goto-input" 
+                        placeholder="Y" 
+                        value={goToCoords.y}
+                        onChange={(e) => setGoToCoords(prev => ({...prev, y: e.target.value}))}
+                        onClick={(e) => e.stopPropagation()}
+                    />
+                    <button type="submit" className="map-control-button" title={t("Go")}>
+                        <ArrowRightIcon className="w-4 h-4" />
+                    </button>
+                </form>
                 <CompassRose />
 
                 <div
@@ -341,14 +463,19 @@ export default function LocationViewer({ visitedLocations, currentLocation, onOp
                                     onMouseLeave={handleMouseLeave}
                                 >
                                     <Icon className={`w-6 h-6 map-location-icon ${color}`} />
-                                    <div className="map-location-label">{loc.name}</div>
+                                    <div className={`map-location-label ${!showAllLabels ? 'map-location-label--hidden' : ''}`}>{loc.name}</div>
                                 </div>
                             );
                         })}
                     </div>
                 </div>
             </div>
-            <Tooltip location={hoveredLocation} position={tooltipPosition} />
+            <Tooltip 
+                location={hoveredLocation} 
+                position={tooltipPosition} 
+                imageCache={imageCache} 
+                onImageGenerated={onImageGenerated}
+            />
         </div>
     );
 }

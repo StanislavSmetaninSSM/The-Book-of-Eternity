@@ -1,4 +1,5 @@
 
+
 import React, { useState, useMemo } from 'react';
 import { Item, GameSettings } from '../../types';
 import { DetailRendererProps } from './types';
@@ -16,28 +17,35 @@ import {
     InformationCircleIcon, TagIcon, PuzzlePieceIcon, CurrencyDollarIcon, HashtagIcon, ScaleIcon, CubeIcon,
     ShieldCheckIcon, CogIcon, FireIcon, PaperClipIcon, HandRaisedIcon, BoltIcon, BeakerIcon, ArchiveBoxIcon,
     CheckCircleIcon, MinusCircleIcon, MapPinIcon, SparklesIcon, StarIcon, Cog6ToothIcon, BookOpenIcon, UserPlusIcon, WrenchIcon,
-    Squares2X2Icon, WrenchScrewdriverIcon, TrashIcon, AcademicCapIcon
+    Squares2X2Icon, WrenchScrewdriverIcon, TrashIcon, AcademicCapIcon, PhotoIcon
 } from '@heroicons/react/24/outline';
 
 interface ItemDetailsProps extends Omit<DetailRendererProps, 'data'> {
-  item: Item;
+  item: Item & { ownerType?: 'player' | 'npc', ownerId?: string, isEquippedByOwner?: boolean };
 }
 
-const ItemDetailsRenderer: React.FC<ItemDetailsProps> = ({ item, onOpenImageModal, allowHistoryManipulation, onEditItemData, playerCharacter, disassembleItem, onCloseModal, gameSettings, imageCache, onImageGenerated, onRegenerateId }) => {
+const ItemDetailsRenderer: React.FC<ItemDetailsProps> = ({ item, onOpenImageModal, allowHistoryManipulation, onEditItemData, playerCharacter, disassembleItem, disassembleNpcItem, onCloseModal, gameSettings, imageCache, onImageGenerated, onRegenerateId }) => {
     const { t } = useLocalization();
     const [isDisassembleConfirmOpen, setIsDisassembleConfirmOpen] = useState(false);
     const canHaveBond = ['Rare', 'Epic', 'Legendary', 'Unique'].includes(item.quality);
-    const imagePrompt = item.image_prompt || `A detailed, photorealistic fantasy art image of a single ${item.quality} ${item.name}. ${item.description.split('. ')[0]}`;
+    const imagePrompt = item.custom_image_prompt || item.image_prompt || `A detailed, photorealistic fantasy art image of a single ${item.quality} ${item.name}. ${item.description.split('. ')[0]}`;
     const currencyName = gameSettings?.gameWorldInformation?.currencyName || 'Gold';
 
     const isEquipped = useMemo(() => {
+        if (item.ownerType === 'npc') {
+            return item.isEquippedByOwner || false;
+        }
         if (!playerCharacter || !item.existedId) return false;
         return Object.values(playerCharacter.equippedItems).includes(item.existedId);
     }, [playerCharacter, item]);
     
     const handleDisassembleConfirm = () => {
-        if (!disassembleItem || !onCloseModal) return;
-        disassembleItem(item);
+        if (!onCloseModal) return;
+        if (item.ownerType === 'npc' && item.ownerId && disassembleNpcItem) {
+            disassembleNpcItem(item.ownerId, item);
+        } else if (disassembleItem) {
+            disassembleItem(item);
+        }
         setIsDisassembleConfirmOpen(false);
         onCloseModal();
     };
@@ -50,6 +58,19 @@ const ItemDetailsRenderer: React.FC<ItemDetailsProps> = ({ item, onOpenImageModa
                 <p className="text-white font-bold text-lg">{t('Enlarge')}</p>
             </div>
         </div>
+        
+        {allowHistoryManipulation && onEditItemData && (
+             <Section title={t("Custom Image Prompt")} icon={PhotoIcon}>
+                <EditableField 
+                    label={t("Image Prompt")}
+                    value={item.custom_image_prompt || ''}
+                    isEditable={true}
+                    onSave={(val) => { if (item.existedId) onEditItemData(item.existedId, 'custom_image_prompt', val) }}
+                    as="textarea"
+                />
+                <p className="text-xs text-gray-400 mt-2"><strong>{t("Default prompt from AI:")}</strong> {item.image_prompt}</p>
+             </Section>
+        )}
 
         <div className="text-xl font-bold">
              <EditableField 

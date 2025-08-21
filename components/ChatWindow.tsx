@@ -12,7 +12,7 @@ interface ChatWindowProps {
   history: ChatMessage[];
   error: string | null;
   onDeleteMessage: (index: number) => void;
-  onShowMessageModal: (content: string) => void;
+  onShowMessageModal: (title: string, content: string) => void;
   onResend?: () => void;
   onShowEditModal: (index: number, message: ChatMessage) => void;
   allowHistoryManipulation: boolean;
@@ -91,7 +91,7 @@ export default function ChatWindow({ history, error, onDeleteMessage, onShowMess
                 </div>
               )}
               <div
-                onClick={() => onShowMessageModal(msg.content)}
+                onClick={() => onShowMessageModal(t("Message Details"), msg.content)}
                 className={`max-w-xl lg:max-w-3xl px-5 py-3 rounded-xl shadow-md cursor-pointer transition-all pointer-events-auto ${
                   msg.sender === 'player'
                     ? 'bg-cyan-600 text-white rounded-br-none hover:bg-cyan-500'

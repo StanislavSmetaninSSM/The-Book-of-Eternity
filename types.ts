@@ -236,6 +236,7 @@ export interface Item {
   name: string;
   description: string;
   image_prompt: string;
+  custom_image_prompt?: string;
   quality: string;
   type?: string;
   group?: string;
@@ -277,6 +278,7 @@ export interface Location {
   description: string;
   lastEventsDescription: string;
   image_prompt: string;
+  custom_image_prompt?: string;
   locationId?: string;
   coordinates?: { x: number, y: number };
   adjacencyMap?: AdjacencyMapEntry[];
@@ -374,6 +376,10 @@ export interface NPC {
   class?: string;
   appearanceDescription?: string;
   history?: string;
+  maxWeight?: number;
+  totalWeight?: number;
+  isOverloaded?: boolean;
+  criticalExcessWeight?: number;
   level?: number;
   experience?: number;
   experienceForNextLevel?: number;
@@ -384,16 +390,25 @@ export interface NPC {
   characteristics?: Characteristics;
   passiveSkills?: PassiveSkill[];
   activeSkills?: ActiveSkill[];
+  activeEffects?: Effect[];
   inventory?: Item[];
+  equippedItems?: Record<string, string | null>;
+  currentHealth?: number;
+  maxHealth?: number;
+  currentEnergy?: number;
+  maxEnergy?: number;
   fateCards?: FateCard[];
   currentHealthPercentage?: string;
   maxHealthPercentage?: string;
   factionAffiliations?: FactionAffiliation[];
-  activeEffects?: Effect[];
   wounds?: Wound[];
   journalEntries?: string[];
   skillMasteryData?: SkillMastery[];
   unlockedMemories?: UnlockedMemory[];
+  itemSortOrder?: string[];
+  itemSortCriteria?: 'manual' | 'name' | 'quality' | 'weight' | 'price' | 'type';
+  itemSortDirection?: 'asc' | 'desc';
+  customStates?: CustomState[];
 }
 
 
@@ -413,6 +428,8 @@ export interface FactionRelation {
 export interface Faction {
   factionId: string | null;
   name: string;
+  image_prompt?: string;
+  custom_image_prompt?: string;
   description: string;
   reputation: number;
   reputationDescription: string;
@@ -536,6 +553,12 @@ export interface CustomState {
     }[];
 }
 
+export interface NPCCustomStateChange {
+  NPCId: string | null;
+  NPCName: string;
+  stateChanges: CustomState[];
+}
+
 // The full JSON response structure from the Gemini API
 export interface GameResponse {
   response: string;
@@ -606,7 +629,7 @@ export interface GameResponse {
   playerWoundChanges: Wound[] | null;
   NPCWoundChanges: any[] | null;
   NPCInventoryResourcesChanges?: any[] | null;
-
+  NPCCustomStateChanges?: NPCCustomStateChange[] | null;
   customStateChanges: CustomState[] | null;
   playerBehaviorAssessment: {
     historyManipulationCoefficient: number;

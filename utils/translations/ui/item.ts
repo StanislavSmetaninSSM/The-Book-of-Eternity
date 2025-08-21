@@ -1,4 +1,6 @@
 
+
+
 export const item = {
   en: {
     // Item Details
@@ -80,6 +82,16 @@ export const item = {
     "Amount to split off (1 - {max})": "Amount to split off (1 - {max})",
     "Split": "Split",
     "Manual": "Manual",
+    
+    // NPC Inventory Actions
+    "Give Item": "Give Item",
+    "Take": "Take",
+    "Equip": "Equip",
+    "Unequip": "Unequip",
+    "Carried Items": "Carried Items",
+    "No carried items.": "No carried items.",
+    "Take Item": "Take Item",
+    "Drop": "Drop",
   },
   ru: {
     // Item Details
@@ -161,5 +173,15 @@ export const item = {
     "Amount to split off (1 - {max})": "Количество для отделения (1 - {max})",
     "Split": "Разделить",
     "Manual": "Вручную",
+
+    // NPC Inventory Actions
+    "Give Item": "Передать",
+    "Take": "Взять",
+    "Equip": "Экипировать",
+    "Unequip": "Снять",
+    "Carried Items": "Предметы в инвентаре",
+    "No carried items.": "Нет предметов.",
+    "Take Item": "Взять предмет",
+    "Drop": "Выбросить",
   }
 };

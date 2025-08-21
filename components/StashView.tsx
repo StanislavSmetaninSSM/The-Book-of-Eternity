@@ -61,7 +61,7 @@ const StashView: React.FC<StashViewProps> = ({ stash, playerCharacter, onTake, o
                     const itemQuantityToTake = parseInt(quantities[item.existedId!] ?? '1', 10) || 1;
                     const itemTakeWeight = item.weight * itemQuantityToTake;
                     const canTake = playerCharacter.totalWeight + itemTakeWeight <= playerCharacter.maxWeight + playerCharacter.criticalExcessWeight;
-                    const imagePrompt = item.image_prompt || `game asset, inventory icon, ${item.quality} ${item.name}, fantasy art, plain background`;
+                    const imagePrompt = item.custom_image_prompt || item.image_prompt || `game asset, inventory icon, ${item.quality} ${item.name}, fantasy art, plain background`;
 
                     return (
                         <div key={item.existedId} className={`bg-gray-900/40 p-3 rounded-lg border-l-4 ${qualityColorMap[item.quality] || 'border-gray-600'} flex items-center gap-4 flex-wrap`}>

@@ -1,7 +1,8 @@
+
 import React from 'react';
 
-const DetailRow = ({ label, value, icon: Icon }: { label: React.ReactNode, value: React.ReactNode, icon?: React.ElementType }) => (
-    <div className="flex justify-between items-start py-2 border-b border-gray-700/50">
+const DetailRow = ({ label, value, icon: Icon, title }: { label: React.ReactNode, value: React.ReactNode, icon?: React.ElementType, title?: string }) => (
+    <div className="flex justify-between items-start py-2 border-b border-gray-700/50" title={title}>
         <span className="font-semibold text-gray-400 flex items-center gap-2">
             {Icon && <Icon className="w-4 h-4" />}
             {label}

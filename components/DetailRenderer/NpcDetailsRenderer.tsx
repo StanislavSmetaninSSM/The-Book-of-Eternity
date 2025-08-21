@@ -1,62 +1,96 @@
 
-import React, { useState, useMemo } from 'react';
-import { NPC, FateCard, Faction, Wound } from '../../types';
+
+import React, { useState, useMemo, useRef, useEffect } from 'react';
+import { NPC, FateCard, Faction, Wound, Item, PlayerCharacter, Location, ActiveSkill, PassiveSkill, CustomState } from '../../types';
 import { DetailRendererProps } from './types';
 import Section from './Shared/Section';
-import DetailRow from './Shared/DetailRow';
 import EditableField from './Shared/EditableField';
 import IdDisplay from './Shared/IdDisplay';
-import FateCardDetailsRenderer from './Shared/FateCardDetailsRenderer';
 import ImageRenderer from '../ImageRenderer';
 import { useLocalization } from '../../context/LocalizationContext';
-import { qualityColorMap } from './utils';
 import JournalModal from './Shared/JournalModal';
 import MemoryCard from './Shared/MemoryCard';
+import FateCardDetailsRenderer from './Shared/FateCardDetailsRenderer';
 import {
     UserIcon, IdentificationIcon, TagIcon, CalendarIcon, GlobeAltIcon, UsersIcon, HeartIcon,
     StarIcon, BookOpenIcon, SparklesIcon, ShieldCheckIcon, ArchiveBoxIcon, DocumentTextIcon,
-    CogIcon, TrashIcon, ArchiveBoxXMarkIcon, BoltIcon, SunIcon, CloudIcon, ShieldExclamationIcon, KeyIcon,
-    ClockIcon, ArrowPathIcon, AcademicCapIcon, PhotoIcon, ChevronDownIcon, ChevronUpIcon
+    CogIcon, TrashIcon, ArchiveBoxXMarkIcon, BoltIcon, PhotoIcon,
+    AcademicCapIcon, FingerPrintIcon, ArrowUpOnSquareIcon, ArrowsRightLeftIcon, PlusIcon, MapPinIcon,
+    ExclamationTriangleIcon, ChevronDownIcon, ChevronUpIcon, ShieldExclamationIcon, ClockIcon, ScaleIcon,
 } from '@heroicons/react/24/outline';
+import { UserCircleIcon } from '@heroicons/react/24/solid';
 import ConfirmationModal from '../ConfirmationModal';
+import Modal from '../Modal';
+import DetailRow from './Shared/DetailRow';
+import InventoryManagerUI from '../InventoryManagerUI';
 
 interface NpcDetailsProps extends Omit<DetailRendererProps, 'data'> {
   npc: NPC;
   onOpenForgetConfirm: () => void;
   onOpenClearJournalConfirm: () => void;
+  deleteNpcCustomState?: (npcId: string, stateId: string) => void;
 }
 
-const StatBar: React.FC<{
-    value: number;
-    max: number;
-    color: string;
-    label: string;
+const qualityColorMap: Record<string, string> = {
+    'Trash': 'text-gray-500 border-gray-700',
+    'Common': 'text-gray-300 border-gray-500',
+    'Uncommon': 'text-green-400 border-green-700/80',
+    'Good': 'text-blue-400 border-blue-700/80',
+    'Rare': 'text-indigo-400 border-indigo-700/80',
+    'Epic': 'text-purple-400 border-purple-700/80',
+    'Legendary': 'text-orange-400 border-orange-700/80',
+    'Unique': 'text-yellow-400 border-yellow-600/80',
+};
+
+const qualityOrder: Record<string, number> = {
+    'Trash': 0, 'Common': 1, 'Uncommon': 2, 'Good': 3,
+    'Rare': 4, 'Epic': 5, 'Legendary': 6, 'Unique': 7,
+};
+
+const CHARACTERISTICS_LIST = ['strength', 'dexterity', 'constitution', 'intelligence', 'wisdom', 'faith', 'attractiveness', 'trade', 'persuasion', 'perception', 'luck', 'speed'];
+
+const StatBar: React.FC<{ 
+    value: number; 
+    max: number; 
+    color: string; 
+    label: string; 
+    unit?: string;
     icon: React.FC<React.SVGProps<SVGSVGElement>>;
-}> = ({ value, max, color, label, icon: Icon }) => (
-    <div className="w-full text-left">
-        <div className="flex justify-between items-center mb-1">
-            <div className="flex items-center gap-2">
-                <Icon className={`w-4 h-4 ${color.replace('bg-', 'text-')}`} />
-                <span className="text-sm font-medium text-gray-300">{label}</span>
-            </div>
-          <span className="text-sm font-mono text-gray-400">{value} / {max}</span>
+    onClick?: () => void;
+}> = ({ value, max, color, label, unit = '', icon: Icon, onClick }) => (
+  <button onClick={onClick} className="w-full text-left group transition-transform transform hover:scale-[1.02]" disabled={!onClick}>
+    <div className="flex justify-between items-center mb-1">
+        <div className="flex items-center gap-2">
+            <Icon className={`w-4 h-4 ${color.replace('bg-', 'text-')}`} />
+            <span className="text-sm font-medium text-gray-300 group-hover:text-cyan-300">{label}</span>
         </div>
-        <div className="w-full bg-gray-700/50 rounded-full h-2">
-          <div className={`${color} h-2 rounded-full transition-all duration-500`} style={{ width: max > 0 ? `${(value / max) * 100}%` : '0%' }}></div>
-        </div>
+      <span className="text-sm font-mono text-gray-400">{value}{unit} / {max}{unit}</span>
     </div>
+    <div className="w-full bg-gray-700/50 rounded-full h-2">
+      <div className={`${color} h-2 rounded-full transition-all duration-500`} style={{ width: max > 0 ? `${(value / max) * 100}%` : '0%' }}></div>
+    </div>
+  </button>
 );
 
-
-const NpcDetailsRenderer: React.FC<NpcDetailsProps> = ({ npc, onOpenImageModal, onOpenDetailModal, onOpenForgetConfirm, onOpenClearJournalConfirm, allowHistoryManipulation, onEditNpcData, encounteredFactions, onDeleteOldestNpcJournalEntries, imageCache, onImageGenerated, forgetHealedWound, clearAllHealedWounds, onRegenerateId }) => {
+const NpcDetailsRenderer: React.FC<NpcDetailsProps> = (props) => {
+    const { 
+        npc, onOpenImageModal, onOpenDetailModal, onOpenForgetConfirm, onOpenClearJournalConfirm, 
+        allowHistoryManipulation, onEditNpcData, encounteredFactions, onDeleteOldestNpcJournalEntries, 
+        imageCache, onImageGenerated, forgetHealedWound, clearAllHealedWounds, onRegenerateId,
+        handleTransferItem, handleEquipItemForNpc, handleUnequipItemForNpc, handleSplitItemForNpc, handleMergeItemsForNpc,
+        updateNpcItemSortOrder, updateNpcItemSortSettings, playerCharacter, visitedLocations,
+        onShowMessageModal, deleteNpcCustomState
+    } = props;
     const { t } = useLocalization();
     const [isJournalOpen, setIsJournalOpen] = useState(false);
-    const factionMapById = new Map((encounteredFactions || []).filter(f => f.factionId).map(f => [f.factionId, f]));
-    const factionMapByName = new Map((encounteredFactions || []).map(f => [f.name.toLowerCase(), f]));
-
-    const [healedWoundsCollapsed, setHealedWoundsCollapsed] = useState(true);
-    const [confirmClear, setConfirmClear] = useState(false);
-    const [confirmForget, setConfirmForget] = useState<Wound | null>(null);
+    const [isInventoryManagerOpen, setIsInventoryManagerOpen] = useState(false);
+    const [confirmDeleteState, setConfirmDeleteState] = useState<CustomState | null>(null);
+    
+    useEffect(() => {
+        if ((npc as any).openJournal) {
+            setIsJournalOpen(true);
+        }
+    }, [npc]);
 
     const handleSaveJournalEntry = (index: number, newContent: string) => {
         if (!npc.NPCId || !npc.journalEntries) return;
@@ -65,6 +99,21 @@ const NpcDetailsRenderer: React.FC<NpcDetailsProps> = ({ npc, onOpenImageModal, 
         onEditNpcData(npc.NPCId, 'journalEntries', newJournalEntries);
     };
     
+    const handleDeleteCustomState = () => {
+        if (confirmDeleteState && npc.NPCId && deleteNpcCustomState) {
+            const idToDelete = confirmDeleteState.stateId || confirmDeleteState.stateName;
+            deleteNpcCustomState(npc.NPCId, idToDelete);
+        }
+        setConfirmDeleteState(null);
+    };
+
+    const factionMapById = new Map((encounteredFactions || []).filter(f => f.factionId).map(f => [f.factionId, f]));
+    const factionMapByName = new Map((encounteredFactions || []).map(f => [f.name.toLowerCase(), f]));
+
+    const [healedWoundsCollapsed, setHealedWoundsCollapsed] = useState(true);
+    const [confirmClear, setConfirmClear] = useState(false);
+    const [confirmForget, setConfirmForget] = useState<Wound | null>(null);
+
     const handleClearAllHealedWounds = () => {
         if (npc.NPCId) {
             clearAllHealedWounds('npc', npc.NPCId);
@@ -100,10 +149,102 @@ const NpcDetailsRenderer: React.FC<NpcDetailsProps> = ({ npc, onOpenImageModal, 
         return t('relationship_level_devotion');
     };
 
-    const activeWounds = useMemo(() => (npc.wounds ?? []).filter(w => w.healingState.currentState !== 'Healed'), [npc.wounds]);
-    const healedWounds = useMemo(() => (npc.wounds ?? []).filter(w => w.healingState.currentState === 'Healed'), [npc.wounds]);
+    const activeWounds = useMemo(() => (npc.wounds ?? []).filter(w => !w.healingState || w.healingState.currentState !== 'Healed'), [npc.wounds]);
+    const healedWounds = useMemo(() => (npc.wounds ?? []).filter(w => w.healingState && w.healingState.currentState === 'Healed'), [npc.wounds]);
+    
+    const isCompanion = npc.progressionType === 'Companion';
+
+    const isNpcItemEquipped = (itemId: string | null): boolean => {
+        if (!isCompanion || !itemId) return false;
+        return Object.values(npc.equippedItems || {}).includes(itemId);
+    };
+
+    const currentLocation = useMemo(() => {
+        if (!npc.currentLocationId || !visitedLocations) return null;
+        return visitedLocations.find(loc => loc.locationId === npc.currentLocationId);
+    }, [npc.currentLocationId, visitedLocations]);
+    
+    const sortedInventory = useMemo(() => {
+        const inventory = npc.inventory || [];
+        const { itemSortCriteria = 'manual', itemSortDirection = 'asc', itemSortOrder = [] } = npc;
+
+        let sortedList: Item[] = [];
+
+        // Step 1: Apply sorting to the entire list of items
+        if (itemSortCriteria === 'manual') {
+            if (itemSortOrder && itemSortOrder.length > 0) {
+                const itemMap = new Map(inventory.map(item => [item.existedId, item]));
+                const sorted = itemSortOrder
+                    .map(id => itemMap.get(id!))
+                    .filter((item): item is Item => !!item);
+                const newItems = inventory.filter(item => item.existedId && !itemSortOrder.includes(item.existedId));
+                sortedList = [...sorted, ...newItems];
+            } else {
+                sortedList = [...inventory]; // If manual but no order, keep as is
+            }
+        } else { // Automatic sorting
+            const sortFn = (a: Item, b: Item) => {
+                 if (!a || typeof a !== 'object') return 1;
+                if (!b || typeof b !== 'object') return -1;
+                
+                let valA: string | number;
+                let valB: string | number;
+
+                switch (itemSortCriteria) {
+                    case 'quality':
+                        valA = qualityOrder[a.quality] ?? -1;
+                        valB = qualityOrder[b.quality] ?? -1;
+                        break;
+                    case 'weight':
+                        valA = (a.weight || 0) * (a.count || 1);
+                        valB = (b.weight || 0) * (b.count || 1);
+                        break;
+                    case 'price':
+                        valA = (a.price || 0) * (a.count || 1);
+                        valB = (b.price || 0) * (b.count || 1);
+                        break;
+                    case 'type':
+                        valA = (a.type || '').toLowerCase();
+                        valB = (b.type || '').toLowerCase();
+                        break;
+                    default: // name
+                        valA = (a.name || '').toLowerCase();
+                        valB = (b.name || '').toLowerCase();
+                        break;
+                }
+
+                let comparison = 0;
+                if (typeof valA === 'string' && typeof valB === 'string') {
+                    comparison = valA.localeCompare(valB);
+                } else {
+                    if (valA < valB) comparison = -1;
+                    if (valA > valB) comparison = 1;
+                }
+                
+                return itemSortDirection === 'asc' ? comparison : -comparison;
+            };
+            sortedList = [...inventory].sort(sortFn);
+        }
+
+        // Step 2: Bubble equipped items to the top, preserving their relative sorted order
+        const equippedItemIds = new Set(Object.values(npc.equippedItems || {}).filter(id => id !== null));
+        const equippedItems: Item[] = [];
+        const unequippedItems: Item[] = [];
+
+        sortedList.forEach(item => {
+            if (item && item.existedId && equippedItemIds.has(item.existedId)) {
+                equippedItems.push(item);
+            } else if (item) {
+                unequippedItems.push(item);
+            }
+        });
+        
+        return [...equippedItems, ...unequippedItems];
+
+    }, [npc.inventory, npc.equippedItems, npc.itemSortCriteria, npc.itemSortDirection, npc.itemSortOrder]);
 
     return (
+    <>
         <div className="space-y-4">
             {imagePrompt && (
                 <div className="w-full h-48 rounded-lg overflow-hidden mb-4 bg-gray-900 group relative cursor-pointer" onClick={() => onOpenImageModal?.(imagePrompt || '')}>
@@ -112,7 +253,7 @@ const NpcDetailsRenderer: React.FC<NpcDetailsProps> = ({ npc, onOpenImageModal, 
                         alt={npc.name} 
                         width={1024} 
                         height={1024}
-                        showRegenerateButton={true} 
+                        showRegenerateButton={allowHistoryManipulation} 
                         imageCache={imageCache}
                         onImageGenerated={onImageGenerated}
                     />
@@ -121,18 +262,99 @@ const NpcDetailsRenderer: React.FC<NpcDetailsProps> = ({ npc, onOpenImageModal, 
                     </div>
                 </div>
             )}
+             {allowHistoryManipulation && (
+                 <Section title={t("Custom Image Prompt")} icon={PhotoIcon}>
+                    <EditableField 
+                        label={t("Image Prompt")}
+                        value={npc.custom_image_prompt || ''}
+                        isEditable={true}
+                        onSave={(val) => { if (npc.NPCId) onEditNpcData(npc.NPCId, 'custom_image_prompt', val) }}
+                        as="textarea"
+                    />
+                    <p className="text-xs text-gray-400 mt-2"><strong>{t("Default prompt from AI:")}</strong> {npc.image_prompt}</p>
+                 </Section>
+             )}
             
-            <Section title={t("Image Prompt")} icon={PhotoIcon}>
-                <EditableField 
-                    label={t('Custom Image Prompt')}
-                    value={npc.custom_image_prompt || ''}
-                    isEditable={allowHistoryManipulation && !!npc.NPCId}
-                    onSave={(val) => { if (npc.NPCId) onEditNpcData(npc.NPCId, 'custom_image_prompt', val) }}
-                    as="textarea"
-                    className="text-sm italic text-gray-400"
-                />
-                {npc.image_prompt && (
-                    <p className="text-xs text-gray-500 mt-2">{t("Default prompt from AI:")} <span className="italic">{npc.image_prompt}</span></p>
+            <Section title={t("Core Information")} icon={IdentificationIcon}>
+                <DetailRow label={t("Name")} value={
+                    <EditableField 
+                        label={t('Name')}
+                        value={npc.name}
+                        isEditable={allowHistoryManipulation && !!npc.NPCId}
+                        onSave={(val) => { if (npc.NPCId) onEditNpcData(npc.NPCId, 'name', val) }}
+                        as="input"
+                    />
+                } icon={UserIcon} />
+                 {currentLocation && (
+                    <DetailRow 
+                        label={t("Current Location")} 
+                        value={
+                            <button 
+                                onClick={() => onOpenDetailModal(t("Location: {name}", { name: currentLocation.name }), { ...currentLocation, type: 'location' })}
+                                className="text-cyan-300 hover:underline text-right"
+                            >
+                                {currentLocation.name}
+                            </button>
+                        } 
+                        icon={MapPinIcon} 
+                    />
+                )}
+                <DetailRow label={t("Race & Class")} value={`${t(npc.race as any)}, ${t(npc.class as any)}`} icon={TagIcon} />
+                {npc.age !== undefined && <DetailRow label={t("Age")} value={npc.age || t('Unknown')} icon={CalendarIcon} />}
+                {npc.rarity && <DetailRow label={t("Rarity")} value={t(npc.rarity as any)} icon={StarIcon} />}
+                {npc.worldview && <DetailRow label={t("Worldview")} value={t(npc.worldview as any)} icon={GlobeAltIcon} />}
+                {npc.attitude && <DetailRow label={t("Attitude")} value={t(npc.attitude as any)} icon={HeartIcon} />}
+                {npc.relationshipLevel !== undefined && (
+                     <DetailRow 
+                        label={t("Relationship")} 
+                        value={`${npc.relationshipLevel} / 200`} 
+                        icon={UsersIcon} 
+                        title={getRelationshipTooltip(npc.relationshipLevel ?? 50)} 
+                     />
+                )}
+                {npc.currentHealth !== undefined && npc.maxHealth !== undefined && npc.maxHealth > 0 && (
+                     <div className="pt-2">
+                        <StatBar 
+                            value={npc.currentHealth} 
+                            max={npc.maxHealth} 
+                            color="bg-red-500" 
+                            label={t('Health')} 
+                            icon={HeartIcon}
+                            unit="%"
+                        />
+                    </div>
+                )}
+                {(npc.totalWeight !== undefined && npc.maxWeight !== undefined && npc.maxWeight > 0) && (
+                     <div className="pt-2">
+                        <StatBar 
+                            value={Math.round(npc.totalWeight * 100) / 100} 
+                            max={npc.maxWeight} 
+                            color={npc.isOverloaded ? 'bg-red-600' : 'bg-orange-500'} 
+                            label={t('Weight')} 
+                            unit={t('kg')}
+                            icon={ScaleIcon}
+                        />
+                    </div>
+                )}
+            </Section>
+
+            <Section title={t("Progression")} icon={StarIcon}>
+                 {npc.level !== undefined && (
+                    <DetailRow label={t("Level")} value={npc.level} icon={AcademicCapIcon} />
+                )}
+                {npc.progressionType && (
+                    <DetailRow label={t("Progression Type")} value={t(npc.progressionType as any)} icon={UserCircleIcon} />
+                )}
+                {npc.progressionType === 'Companion' && npc.experience !== undefined && npc.experienceForNextLevel !== undefined && (
+                    <div className="pt-2">
+                        <StatBar 
+                            value={npc.experience} 
+                            max={npc.experienceForNextLevel} 
+                            color="bg-yellow-500" 
+                            label={t('Experience')} 
+                            icon={StarIcon} 
+                        />
+                    </div>
                 )}
             </Section>
 
@@ -146,185 +368,106 @@ const NpcDetailsRenderer: React.FC<NpcDetailsProps> = ({ npc, onOpenImageModal, 
                 />
             </Section>
             
-            <Section title={t("Core Information")} icon={IdentificationIcon}>
-                <DetailRow label={t("Name")} value={
-                    <EditableField 
-                        label={t('Name')}
-                        value={npc.name}
-                        isEditable={allowHistoryManipulation && !!npc.NPCId}
-                        onSave={(val) => { if (npc.NPCId) onEditNpcData(npc.NPCId, 'name', val) }}
-                        as="input"
-                    />
-                } icon={UserIcon} />
-                {npc.race && npc.class && <DetailRow label={t("Race & Class")} value={`${t(npc.race as any)} ${t(npc.class as any)}`} icon={TagIcon} />}
-                {npc.age && <DetailRow label={t("Age")} value={npc.age} icon={CalendarIcon} />}
-                {npc.rarity && <DetailRow label={t("Rarity")} value={t(npc.rarity as any)} icon={TagIcon} />}
-                {npc.worldview && <DetailRow label={t("Worldview")} value={t(npc.worldview as any)} icon={GlobeAltIcon} />}
-                {npc.attitude && <DetailRow label={t("Attitude")} value={t(npc.attitude as any)} icon={UsersIcon} />}
-                {npc.relationshipLevel !== undefined && (
-                    <div title={getRelationshipTooltip(npc.relationshipLevel)}>
-                        <DetailRow label={t("Relationship")} value={`${npc.relationshipLevel} / 200`} icon={HeartIcon} />
-                    </div>
-                )}
-                {npc.currentHealthPercentage && <DetailRow label={t("Health")} value={
-                    <div className="flex items-center gap-2 justify-end">
-                        <span>{npc.currentHealthPercentage}</span>
-                        <div className="w-24 bg-gray-700 rounded-full h-2.5">
-                            <div
-                                className="bg-red-500 h-2.5 rounded-full"
-                                style={{ width: npc.currentHealthPercentage }}
-                            ></div>
-                        </div>
-                    </div>
-                } icon={HeartIcon} />}
+            <Section title={t("History")} icon={BookOpenIcon}>
+                <EditableField 
+                    label={t('History')}
+                    value={npc.history || ''}
+                    isEditable={allowHistoryManipulation && !!npc.NPCId}
+                    onSave={(val) => { if (npc.NPCId) onEditNpcData(npc.NPCId, 'history', val) }}
+                    className="italic text-gray-400"
+                />
             </Section>
-
-            {(npc.level !== undefined || npc.progressionType) && (
-                <Section title={t("Progression")} icon={AcademicCapIcon}>
-                    {npc.level !== undefined && <DetailRow label={t("Level")} value={npc.level} icon={StarIcon} />}
-                    {npc.progressionType && <DetailRow label={t("Progression Type")} value={t(npc.progressionType as any)} icon={ArrowPathIcon} />}
-                    {(npc.experience !== undefined && npc.experienceForNextLevel !== undefined && npc.experienceForNextLevel > 0) && (
-                        <div className="pt-2">
-                            <StatBar
-                                value={npc.experience}
-                                max={npc.experienceForNextLevel}
-                                color="bg-yellow-500"
-                                label={t('Experience')}
-                                icon={StarIcon}
-                            />
-                        </div>
-                    )}
-                </Section>
-            )}
-
-            {npc.history && (
-                <Section title={t("History")} icon={BookOpenIcon}>
-                    <EditableField 
-                        label={t('History')}
-                        value={npc.history}
-                        isEditable={allowHistoryManipulation && !!npc.NPCId}
-                        onSave={(val) => { if (npc.NPCId) onEditNpcData(npc.NPCId, 'history', val) }}
-                    />
-                </Section>
-            )}
-
-            {npc.factionAffiliations && npc.factionAffiliations.length > 0 && (
-                <Section title={t("Faction Affiliations")} icon={UsersIcon}>
-                    {npc.factionAffiliations.map((aff, index) => {
-                        let faction: Faction | undefined = undefined;
-                        if (aff.factionId) {
-                            faction = factionMapById.get(aff.factionId);
-                        }
-                        if (!faction && aff.factionName) {
-                            faction = factionMapByName.get(aff.factionName.toLowerCase());
-                        }
-                        if (!faction && aff.factionId) {
-                            faction = factionMapByName.get(aff.factionId.toLowerCase());
-                        }
-
-                        const factionDisplayName = faction ? faction.name : (aff.factionName || t('Unknown Faction'));
-
-                        return (
-                            <div key={index} className="bg-gray-700/50 p-3 rounded-md">
-                                <button
-                                    onClick={() => {
-                                        if (faction) {
-                                            onOpenDetailModal(
-                                                t("Faction: {name}", { name: faction.name }), 
-                                                { 
-                                                    ...faction, 
-                                                    type: 'faction', 
-                                                    perspectiveFor: { name: npc.name, rank: aff.rank } 
-                                                }
-                                            )
-                                        }
-                                    }}
-                                    disabled={!faction}
-                                    className={`font-bold text-cyan-400 ${faction ? 'hover:underline' : 'cursor-default'}`}
-                                >
-                                    {factionDisplayName}
-                                </button>
-                                <p className="text-sm">{t('Rank')}: {t(aff.rank as any)}</p>
-                                <p className="text-xs text-gray-400">{t('Status')}: {t(aff.membershipStatus as any)}</p>
-                            </div>
-                        )
-                    })}
-                </Section>
+            
+            {journalPreviewContent && (
+                <div className="mt-6">
+                    <h4 className="text-lg font-bold text-cyan-300/80 uppercase tracking-wider mb-3 pb-2 border-b-2 border-cyan-500/20 flex items-center gap-2">
+                        <DocumentTextIcon className="w-5 h-5" />
+                        {t("Journal Preview")}
+                    </h4>
+                    <div className="bg-slate-800/50 p-4 rounded-lg shadow-inner space-y-4">
+                        <p className="text-gray-300 text-sm leading-relaxed whitespace-pre-wrap line-clamp-4">{journalPreviewContent}</p>
+                        <button 
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                onOpenDetailModal(t("Full Journal: {name}", { name: npc.name }), { ...npc, openJournal: true });
+                            }} 
+                            className="w-full text-center py-2 px-4 bg-slate-700/60 hover:bg-slate-700 rounded-md text-cyan-300 font-semibold transition-colors"
+                        >
+                            {t('Read Full Journal')}
+                        </button>
+                    </div>
+                </div>
             )}
 
             {npc.unlockedMemories && npc.unlockedMemories.length > 0 && (
-                <Section title={t("Unlocked Memories")} icon={KeyIcon}>
+                <Section title={t("Unlocked Memories")} icon={BookOpenIcon}>
                     <div className="space-y-3">
-                        {npc.unlockedMemories.map((memory) => (
-                            <MemoryCard key={memory.memoryId} memory={memory} />
+                        {npc.unlockedMemories.map(memory => onShowMessageModal && (
+                             <MemoryCard 
+                                key={memory.memoryId} 
+                                memory={memory} 
+                                onOpenMemoryModal={onShowMessageModal} 
+                            />
                         ))}
                     </div>
                 </Section>
             )}
 
             {npc.characteristics && (
-                <Section title={t("Characteristics")} icon={IdentificationIcon}>
+                 <Section title={t("Characteristics")} icon={AcademicCapIcon}>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                        {Object.keys(npc.characteristics).filter(k => k.startsWith('standard')).map(key => {
-                            const charNameRaw = key.replace('standard', '');
-                            const charName = charNameRaw.charAt(0).toLowerCase() + charNameRaw.slice(1);
+                        {CHARACTERISTICS_LIST.map(charName => {
+                            const charNameRaw = charName.charAt(0).toUpperCase() + charName.slice(1);
                             const standardKey = `standard${charNameRaw}` as keyof typeof npc.characteristics;
                             const modifiedKey = `modified${charNameRaw}` as keyof typeof npc.characteristics;
                             const baseValue = npc.characteristics![standardKey];
                             const modifiedValue = npc.characteristics![modifiedKey];
-                            const difference = modifiedValue - baseValue;
 
                             return (
-                                 <div key={key} className="bg-gray-700/40 p-3 rounded-lg flex items-center justify-between shadow-inner">
-                                    <span className="text-gray-300 capitalize text-sm font-semibold">{t(charName as any)}</span>
-                                    <div className="flex items-baseline gap-2">
+                                <div key={charName} className="bg-gray-700/40 p-3 rounded-lg flex items-center justify-between shadow-inner">
+                                    <span className="text-gray-300 capitalize text-sm font-semibold">{t(charName)}</span>
+                                    <div className="flex flex-col items-end">
                                         <span className="font-bold text-2xl text-cyan-400 font-mono">{modifiedValue}</span>
-                                        {difference !== 0 && (
-                                            <span className={`text-xs font-mono ${difference > 0 ? 'text-green-400' : 'text-red-400'}`}>
-                                                ({baseValue}{difference > 0 ? '+' : ''}{difference})
-                                            </span>
-                                        )}
+                                        <span className="text-xs font-mono text-gray-400">({t('Base')}: {baseValue})</span>
                                     </div>
                                 </div>
                             )
                         })}
                     </div>
-                </Section>
-            )}
-            
-            {(npc.activeEffects && npc.activeEffects.length > 0) && (
-                <Section title={t("Active Effects")} icon={SparklesIcon}>
-                    {(npc.activeEffects ?? []).map((effect, index) => (
-                        <button key={index} onClick={() => onOpenDetailModal(t("Effect: {name}", { name: effect.sourceSkill || t('Effect') }), effect)} className={`w-full text-left p-3 rounded-md text-sm flex items-start gap-3 hover:scale-105 transition-transform ${effect.effectType.includes('Buff') ? 'bg-green-900/40 text-green-300' : 'bg-red-900/40 text-red-300'}`}>
-                            {effect.effectType.includes('Buff') ? <SunIcon className="w-5 h-5 mt-0.5 text-green-400 flex-shrink-0" /> : <CloudIcon className="w-5 h-5 mt-0.5 text-red-400 flex-shrink-0" />}
-                            <div className="flex-1">
-                                <div className="flex justify-between">
-                                    <span className="font-semibold">{effect.sourceSkill || t('Effect')}</span>
-                                    {effect.duration < 999 && <span className="text-xs">{t('({duration} turns left)', { duration: effect.duration })}</span>}
-                                </div>
-                                <p>{effect.description}</p>
-                            </div>
-                        </button>
-                    ))}
-                </Section>
+                 </Section>
             )}
 
-            <Section title={t("Wounds")} icon={ShieldExclamationIcon}>
+            <Section title={t('Wounds')} icon={ShieldExclamationIcon}>
                 {(activeWounds.length > 0) ? (activeWounds.map((wound, index) => (
-                    <button key={wound.woundId || index} onClick={() => onOpenDetailModal(t("Wound: {name}", { name: wound.woundName }), wound)} className="w-full text-left bg-gray-900/60 p-3 rounded-md border border-red-800/50 flex items-start gap-3 hover:border-red-600 transition-colors">
+                    <button 
+                        key={wound.woundId || index} 
+                        onClick={() => {
+                            const cleanWound = {
+                                type: 'wound',
+                                woundId: wound.woundId,
+                                woundName: wound.woundName,
+                                severity: wound.severity,
+                                descriptionOfEffects: wound.descriptionOfEffects,
+                                generatedEffects: wound.generatedEffects,
+                                healingState: wound.healingState,
+                            };
+                            onOpenDetailModal(t("Wound: {name}", { name: wound.woundName }), cleanWound);
+                        }} 
+                        className="w-full text-left bg-gray-900/60 p-3 rounded-md border border-red-800/50 flex items-start gap-3 hover:border-red-600 transition-colors"
+                    >
                         <ShieldExclamationIcon className="w-5 h-5 mt-0.5 text-red-500 flex-shrink-0" />
                         <div className="flex-1">
                             <div className="flex justify-between items-baseline">
                                  <span className="font-semibold text-red-400">{wound.woundName}</span>
                                  <span className="text-xs text-red-500 bg-red-900/50 px-2 py-0.5 rounded-full">{t(wound.severity as any)}</span>
                             </div>
-                             <p className="text-sm text-gray-400 italic mt-1 line-clamp-2">{wound.descriptionOfEffects}</p>
+                            <p className="text-sm text-gray-400 italic mt-1 line-clamp-2">{wound.descriptionOfEffects}</p>
                         </div>
                     </button>
                 ))) : <p className="text-sm text-gray-500 text-center p-2">{t('You are unwounded.')}</p>}
             </Section>
-
-            {healedWounds.length > 0 && (
+            
+             {healedWounds.length > 0 && (
                 <div className="mt-4">
                     <div className="border-b border-cyan-500/20 mb-3">
                         <button onClick={() => setHealedWoundsCollapsed(prev => !prev)} className="w-full flex justify-between items-center text-left pb-1 group">
@@ -336,7 +479,18 @@ const NpcDetailsRenderer: React.FC<NpcDetailsProps> = ({ npc, onOpenImageModal, 
                         <div className="space-y-3 animate-fade-in-down">
                             {healedWounds.map((wound, index) => (
                                 <div key={wound.woundId || index} className="w-full bg-gray-900/60 p-3 rounded-md border border-green-800/50 flex items-center justify-between gap-3">
-                                    <button onClick={() => onOpenDetailModal(t("Wound: {name}", { name: wound.woundName }), wound)} className="flex-1 text-left">
+                                    <button onClick={() => {
+                                        const cleanWound = {
+                                            type: 'wound',
+                                            woundId: wound.woundId,
+                                            woundName: wound.woundName,
+                                            severity: wound.severity,
+                                            descriptionOfEffects: wound.descriptionOfEffects,
+                                            generatedEffects: wound.generatedEffects,
+                                            healingState: wound.healingState,
+                                        };
+                                        onOpenDetailModal(t("Wound: {name}", { name: wound.woundName }), cleanWound);
+                                    }} className="flex-1 text-left">
                                         <span className="font-semibold text-green-400/80 hover:text-green-300 transition-colors">{wound.woundName}</span>
                                     </button>
                                     <button
@@ -362,151 +516,226 @@ const NpcDetailsRenderer: React.FC<NpcDetailsProps> = ({ npc, onOpenImageModal, 
                 </div>
             )}
 
-            <Section title={t("Active Skills")} icon={SparklesIcon}>
-                {npc.activeSkills && npc.activeSkills.length > 0 ? npc.activeSkills.map((skill, index) => {
-                    const masteryData = npc.skillMasteryData?.find(m => m.skillName.toLowerCase() === skill.skillName.toLowerCase());
-                    const masteryProgress = (masteryData && masteryData.masteryProgressNeeded > 0) 
-                        ? (masteryData.currentMasteryProgress / masteryData.masteryProgressNeeded) * 100 
-                        : 0;
-                    return (
-                    <button key={index} onClick={() => onOpenDetailModal(t("Active Skill: {name}", { name: skill.skillName }), { ...skill, owner: 'npc' })} className={`w-full text-left bg-gray-700/50 p-3 rounded-md border-l-4 ${qualityColorMap[skill.rarity] || 'border-gray-500'} shadow-sm hover:bg-gray-700/80 hover:border-cyan-400 transition-colors`}>
-                        <div className="flex justify-between items-baseline flex-wrap gap-x-4 gap-y-1">
-                            <span className={`font-semibold ${qualityColorMap[skill.rarity]?.split(' ')[0] || 'text-gray-200'} text-lg`}>{skill.skillName}</span>
-                             <div className="text-xs space-x-3 flex items-center text-gray-400">
-                                {masteryData && (
-                                     <span className="font-semibold whitespace-nowrap flex items-center gap-1.5">{t('Mastery Level')}: <span className="text-cyan-300 font-bold text-sm">{masteryData.currentMasteryLevel ?? '?'}/{masteryData.maxMasteryLevel ?? '?'}</span></span>
-                                )}
-                                {skill.energyCost && <span className="flex items-center gap-1"><BoltIcon className="w-3 h-3 text-blue-400"/>{skill.energyCost} E</span>}
-                                {skill.cooldownTurns != null && <span className="flex items-center gap-1"><ClockIcon className="w-3 h-3 text-purple-400"/>CD: {skill.cooldownTurns}T</span>}
+            {npc.customStates && npc.customStates.length > 0 && (
+                <Section title={t("States")} icon={ExclamationTriangleIcon}>
+                    {npc.customStates.map((state, index) => (
+                        <div key={state.stateId || index} className="flex items-center gap-2 group">
+                            <div className="flex-1">
+                                <StatBar
+                                    value={state.currentValue}
+                                    max={state.maxValue}
+                                    color="bg-purple-500"
+                                    label={t(state.stateName as any)}
+                                    icon={ExclamationTriangleIcon}
+                                    onClick={() => onOpenDetailModal(t("CustomState: {name}", { name: state.stateName }), { ...state, type: 'customState' })}
+                                />
                             </div>
+                             <button
+                                onClick={() => setConfirmDeleteState(state)}
+                                className="p-1 text-gray-500 rounded-full hover:bg-red-900/50 hover:text-red-300 transition-colors flex-shrink-0 opacity-0 group-hover:opacity-100"
+                                title={t('Delete State')}
+                            >
+                                <TrashIcon className="w-4 h-4" />
+                            </button>
                         </div>
-                        <p className="text-sm text-gray-400 italic mt-2 line-clamp-2">{skill.skillDescription}</p>
-                        {masteryData && masteryData.masteryProgressNeeded > 0 && (
-                            <div className="mt-2">
-                                <div className="flex justify-between items-center text-xs text-gray-400 mb-1">
-                                    <span className="font-medium">{t('Progress')}</span>
-                                    <span className="font-mono">{masteryData.currentMasteryProgress ?? '?'}/{masteryData.masteryProgressNeeded ?? '?'}</span>
-                                </div>
-                                <div className="w-full bg-gray-800/70 rounded-full h-2 overflow-hidden">
-                                    <div className="bg-cyan-500 h-2 rounded-full transition-all duration-300" style={{width: `${masteryProgress}%`}}></div>
-                                </div>
-                            </div>
-                        )}
-                    </button>
-                    )
-                }) : <p className="text-sm text-gray-500 text-center p-4">{t('No active skills known.')}</p>}
-            </Section>
-
-            <Section title={t("Passive Skills")} icon={ShieldCheckIcon}>
-                {npc.passiveSkills && npc.passiveSkills.length > 0 ? npc.passiveSkills.map((skill, index) => (
-                    <button key={index} onClick={() => onOpenDetailModal(t("Passive Skill: {name}", { name: skill.skillName }), skill)} className={`w-full text-left bg-gray-700/50 p-3 rounded-md border-l-4 ${qualityColorMap[skill.rarity] || 'border-gray-500'} shadow-sm hover:bg-gray-700/80 hover:border-cyan-400 transition-colors`}>
-                        <div className="flex justify-between items-start">
-                            <span className={`font-semibold ${qualityColorMap[skill.rarity]?.split(' ')[0] || 'text-gray-200'}`}>{skill.skillName}</span>
-                             <span className="text-xs font-semibold text-gray-400 whitespace-nowrap pl-2">{t('Mastery Level')}: <span className="text-cyan-300 font-bold">{skill.masteryLevel} / {skill.maxMasteryLevel}</span></span>
-                        </div>
-                        <p className="text-sm text-gray-400 italic mt-1 line-clamp-2">{skill.skillDescription}</p>
-                    </button>
-                )) : <p className="text-sm text-gray-500 text-center p-4">{t('No passive skills known.')}</p>}
-            </Section>
-
-            <Section title={t("Inventory")} icon={ArchiveBoxIcon}>
-                {npc.inventory && npc.inventory.length > 0 ? npc.inventory.map((item, index) => (
-                    <button key={item.existedId || index} onClick={() => onOpenDetailModal(t("Item: {name}", { name: item.name }), item)} className={`w-full text-left p-3 rounded-md border-l-4 ${qualityColorMap[item.quality] || 'border-gray-500'} bg-gray-700/50 shadow-sm hover:bg-gray-700/80 hover:border-cyan-400 transition-colors`}>
-                        <div className="flex justify-between items-start">
-                            <span className={`font-semibold ${qualityColorMap[item.quality]?.split(' ')[0] || 'text-gray-200'}`}>
-                                {item.name} {item.count > 1 ? `(x${item.count})` : ''}
-                                {item.resource !== undefined && item.maximumResource !== undefined && ` (${item.resource}/${item.maximumResource})`}
-                            </span>
-                        </div>
-                        <p className="text-sm text-gray-400 italic mt-1 line-clamp-2">{item.description}</p>
-                    </button>
-                )) : <p className="text-sm text-gray-500 text-center p-4">{t('No items in inventory.')}</p>}
-            </Section>
-
-            {journalPreviewContent && (
-                <Section title={t("Journal Preview")} icon={DocumentTextIcon}>
-                    <div className="bg-gray-700/50 p-3 rounded-md italic text-gray-400">
-                        <p className="line-clamp-3 whitespace-pre-wrap">
-                            {journalPreviewContent}
-                        </p>
-                    </div>
-                    <button
-                        onClick={() => setIsJournalOpen(true)}
-                        className="w-full mt-2 text-center px-4 py-2 bg-gray-700/60 hover:bg-gray-700 rounded-md text-cyan-300 font-semibold transition-colors"
-                    >
-                        {t('Read Full Journal')}
-                    </button>
+                    ))}
                 </Section>
             )}
+
+            {npc.activeSkills && npc.activeSkills.length > 0 && (
+                <Section title={t("Active Skills")} icon={SparklesIcon}>
+                    {(npc.activeSkills ?? []).map((skill, index) => {
+                        const masteryData = npc.skillMasteryData?.find(m => m.skillName.toLowerCase() === skill.skillName.toLowerCase());
+                        const masteryProgress = (masteryData && masteryData.masteryProgressNeeded > 0)
+                            ? (masteryData.currentMasteryProgress / masteryData.masteryProgressNeeded) * 100
+                            : 0;
+                        return (
+                            <button key={index} onClick={() => onOpenDetailModal(t("Active Skill: {name}", { name: skill.skillName }), { ...skill, owner: 'npc' })} className={`w-full text-left bg-gray-700/50 p-3 rounded-md border-l-4 ${qualityColorMap[skill.rarity] || 'border-gray-500'} shadow-sm hover:bg-gray-700/80 hover:border-cyan-400 transition-colors`}>
+                                <div className="flex justify-between items-baseline flex-wrap gap-x-4 gap-y-1">
+                                    <span className={`font-semibold ${qualityColorMap[skill.rarity]?.split(' ')[0] || 'text-gray-200'} text-lg`}>
+                                        {skill.skillName}
+                                    </span>
+                                    <div className="text-xs space-x-3 flex items-center text-gray-400">
+                                        {masteryData && (
+                                            <span className="font-semibold whitespace-nowrap flex items-center gap-1.5">{t('Mastery Level')}: <span className="text-cyan-300 font-bold text-sm">{masteryData.currentMasteryLevel ?? '?'}/{masteryData.maxMasteryLevel ?? '?'}</span></span>
+                                        )}
+                                        {skill.energyCost && <span className="flex items-center gap-1"><BoltIcon className="w-3 h-3 text-blue-400" />{skill.energyCost} {t('EnergyUnit')}</span>}
+                                        {skill.cooldownTurns != null && <span className="flex items-center gap-1"><ClockIcon className="w-3 h-3 text-purple-400" />{t('CooldownAbbr')}: {skill.cooldownTurns}{t('TurnUnit')}</span>}
+                                    </div>
+                                </div>
+                                <p className="text-sm text-gray-400 italic mt-2 line-clamp-2">{skill.skillDescription}</p>
+                                {masteryData && masteryData.masteryProgressNeeded > 0 && (
+                                    <div className="mt-2">
+                                        <div className="flex justify-between items-center text-xs text-gray-400 mb-1">
+                                            <span className="font-medium">{t('Progress')}</span>
+                                            <span className="font-mono">{masteryData.currentMasteryProgress ?? '?'}/{masteryData.masteryProgressNeeded ?? '?'}</span>
+                                        </div>
+                                        <div className="w-full bg-gray-800/70 rounded-full h-2 overflow-hidden">
+                                            <div className="bg-cyan-500 h-2 rounded-full transition-all duration-300" style={{ width: `${masteryProgress}%` }}></div>
+                                        </div>
+                                    </div>
+                                )}
+                            </button>
+                        )
+                    })}
+                </Section>
+            )}
+
+            {npc.passiveSkills && npc.passiveSkills.length > 0 && (
+                <Section title={t("Passive Skills")} icon={SparklesIcon}>
+                    {(npc.passiveSkills ?? []).map((skill, index) => (
+                        <button key={index} onClick={() => onOpenDetailModal(t("Passive Skill: {name}", { name: skill.skillName }), skill)} className={`w-full text-left bg-gray-700/50 p-3 rounded-md border-l-4 ${qualityColorMap[skill.rarity] || 'border-gray-500'} shadow-sm hover:bg-gray-700/80 hover:border-cyan-400 transition-colors`}>
+                             <div className="flex justify-between items-start">
+                                <span className={`font-semibold ${qualityColorMap[skill.rarity]?.split(' ')[0] || 'text-gray-200'}`}>{skill.skillName}</span>
+                                <span className="text-xs font-semibold text-gray-400 whitespace-nowrap pl-2">{t('Mastery Level')}: <span className="text-cyan-300 font-bold">{skill.masteryLevel} / {skill.maxMasteryLevel}</span></span>
+                            </div>
+                            <p className="text-sm text-gray-400 italic mt-1 line-clamp-2">{skill.skillDescription}</p>
+                        </button>
+                    ))}
+                </Section>
+            )}
+
+            <Section title={t("Inventory")} icon={ArchiveBoxIcon}>
+                {(sortedInventory && sortedInventory.length > 0) ? (
+                    <div className="space-y-2">
+                        {sortedInventory.map((item, index) => {
+                            if (!item || typeof item.name !== 'string' || typeof item.description !== 'string') {
+                              return <div key={index} className="text-red-400 text-xs p-2 bg-red-900/30 rounded">{`[${t('corrupted_item')}]`}</div>;
+                            }
+                            const itemName = item.name;
+                            const isEquipped = isNpcItemEquipped(item.existedId);
+                            return (
+                                <button
+                                    key={item.existedId || index}
+                                    onClick={() => onOpenDetailModal(t("Item: {name}", { name: itemName }), { ...item, ownerType: 'npc', ownerId: npc.NPCId, isEquippedByOwner: isEquipped })}
+                                    className={`w-full text-left p-3 rounded-md border-l-4 ${qualityColorMap[item.quality] || 'border-gray-500'} bg-gray-700/50 shadow-sm hover:bg-gray-700/80 hover:border-cyan-400 transition-colors`}
+                                >
+                                    <div className="flex justify-between items-start">
+                                        <span className={`font-semibold ${qualityColorMap[item.quality]?.split(' ')[0] || 'text-gray-200'}`}>
+                                            {itemName} {item.count > 1 ? `(x${item.count})` : ''}
+                                        </span>
+                                        {isEquipped && <span className="text-xs bg-cyan-500/20 text-cyan-300 px-2 py-0.5 rounded-full">{t('Equipped')}</span>}
+                                    </div>
+                                    <p className="text-sm text-gray-400 italic my-1 line-clamp-2">{item.description}</p>
+                                </button>
+                            )
+                        })}
+                    </div>
+                ) : <p className="text-sm text-gray-500">{t('No carried items.')}</p>}
+                
+                {isCompanion && npc.NPCId && (
+                    <div className="mt-4">
+                        <button onClick={() => setIsInventoryManagerOpen(true)} className="w-full flex items-center justify-center gap-2 px-4 py-2 text-sm font-semibold text-cyan-300 bg-cyan-600/20 rounded-md hover:bg-cyan-600/40 transition-colors">
+                            <CogIcon className="w-5 h-5"/> {t("Manage Inventory")}
+                        </button>
+                    </div>
+                )}
+            </Section>
 
             {npc.fateCards && npc.fateCards.length > 0 && (
                 <Section title={t("Fate Cards")} icon={SparklesIcon}>
                     <div className="space-y-3">
-                        {npc.fateCards.map((card: FateCard) => (
-                           <FateCardDetailsRenderer key={card.cardId} card={card} onOpenImageModal={onOpenImageModal} imageCache={imageCache} onImageGenerated={onImageGenerated} />
+                        {npc.fateCards.map(card => (
+                            <FateCardDetailsRenderer 
+                                key={card.cardId} 
+                                card={card}
+                                onOpenImageModal={onOpenImageModal}
+                                imageCache={imageCache}
+                                onImageGenerated={onImageGenerated}
+                            />
                         ))}
                     </div>
                 </Section>
             )}
             
-            {allowHistoryManipulation && onRegenerateId && (
-                <Section title={t("System Information")} icon={CogIcon}>
-                    <IdDisplay
-                        id={npc.NPCId}
-                        name={npc.name}
-                        onRegenerate={() => onRegenerateId(npc, 'NPC')}
-                    />
-                </Section>
-            )}
-
             {allowHistoryManipulation && (
                 <Section title={t("Actions")} icon={CogIcon}>
-                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                         <button
-                            onClick={onOpenClearJournalConfirm}
-                            disabled={!npc.journalEntries || npc.journalEntries.length === 0}
-                            className="w-full flex items-center justify-center gap-2 px-4 py-2 text-sm font-semibold text-yellow-300 bg-yellow-600/20 rounded-md hover:bg-yellow-600/40 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                         >
-                            <ArchiveBoxXMarkIcon className="w-5 h-5" />
-                            {t("Clear Journal")}
-                        </button>
+                     <div className="flex flex-col sm:flex-row gap-2">
                         <button
                             onClick={onOpenForgetConfirm}
-                            className="w-full flex items-center justify-center gap-2 px-4 py-2 text-sm font-semibold text-red-300 bg-red-600/20 rounded-md hover:bg-red-600/40 transition-colors"
+                            className="flex-1 flex items-center justify-center gap-2 px-4 py-2 text-sm font-semibold text-red-300 bg-red-600/20 rounded-md hover:bg-red-600/40 transition-colors"
                         >
                             <TrashIcon className="w-5 h-5" />
                             {t("Forget NPC")}
+                        </button>
+                         <button
+                            onClick={onOpenClearJournalConfirm}
+                            className="flex-1 flex items-center justify-center gap-2 px-4 py-2 text-sm font-semibold text-yellow-300 bg-yellow-600/20 rounded-md hover:bg-yellow-600/40 transition-colors"
+                        >
+                            <ArchiveBoxXMarkIcon className="w-5 h-5" />
+                            {t("Clear Journal")}
                         </button>
                     </div>
                 </Section>
             )}
 
-            <JournalModal
-                isOpen={isJournalOpen}
-                onClose={() => setIsJournalOpen(false)}
-                journalEntries={npc.journalEntries || []}
-                npcName={npc.name}
-                isEditable={allowHistoryManipulation && !!npc.NPCId}
-                onSaveEntry={handleSaveJournalEntry}
-                onDeleteOldest={onDeleteOldestNpcJournalEntries && npc.NPCId ? () => onDeleteOldestNpcJournalEntries(npc.NPCId) : undefined}
-            />
-             <ConfirmationModal
-                isOpen={confirmClear}
-                onClose={() => setConfirmClear(false)}
-                onConfirm={handleClearAllHealedWounds}
-                title={t('Clear All Healed Wounds')}
-            >
-                <p>{t('Are you sure you want to clear all healed wounds? This will remove them permanently.')}</p>
-            </ConfirmationModal>
-            <ConfirmationModal
-                isOpen={!!confirmForget}
-                onClose={() => setConfirmForget(null)}
-                onConfirm={handleForgetWound}
-                title={t('Forget Wound')}
-            >
-                <p>{t('Are you sure you want to forget this healed wound?')}</p>
-            </ConfirmationModal>
+            {allowHistoryManipulation && onRegenerateId && (
+            <Section title={t("System Information")} icon={CogIcon}>
+                <IdDisplay 
+                    id={npc.NPCId} 
+                    name={npc.name} 
+                    onRegenerate={() => onRegenerateId(npc, 'NPC')}
+                />
+            </Section>
+            )}
         </div>
+        
+        <JournalModal
+            isOpen={isJournalOpen}
+            onClose={() => setIsJournalOpen(false)}
+            journalEntries={npc.journalEntries || []}
+            npcName={npc.name}
+            isEditable={allowHistoryManipulation && !!npc.NPCId}
+            onSaveEntry={handleSaveJournalEntry}
+            onDeleteOldest={onDeleteOldestNpcJournalEntries && npc.NPCId ? () => onDeleteOldestNpcJournalEntries(npc.NPCId) : undefined}
+        />
+        <ConfirmationModal
+            isOpen={confirmClear}
+            onClose={() => setConfirmClear(false)}
+            onConfirm={handleClearAllHealedWounds}
+            title={t('Clear All Healed Wounds')}
+        >
+            <p>{t('Are you sure you want to clear all healed wounds? This will remove them permanently.')}</p>
+        </ConfirmationModal>
+        <ConfirmationModal
+            isOpen={!!confirmForget}
+            onClose={() => setConfirmForget(null)}
+            onConfirm={handleForgetWound}
+            title={t('Forget Wound')}
+        >
+            <p>{t('Are you sure you want to forget this healed wound?')}</p>
+        </ConfirmationModal>
+        <ConfirmationModal
+            isOpen={!!confirmDeleteState}
+            onClose={() => setConfirmDeleteState(null)}
+            onConfirm={handleDeleteCustomState}
+            title={t('delete_state_title', { name: confirmDeleteState?.stateName ?? '' })}
+        >
+            <p>{t('delete_state_confirm', { name: confirmDeleteState?.stateName ?? '' })}</p>
+        </ConfirmationModal>
+        {isInventoryManagerOpen && isCompanion && npc.NPCId && playerCharacter && (
+            <Modal title={`${t("Inventory & Equipment")}: ${npc.name}`} isOpen={isInventoryManagerOpen} onClose={() => setIsInventoryManagerOpen(false)}>
+                <InventoryManagerUI
+                    character={npc}
+                    playerCharacter={playerCharacter}
+                    isCompanionMode={true}
+                    onEquip={(item, slot) => handleEquipItemForNpc?.(npc.NPCId!, item, slot)}
+                    onUnequip={(item) => handleUnequipItemForNpc?.(npc.NPCId!, item)}
+                    onDropItem={(item) => handleTransferItem?.('npc', 'player', npc.NPCId!, item, item.count)} // Repurposed for "Take"
+                    onGiveItem={(item, quantity) => handleTransferItem?.('player', 'npc', npc.NPCId!, item, quantity)}
+                    onMoveItem={(item, containerId) => { /* NPC move logic can be added here */ }}
+                    onSplitItem={(item, quantity) => handleSplitItemForNpc?.(npc.NPCId!, item, quantity)}
+                    onMergeItems={(source, target) => handleMergeItemsForNpc?.(npc.NPCId!, source, target)}
+                    updateItemSortOrder={(order) => updateNpcItemSortOrder?.(npc.NPCId!, order)}
+                    updateItemSortSettings={(criteria, direction) => updateNpcItemSortSettings?.(npc.NPCId!, criteria, direction)}
+                    onOpenDetailModal={onOpenDetailModal}
+                    onOpenImageModal={onOpenImageModal}
+                    imageCache={imageCache}
+                    onImageGenerated={onImageGenerated}
+                />
+            </Modal>
+        )}
+    </>
     );
 };
 

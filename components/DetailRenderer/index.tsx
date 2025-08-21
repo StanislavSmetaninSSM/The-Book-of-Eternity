@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Item, Quest, ActiveSkill, PassiveSkill, Effect, Wound, NPC, Location, PlayerCharacter, CombatAction, Faction, CustomState } from '../../types';
+import { Item, Quest, NPC, Location, PlayerCharacter, CombatAction, Faction, CustomState, PassiveSkill, ActiveSkill, Effect, Wound } from '../../types';
 import { DetailRendererProps } from './types';
 import ConfirmationModal from '../ConfirmationModal';
 import { useLocalization } from '../../context/LocalizationContext';
@@ -20,9 +20,8 @@ import LocationDetailsRenderer from './LocationDetailsRenderer';
 import PlayerCharacterDetailsRenderer from './PlayerCharacterDetailsRenderer';
 import CombatActionDetails from './Shared/CombatActionDetails';
 import Section from './Shared/Section';
-import DetailRow from './Shared/DetailRow';
 import FactionDetailsRenderer from './FactionDetailsRenderer'; // Import the new component
-import { UserGroupIcon, StarIcon, CheckCircleIcon, ExclamationTriangleIcon, CogIcon } from '@heroicons/react/24/outline';
+import { ExclamationTriangleIcon, CogIcon } from '@heroicons/react/24/outline';
 import MarkdownRenderer from '../MarkdownRenderer';
 
 // Local component for Custom State Details
@@ -35,11 +34,13 @@ const CustomStateDetailsRenderer: React.FC<{ state: CustomState }> = ({ state })
                     <MarkdownRenderer content={state.description} />
                 </div>
             )}
-            <Section title={t("Rules")} icon={CheckCircleIcon}>
-                <DetailRow label={t("Current Value")} value={`${state.currentValue} / ${state.maxValue}`} />
-                {state.progressionRule && (
-                    <DetailRow label={t("Progression")} value={state.progressionRule.description} />
-                )}
+            <Section title={t("Rules")} icon={CogIcon}>
+                <div className="bg-gray-700/50 p-3 rounded-md space-y-2">
+                    <p><strong>{t("Current Value")}:</strong> {state.currentValue} / {state.maxValue}</p>
+                    {state.progressionRule && (
+                        <p><strong>{t("Progression")}:</strong> {state.progressionRule.description}</p>
+                    )}
+                </div>
             </Section>
             {state.thresholds && state.thresholds.length > 0 && (
                 <Section title={t("Thresholds")} icon={ExclamationTriangleIcon}>
@@ -57,12 +58,12 @@ const CustomStateDetailsRenderer: React.FC<{ state: CustomState }> = ({ state })
 
 
 // Type guards
-const isItem = (data: any): data is Item => data && typeof data.quality === 'string' && typeof data.weight === 'number';
+const isItem = (data: any): data is Item & { ownerType?: 'player' | 'npc', ownerId?: string, isEquippedByOwner?: boolean } => data && typeof data.quality === 'string' && typeof data.weight === 'number';
 const isQuest = (data: any): data is Quest => data && typeof data.questGiver === 'string' && Array.isArray(data.objectives);
 const isPassiveSkill = (data: any): data is PassiveSkill => data && typeof data.skillName === 'string' && data.masteryLevel !== undefined;
 const isActiveSkill = (data: any): data is ActiveSkill => data && typeof data.skillName === 'string' && data.masteryLevel === undefined && !isPassiveSkill(data);
 const isEffect = (data: any): data is Effect => data && typeof data.effectType === 'string' && data.duration !== undefined;
-const isWound = (data: any): data is Wound => data && typeof data.woundName === 'string' && data.severity !== undefined;
+const isWound = (data: any): data is Wound & { type: 'wound' } => data && data.type === 'wound';
 const isNpc = (data: any): data is NPC => data && (data.relationshipLevel !== undefined || data.NPCId !== undefined) && data.attitude !== undefined;
 const isCharacteristic = (data: any): data is { type: 'characteristic', name: string, value: number, description?: string } => data && data.type === 'characteristic';
 const isPrimaryStat = (data: any): data is { type: 'primaryStat', name: string, description: string } => data && data.type === 'primaryStat';
@@ -75,7 +76,7 @@ const isCustomState = (data: any): data is CustomState & { type: 'customState' }
 
 
 export default function DetailRenderer(props: DetailRendererProps) {
-    const { data, onForgetNpc, onClearNpcJournal, onCloseModal, onForgetQuest, onForgetLocation, currentLocationId, disassembleItem, gameSettings, onDeleteOldestNpcJournalEntries, imageCache, onImageGenerated, forgetHealedWound, clearAllHealedWounds, onRegenerateId } = props;
+    const { onForgetNpc, onClearNpcJournal, onCloseModal, onForgetQuest, onForgetLocation, currentLocationId, onRegenerateId, deleteNpcCustomState } = props;
     const [confirmation, setConfirmation] = useState<{ type: string | null; data: any }>({ type: null, data: null });
     const { t } = useLocalization();
 
@@ -159,25 +160,27 @@ export default function DetailRenderer(props: DetailRendererProps) {
     };
 
     const { title: confirmationTitle, content: confirmationContent } = getConfirmationContent();
+    const { data } = props;
+    const { data: _data, ...rest } = props;
 
     let content;
 
-    if (isItem(data)) content = <ItemDetailsRenderer item={data} {...props} />;
-    else if (isQuest(data)) content = <QuestDetailsRenderer quest={data} onOpenForgetConfirm={() => setConfirmation({ type: 'forgetQuest', data })} {...props} />;
-    else if (isActiveSkill(data)) content = <ActiveSkillDetailsRenderer skill={data} {...props} />;
-    else if (isPassiveSkill(data)) content = <PassiveSkillDetailsRenderer skill={data} {...props} />;
+    if (isItem(data)) content = <ItemDetailsRenderer item={data} {...rest} />;
+    else if (isQuest(data)) content = <QuestDetailsRenderer quest={data} onOpenForgetConfirm={() => setConfirmation({ type: 'forgetQuest', data })} {...rest} />;
+    else if (isActiveSkill(data)) content = <ActiveSkillDetailsRenderer skill={data} {...rest} />;
+    else if (isPassiveSkill(data)) content = <PassiveSkillDetailsRenderer skill={data} {...rest} />;
     else if (isEffect(data)) content = <EffectDetailsRenderer effect={data} />;
-    else if (isWound(data)) content = <WoundDetailsRenderer wound={data} {...props} />;
-    else if (isNpc(data)) content = <NpcDetailsRenderer npc={data} onOpenForgetConfirm={() => setConfirmation({ type: 'forgetNpc', data })} onOpenClearJournalConfirm={() => setConfirmation({ type: 'clearJournal', data })} {...props} />;
+    else if (isWound(data)) content = <WoundDetailsRenderer wound={data} {...rest} />;
+    else if (isNpc(data)) content = <NpcDetailsRenderer npc={data} onOpenForgetConfirm={() => setConfirmation({ type: 'forgetNpc', data })} onOpenClearJournalConfirm={() => setConfirmation({ type: 'clearJournal', data })} deleteNpcCustomState={deleteNpcCustomState} {...rest} />;
     else if (isCharacteristic(data)) content = <CharacteristicDetailsRenderer data={data} />;
     else if (isPrimaryStat(data)) content = <PrimaryStatDetailsRenderer data={data} />;
     else if (isDerivedStat(data)) content = <DerivedStatDetailsRenderer data={data} />;
-    else if (isLocation(data)) content = <LocationDetailsRenderer location={data} onOpenForgetConfirm={() => setConfirmation({ type: 'forgetLocation', data })} {...props} />;
-    else if (isPlayerCharacter(data)) content = <PlayerCharacterDetailsRenderer character={data} {...props} />;
+    else if (isLocation(data)) content = <LocationDetailsRenderer location={data} onOpenForgetConfirm={() => setConfirmation({ type: 'forgetLocation', data })} {...rest} />;
+    else if (isPlayerCharacter(data)) content = <PlayerCharacterDetailsRenderer character={data} {...rest} />;
     else if (isCombatAction(data)) content = <CombatActionDetails action={data} />;
     else if (isFaction(data)) {
         const { perspectiveFor, ...factionData } = data;
-        content = <FactionDetailsRenderer faction={factionData as Faction} perspectiveFor={perspectiveFor} {...props} />;
+        content = <FactionDetailsRenderer faction={factionData as Faction} perspectiveFor={perspectiveFor} {...rest} />;
     }
     else if (isCustomState(data)) content = <CustomStateDetailsRenderer state={data} />;
     else content = <p className="text-gray-400">{t("No details available for this selection.")}</p>;

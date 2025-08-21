@@ -1,5 +1,5 @@
 
-import { GameState, ChatMessage, NPC } from '../types';
+import { GameState, ChatMessage, NPC, Faction } from '../types';
 
 export const deleteMessage = (indexToDelete: number, currentHistory: ChatMessage[]): ChatMessage[] => {
     return currentHistory.filter((_, index) => index !== indexToDelete);
@@ -18,5 +18,11 @@ export const deleteLogs = (): string[] => {
 export const forgetNpc = (npcIdToForget: string, currentState: GameState): GameState => {
     const newState = JSON.parse(JSON.stringify(currentState));
     newState.encounteredNPCs = newState.encounteredNPCs.filter((npc: NPC) => npc.NPCId !== npcIdToForget);
+    return newState;
+};
+
+export const forgetFaction = (factionIdToForget: string, currentState: GameState): GameState => {
+    const newState = JSON.parse(JSON.stringify(currentState));
+    newState.encounteredFactions = newState.encounteredFactions.filter((faction: Faction) => faction.factionId !== factionIdToForget);
     return newState;
 };

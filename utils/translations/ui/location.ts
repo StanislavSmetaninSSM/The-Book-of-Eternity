@@ -39,6 +39,8 @@ export const location = {
     "Zoom In": "Zoom In",
     "Zoom Out": "Zoom Out",
     "Reset View": "Reset View",
+    "Toggle Labels": "Toggle Labels",
+    "Go": "Go",
 
     // New for event log
     "Last Event": "Last Event",
@@ -130,6 +132,8 @@ export const location = {
     "Zoom In": "Приблизить",
     "Zoom Out": "Отдалить",
     "Reset View": "Сбросить вид",
+    "Toggle Labels": "Переключить метки",
+    "Go": "Перейти",
 
     // New for event log
     "Last Event": "Последнее событие",

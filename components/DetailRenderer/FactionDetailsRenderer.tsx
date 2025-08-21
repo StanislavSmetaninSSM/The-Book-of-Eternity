@@ -7,15 +7,19 @@ import Section from './Shared/Section';
 import DetailRow from './Shared/DetailRow';
 import MarkdownRenderer from '../MarkdownRenderer';
 import { useLocalization } from '../../context/LocalizationContext';
-import { InformationCircleIcon, UserGroupIcon, StarIcon, CheckCircleIcon, LockClosedIcon, ChevronRightIcon, UserIcon } from '@heroicons/react/24/outline';
+import { InformationCircleIcon, UserGroupIcon, StarIcon, CheckCircleIcon, LockClosedIcon, ChevronRightIcon, UserIcon, PhotoIcon } from '@heroicons/react/24/outline';
+import ImageRenderer from '../ImageRenderer';
+import EditableField from './Shared/EditableField';
 
 interface FactionDetailsProps extends Omit<DetailRendererProps, 'data'> {
   faction: Faction;
   perspectiveFor?: { name: string; rank: string };
 }
 
-const FactionDetailsRenderer: React.FC<FactionDetailsProps> = ({ faction, perspectiveFor }) => {
+const FactionDetailsRenderer: React.FC<FactionDetailsProps> = ({ faction, perspectiveFor, onOpenImageModal, imageCache, onImageGenerated, allowHistoryManipulation, onEditFactionData }) => {
     const { t } = useLocalization();
+
+    const imagePrompt = faction.custom_image_prompt || faction.image_prompt || `A detailed fantasy art image of the symbol for the ${faction.name} faction. Epic, high quality.`;
 
     const getNextRankRep = (): number | null => {
         if (!faction.isPlayerMember || !faction.ranks || !faction.playerRank) return null;
@@ -87,6 +91,34 @@ const FactionDetailsRenderer: React.FC<FactionDetailsProps> = ({ faction, perspe
 
     return (
         <div className="space-y-4">
+            {imagePrompt && (
+                <div className="w-full h-48 rounded-lg overflow-hidden mb-4 bg-gray-900 group relative cursor-pointer" onClick={() => onOpenImageModal?.(imagePrompt)}>
+                    <ImageRenderer 
+                        prompt={imagePrompt} 
+                        alt={faction.name} 
+                        imageCache={imageCache} 
+                        onImageGenerated={onImageGenerated} 
+                        width={1024} 
+                        height={1024}
+                        showRegenerateButton={allowHistoryManipulation}
+                    />
+                    <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                        <p className="text-white font-bold text-lg">{t('Enlarge')}</p>
+                    </div>
+                </div>
+            )}
+            {allowHistoryManipulation && onEditFactionData && (
+                 <Section title={t("Custom Image Prompt")} icon={PhotoIcon}>
+                    <EditableField 
+                        label={t("Image Prompt")}
+                        value={faction.custom_image_prompt || ''}
+                        isEditable={true}
+                        onSave={(val) => { if (faction.factionId) onEditFactionData(faction.factionId, 'custom_image_prompt', val) }}
+                        as="textarea"
+                    />
+                    <p className="text-xs text-gray-400 mt-2"><strong>{t("Default prompt from AI:")}</strong> {faction.image_prompt}</p>
+                </Section>
+            )}
             <div className="italic text-gray-400">
                 <MarkdownRenderer content={faction.description} />
             </div>

@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import CharacterSheet from './CharacterSheet';
 import QuestLog from './QuestLog';
 import { GameState, Location, WorldState, GameSettings, PlayerCharacter, Faction, PlotOutline, Item, DBSaveSlotInfo, WorldStateFlag, Wound, CustomState } from '../types';
-import { UserCircleIcon, BookOpenIcon, CodeBracketIcon, DocumentTextIcon, UsersIcon, ShieldExclamationIcon, Cog6ToothIcon, MapIcon, MapPinIcon, QuestionMarkCircleIcon, UserGroupIcon, GlobeAltIcon, ArchiveBoxXMarkIcon, BeakerIcon } from '@heroicons/react/24/outline';
+import { UserCircleIcon, BookOpenIcon, CodeBracketIcon, DocumentTextIcon, UsersIcon, ShieldExclamationIcon, Cog6ToothIcon, MapIcon, MapPinIcon, QuestionMarkCircleIcon, UserGroupIcon, GlobeAltIcon, ArchiveBoxXMarkIcon, BeakerIcon, TrashIcon } from '@heroicons/react/24/outline';
 import { ChevronDoubleRightIcon } from '@heroicons/react/24/solid';
 import JsonDebugView from './JsonDebugView';
 import GameLogView from './GameLogView';
@@ -18,6 +18,8 @@ import HelpGuide from './HelpGuide';
 import StashView from './StashView';
 import CraftingScreen from './CraftingScreen';
 import WorldPanel from './WorldPanel';
+import ConfirmationModal from './ConfirmationModal';
+import ImageRenderer from './ImageRenderer';
 
 interface SidePanelProps {
   gameState: GameState | null;
@@ -65,7 +67,22 @@ interface SidePanelProps {
   clearAllHealedWounds: (characterType: 'player' | 'npc', characterId: string | null) => void;
   onRegenerateId: (entity: any, entityType: string) => void;
   deleteCustomState: (stateId: string) => void;
+  deleteNpcCustomState: (npcId: string, stateId: string) => void;
+  deleteWorldStateFlag: (flagId: string) => void;
   updateNpcSortOrder: (newOrder: string[]) => void;
+  updateItemSortOrder: (newOrder: string[]) => void;
+  updateItemSortSettings: (criteria: PlayerCharacter['itemSortCriteria'], direction: PlayerCharacter['itemSortDirection']) => void;
+  updateNpcItemSortOrder: (npcId: string, newOrder: string[]) => void;
+  updateNpcItemSortSettings: (npcId: string, criteria: PlayerCharacter['itemSortCriteria'], direction: PlayerCharacter['itemSortDirection']) => void;
+  handleTransferItem: (sourceType: 'player' | 'npc', targetType: 'player' | 'npc', npcId: string, item: Item, quantity: number) => void;
+  handleEquipItemForNpc: (npcId: string, item: Item, slot: string) => void;
+  handleUnequipItemForNpc: (npcId: string, item: Item) => void;
+  handleSplitItemForNpc: (npcId: string, item: Item, quantity: number) => void;
+  handleMergeItemsForNpc: (npcId: string, sourceItem: Item, targetItem: Item) => void;
+  forgetNpc: (npcId: string) => void;
+  forgetFaction: (factionId: string) => void;
+  forgetQuest: (questId: string) => void;
+  forgetLocation: (locationId: string) => void;
 }
 
 type Tab = 'Character' | 'Quests' | 'Factions' | 'NPCs' | 'Locations' | 'Map' | 'Combat' | 'Log' | 'Guide' | 'Debug' | 'Game' | 'Stash' | 'Crafting' | 'World';
@@ -87,35 +104,82 @@ const TABS: { name: Tab; icon: React.FC<React.SVGProps<SVGSVGElement>> }[] = [
     { name: 'Game', icon: Cog6ToothIcon },
 ];
 
-const FactionLog: React.FC<{ factions: Faction[]; onOpenModal: (title: string, data: any) => void }> = ({ factions, onOpenModal }) => {
+const FactionLog: React.FC<{ 
+    factions: Faction[]; 
+    onOpenModal: (title: string, data: any) => void;
+    allowHistoryManipulation: boolean;
+    forgetFaction: (factionId: string) => void;
+    imageCache: Record<string, string>;
+    onImageGenerated: (prompt: string, base64: string) => void;
+}> = ({ factions, onOpenModal, allowHistoryManipulation, forgetFaction, imageCache, onImageGenerated }) => {
   const { t } = useLocalization();
+  const [factionToDelete, setFactionToDelete] = useState<Faction | null>(null);
+
+  const handleDeleteConfirm = () => {
+    if (factionToDelete && factionToDelete.factionId) {
+        forgetFaction(factionToDelete.factionId);
+    }
+    setFactionToDelete(null);
+  };
+
   return (
-    <div className="space-y-4">
-      <h3 className="text-xl font-bold text-cyan-400 mb-3 narrative-text">{t('Factions')}</h3>
-      {factions && factions.length > 0 ? (
-        <div className="space-y-3">
-          {factions.map((faction) => (
-             <button 
-                key={faction.factionId || faction.name}
-                onClick={() => onOpenModal(t("Faction: {name}", { name: faction.name }), { ...faction, type: 'faction' })}
-                className="w-full text-left bg-gray-900/40 p-3 rounded-lg border border-gray-700/50 shadow-md transition-all hover:ring-1 hover:ring-cyan-500/50 hover:border-cyan-500/50 flex items-center gap-4"
-              >
-                <UserGroupIcon className="w-8 h-8 text-cyan-400 flex-shrink-0" />
-                <div>
-                    <p className="font-semibold text-gray-200">{faction.name}</p>
-                    <p className="text-sm text-gray-400">{t('Reputation')}: {faction.reputation} ({t(faction.reputationDescription)})</p>
-                    {faction.isPlayerMember && <p className="text-xs text-yellow-300/70 mt-1">{t('Rank')}: {faction.playerRank}</p>}
-                </div>
-              </button>
-          ))}
-        </div>
-      ) : (
-        <div className="text-center text-gray-500 p-6 bg-gray-900/20 rounded-lg">
-          <UserGroupIcon className="w-8 h-8 mx-auto mb-2 text-gray-600" />
-          {t('No factions encountered yet.')}
-        </div>
-      )}
-    </div>
+    <>
+      <div className="space-y-4">
+        <h3 className="text-xl font-bold text-cyan-400 mb-3 narrative-text">{t('Factions')}</h3>
+        {factions && factions.length > 0 ? (
+          <div className="space-y-3">
+            {factions.map((faction) => {
+              const imagePrompt = faction.image_prompt || `A detailed fantasy art image of a symbol for the ${faction.name} faction.`;
+              return (
+              <div key={faction.factionId || faction.name} className="relative group">
+                 {allowHistoryManipulation && (
+                    <button
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            setFactionToDelete(faction);
+                        }}
+                        className="absolute top-2 right-2 p-1 text-gray-400 rounded-full hover:bg-red-900/50 hover:text-red-300 transition-colors opacity-0 group-hover:opacity-100 z-10"
+                        title={t('Forget Faction')}
+                    >
+                        <TrashIcon className="w-4 h-4" />
+                    </button>
+                )}
+                <button 
+                  onClick={() => onOpenModal(t("Faction: {name}", { name: faction.name }), { ...faction, type: 'faction' })}
+                  className="w-full text-left bg-gray-900/40 p-3 rounded-lg border border-gray-700/50 shadow-md transition-all hover:ring-1 hover:ring-cyan-500/50 hover:border-cyan-500/50 flex items-center gap-4"
+                >
+                    <div className="w-12 h-12 rounded-md overflow-hidden flex-shrink-0 bg-gray-800 flex items-center justify-center">
+                        {faction.image_prompt ? (
+                            <ImageRenderer prompt={imagePrompt} alt={faction.name} className="w-full h-full object-cover" imageCache={imageCache} onImageGenerated={onImageGenerated} />
+                        ) : (
+                            <UserGroupIcon className="w-8 h-8 text-cyan-400" />
+                        )}
+                    </div>
+                  <div>
+                      <p className="font-semibold text-gray-200">{faction.name}</p>
+                      <p className="text-sm text-gray-400">{t('Reputation')}: {faction.reputation} ({t(faction.reputationDescription as any)})</p>
+                      {faction.isPlayerMember && <p className="text-xs text-yellow-300/70 mt-1">{t('Rank')}: {faction.playerRank}</p>}
+                  </div>
+                </button>
+              </div>
+            )})}
+          </div>
+        ) : (
+          <div className="text-center text-gray-500 p-6 bg-gray-900/20 rounded-lg">
+            <UserGroupIcon className="w-8 h-8 mx-auto mb-2 text-gray-600" />
+            {t('No factions encountered yet.')}
+          </div>
+        )}
+      </div>
+       <ConfirmationModal
+        isOpen={!!factionToDelete}
+        onClose={() => setFactionToDelete(null)}
+        onConfirm={handleDeleteConfirm}
+        title={t('Forget Faction')}
+      >
+        <p>{t("forget_faction_confirm", { name: factionToDelete?.name })}</p>
+      </ConfirmationModal>
+    </>
   );
 };
 
@@ -166,7 +230,22 @@ export default function SidePanel({
     clearAllHealedWounds,
     onRegenerateId,
     deleteCustomState,
+    deleteNpcCustomState,
+    deleteWorldStateFlag,
     updateNpcSortOrder,
+    updateItemSortOrder,
+    updateItemSortSettings,
+    updateNpcItemSortOrder,
+    updateNpcItemSortSettings,
+    handleTransferItem,
+    handleEquipItemForNpc,
+    handleUnequipItemForNpc,
+    handleSplitItemForNpc,
+    handleMergeItemsForNpc,
+    forgetNpc,
+    forgetFaction,
+    forgetQuest,
+    forgetLocation,
 }: SidePanelProps): React.ReactNode {
   const [activeTab, setActiveTab] = useState<Tab>('Character');
   const { language, t } = useLocalization();
@@ -252,12 +331,12 @@ export default function SidePanel({
         </div>
         <div className="flex-1 overflow-y-auto p-4">
           {activeTab === 'Character' && gameState && <CharacterSheet character={gameState.playerCharacter} gameSettings={gameSettings} onOpenModal={onOpenDetailModal} onOpenInventory={onOpenInventory} onSpendAttributePoint={onSpendAttributePoint} forgetHealedWound={forgetHealedWound} clearAllHealedWounds={clearAllHealedWounds} onDeleteCustomState={deleteCustomState} />}
-          {activeTab === 'Quests' && gameState && <QuestLog activeQuests={gameState.activeQuests} completedQuests={gameState.completedQuests} onOpenModal={onOpenDetailModal} lastUpdatedQuestId={lastUpdatedQuestId} />}
-          {activeTab === 'World' && <WorldPanel worldState={worldState} worldStateFlags={worldStateFlags} turnNumber={turnNumber} />}
-          {activeTab === 'Factions' && gameState && <FactionLog factions={gameState.encounteredFactions} onOpenModal={onOpenDetailModal} />}
-          {activeTab === 'NPCs' && gameState && <NpcLog gameState={gameState} npcs={gameState.encounteredNPCs} encounteredFactions={gameState.encounteredFactions} onOpenModal={onOpenDetailModal} imageCache={gameState?.imageCache ?? {}} onImageGenerated={onImageGenerated} updateNpcSortOrder={updateNpcSortOrder} />}
-          {activeTab === 'Locations' && gameState && <LocationLog locations={visitedLocations} currentLocation={gameState.currentLocationData} onOpenModal={onOpenDetailModal} allowHistoryManipulation={gameSettings?.allowHistoryManipulation ?? false} onEditLocationData={editLocationData} />}
-          {activeTab === 'Map' && gameState && <LocationViewer visitedLocations={visitedLocations} currentLocation={gameState.currentLocationData} onOpenModal={onOpenDetailModal} />}
+          {activeTab === 'Quests' && gameState && <QuestLog activeQuests={gameState.activeQuests} completedQuests={gameState.completedQuests} onOpenModal={onOpenDetailModal} lastUpdatedQuestId={lastUpdatedQuestId} allowHistoryManipulation={gameSettings?.allowHistoryManipulation ?? false} forgetQuest={forgetQuest} />}
+          {activeTab === 'World' && <WorldPanel worldState={worldState} worldStateFlags={gameState?.worldStateFlags} turnNumber={turnNumber} allowHistoryManipulation={gameSettings?.allowHistoryManipulation ?? false} onDeleteFlag={deleteWorldStateFlag} />}
+          {activeTab === 'Factions' && gameState && <FactionLog factions={gameState.encounteredFactions} onOpenModal={onOpenDetailModal} allowHistoryManipulation={gameSettings?.allowHistoryManipulation ?? false} forgetFaction={forgetFaction} imageCache={gameState.imageCache} onImageGenerated={onImageGenerated} />}
+          {activeTab === 'NPCs' && gameState && <NpcLog gameState={gameState} npcs={gameState.encounteredNPCs} encounteredFactions={gameState.encounteredFactions} onOpenModal={onOpenDetailModal} imageCache={gameState?.imageCache ?? {}} onImageGenerated={onImageGenerated} updateNpcSortOrder={updateNpcSortOrder} forgetNpc={forgetNpc} allowHistoryManipulation={gameSettings?.allowHistoryManipulation ?? false} />}
+          {activeTab === 'Locations' && gameState && <LocationLog locations={visitedLocations} currentLocation={gameState.currentLocationData} onOpenModal={onOpenDetailModal} allowHistoryManipulation={gameSettings?.allowHistoryManipulation ?? false} onEditLocationData={editLocationData} imageCache={gameState.imageCache} onImageGenerated={onImageGenerated} forgetLocation={forgetLocation} />}
+          {activeTab === 'Map' && gameState && <LocationViewer visitedLocations={visitedLocations} currentLocation={gameState.currentLocationData} onOpenModal={onOpenDetailModal} imageCache={gameState.imageCache} onImageGenerated={onImageGenerated} />}
           {activeTab === 'Combat' && gameState && <CombatTracker 
             enemies={gameState.enemiesData} 
             allies={gameState.alliesData} 

@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo } from 'react';
 import { PlayerCharacter, Item, ActiveSkill, PassiveSkill, Effect, Wound, GameSettings, StructuredBonus, CustomState } from '../types';
 import {
@@ -235,33 +236,23 @@ export default function CharacterSheet({ character, gameSettings, onOpenModal, o
   }, [character.inventory]);
   
   const sortedInventory = useMemo(() => {
-    const allRootItems = [...rootInventoryItems];
+    const itemsToProcess = [...rootInventoryItems];
     const { itemSortCriteria = 'manual', itemSortDirection = 'asc', itemSortOrder = [] } = character;
 
-    // 1. Separate equipped from unequipped items.
-    const equippedItemIds = new Set(Object.values(character.equippedItems).filter(id => id !== null));
-    const equippedItems: Item[] = [];
-    const unequippedItems: Item[] = [];
+    let sortedList: Item[] = [];
 
-    allRootItems.forEach(item => {
-        if (item && item.existedId && equippedItemIds.has(item.existedId)) {
-            equippedItems.push(item);
-        } else if (item) {
-            unequippedItems.push(item);
+    // Step 1: Apply sorting to the entire list of items in view
+    if (itemSortCriteria === 'manual') {
+        if (itemSortOrder && itemSortOrder.length > 0) {
+            const itemMap = new Map(itemsToProcess.map(item => [item.existedId, item]));
+            const sorted = itemSortOrder.map(id => itemMap.get(id!))
+                .filter((item): item is Item => !!item && itemsToProcess.some(i => i.existedId === item.existedId));
+            const newItems = itemsToProcess.filter(item => item.existedId && !itemSortOrder.includes(item.existedId));
+            sortedList = [...sorted, ...newItems];
+        } else {
+            sortedList = itemsToProcess; // If manual but no order, keep as is
         }
-    });
-
-    // 2. Sort ONLY the unequipped items using the existing logic.
-    let sortedUnequippedItems: Item[];
-    const itemsToSort = unequippedItems;
-
-    if (itemSortCriteria === 'manual' && itemSortOrder && itemSortOrder.length > 0) {
-        const itemMap = new Map(itemsToSort.map(item => [item.existedId, item]));
-        const sorted = itemSortOrder.map(id => itemMap.get(id!))
-            .filter((item): item is Item => !!item && itemsToSort.some(i => i.existedId === item.existedId));
-        const newItems = itemsToSort.filter(item => item.existedId && !itemSortOrder.includes(item.existedId));
-        sortedUnequippedItems = [...sorted, ...newItems];
-    } else {
+    } else { // Automatic sorting
         const sortFn = (a: Item, b: Item) => {
             if (!a || typeof a !== 'object') return 1;
             if (!b || typeof b !== 'object') return -1;
@@ -271,8 +262,8 @@ export default function CharacterSheet({ character, gameSettings, onOpenModal, o
 
             switch (itemSortCriteria) {
                 case 'quality':
-                    valA = qualityOrder[typeof a.quality === 'string' ? a.quality.toLowerCase().replace(/\s/g, '') : ''] ?? -1;
-                    valB = qualityOrder[typeof b.quality === 'string' ? b.quality.toLowerCase().replace(/\s/g, '') : ''] ?? -1;
+                    valA = qualityOrder[a.quality] ?? -1;
+                    valB = qualityOrder[b.quality] ?? -1;
                     break;
                 case 'weight':
                     valA = (a.weight || 0) * (a.count || 1);
@@ -303,15 +294,27 @@ export default function CharacterSheet({ character, gameSettings, onOpenModal, o
             return itemSortDirection === 'asc' ? comparison : -comparison;
         };
 
-        const containers = itemsToSort.filter(i => i && i.isContainer);
-        const normalItems = itemsToSort.filter(i => i && !i.isContainer);
-        sortedUnequippedItems = [...containers.sort(sortFn), ...normalItems.sort(sortFn)];
+        const containers = itemsToProcess.filter(i => i && i.isContainer);
+        const normalItems = itemsToProcess.filter(i => i && !i.isContainer);
+        sortedList = [...containers.sort(sortFn), ...normalItems.sort(sortFn)];
     }
 
-    // 3. Concatenate the lists. Equipped items first.
-    return [...equippedItems, ...sortedUnequippedItems];
+    // Step 2: Bubble equipped items to the top, preserving their relative sorted order
+    const equippedItemIds = new Set(Object.values(character.equippedItems).filter(id => id !== null));
+    const equippedItems: Item[] = [];
+    const unequippedItems: Item[] = [];
+
+    sortedList.forEach(item => {
+        if (item && item.existedId && equippedItemIds.has(item.existedId)) {
+            equippedItems.push(item);
+        } else if (item) {
+            unequippedItems.push(item);
+        }
+    });
     
-  }, [rootInventoryItems, character.equippedItems, character.itemSortCriteria, character.itemSortDirection, character.itemSortOrder]);
+    return [...equippedItems, ...unequippedItems];
+    
+}, [rootInventoryItems, character.equippedItems, character.itemSortCriteria, character.itemSortDirection, character.itemSortOrder]);
 
   if (!character) {
       return null;
@@ -500,8 +503,17 @@ export default function CharacterSheet({ character, gameSettings, onOpenModal, o
                 }
 
                 if (linkedWound) {
+                    const cleanWound = {
+                        type: 'wound',
+                        woundId: linkedWound.woundId,
+                        woundName: linkedWound.woundName,
+                        severity: linkedWound.severity,
+                        descriptionOfEffects: linkedWound.descriptionOfEffects,
+                        generatedEffects: linkedWound.generatedEffects,
+                        healingState: linkedWound.healingState,
+                    };
                     return (
-                        <button key={index} onClick={() => onOpenModal(t("Wound: {name}", { name: linkedWound.woundName }), linkedWound)} className="w-full text-left p-3 rounded-md text-sm flex items-start gap-3 hover:scale-105 transition-transform bg-purple-900/40 text-purple-300">
+                        <button key={index} onClick={() => onOpenModal(t("Wound: {name}", { name: linkedWound.woundName }), cleanWound)} className="w-full text-left p-3 rounded-md text-sm flex items-start gap-3 hover:scale-105 transition-transform bg-purple-900/40 text-purple-300">
                             <ShieldExclamationIcon className="w-5 h-5 mt-0.5 text-purple-400 flex-shrink-0" />
                             <div className="flex-1">
                                 <div className="flex justify-between">
@@ -531,7 +543,18 @@ export default function CharacterSheet({ character, gameSettings, onOpenModal, o
       </Section>
       <Section title={t('Wounds')}>
         {(activeWounds.length > 0) ? (activeWounds.map((wound, index) => (
-            <button key={wound.woundId || index} onClick={() => onOpenModal(t("Wound: {name}", { name: wound.woundName }), wound)} className="w-full text-left bg-gray-900/60 p-3 rounded-md border border-red-800/50 flex items-start gap-3 hover:border-red-600 transition-colors">
+            <button key={wound.woundId || index} onClick={() => {
+                const cleanWound = {
+                    type: 'wound',
+                    woundId: wound.woundId,
+                    woundName: wound.woundName,
+                    severity: wound.severity,
+                    descriptionOfEffects: wound.descriptionOfEffects,
+                    generatedEffects: wound.generatedEffects,
+                    healingState: wound.healingState,
+                };
+                onOpenModal(t("Wound: {name}", { name: wound.woundName }), cleanWound)
+            }} className="w-full text-left bg-gray-900/60 p-3 rounded-md border border-red-800/50 flex items-start gap-3 hover:border-red-600 transition-colors">
                 <ShieldExclamationIcon className="w-5 h-5 mt-0.5 text-red-500 flex-shrink-0" />
                 <div className="flex-1">
                     <div className="flex justify-between items-baseline">
@@ -555,7 +578,18 @@ export default function CharacterSheet({ character, gameSettings, onOpenModal, o
                     <div className="space-y-3 animate-fade-in-down">
                         {healedWounds.map((wound, index) => (
                             <div key={wound.woundId || index} className="w-full bg-gray-900/60 p-3 rounded-md border border-green-800/50 flex items-center justify-between gap-3">
-                                <button onClick={() => onOpenModal(t("Wound: {name}", { name: wound.woundName }), wound)} className="flex-1 text-left">
+                                <button onClick={() => {
+                                    const cleanWound = {
+                                        type: 'wound',
+                                        woundId: wound.woundId,
+                                        woundName: wound.woundName,
+                                        severity: wound.severity,
+                                        descriptionOfEffects: wound.descriptionOfEffects,
+                                        generatedEffects: wound.generatedEffects,
+                                        healingState: wound.healingState,
+                                    };
+                                    onOpenModal(t("Wound: {name}", { name: wound.woundName }), cleanWound);
+                                }} className="flex-1 text-left">
                                     <span className="font-semibold text-green-400/80 hover:text-green-300 transition-colors">{wound.woundName}</span>
                                 </button>
                                 <button

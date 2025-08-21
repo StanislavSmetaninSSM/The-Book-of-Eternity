@@ -1,5 +1,7 @@
+
 import React from 'react';
 import { Wound } from '../../types';
+import { DetailRendererProps } from './types';
 import Section from './Shared/Section';
 import DetailRow from './Shared/DetailRow';
 import EffectDetailsRenderer from './EffectDetailsRenderer';
@@ -9,10 +11,19 @@ import {
     InformationCircleIcon, ExclamationTriangleIcon, HeartIcon, ShieldExclamationIcon
 } from '@heroicons/react/24/outline';
 
-const WoundDetailsRenderer = ({ wound }: { wound: Wound }) => {
+interface WoundDetailsProps extends Omit<DetailRendererProps, 'data'> {
+  wound: Wound;
+}
+
+const WoundDetailsRenderer: React.FC<WoundDetailsProps> = ({ wound }) => {
     const { t } = useLocalization();
     const healing = wound.healingState;
     const progressPercentage = healing && healing.progressNeeded > 0 ? (healing.treatmentProgress / healing.progressNeeded) * 100 : 0;
+    
+    // Defensive check to prevent crash from malformed AI data where generatedEffects might not be an array.
+    const safeGeneratedEffects = Array.isArray(wound.generatedEffects) 
+        ? wound.generatedEffects.filter(effect => effect) 
+        : [];
 
     return (
         <div className="space-y-4">
@@ -59,10 +70,10 @@ const WoundDetailsRenderer = ({ wound }: { wound: Wound }) => {
                 </Section>
             )}
 
-            {wound.generatedEffects && wound.generatedEffects.length > 0 && (
+            {safeGeneratedEffects.length > 0 && (
                  <Section title={t("Generated Effects")} icon={ShieldExclamationIcon}>
                     <div className="space-y-3">
-                        {wound.generatedEffects.map((effect, i) => <EffectDetailsRenderer key={i} effect={effect} />)}
+                        {safeGeneratedEffects.map((effect, i) => <EffectDetailsRenderer key={i} effect={effect} />)}
                     </div>
                 </Section>
             )}

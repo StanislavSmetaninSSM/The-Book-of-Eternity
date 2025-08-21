@@ -1,14 +1,10 @@
-
-
-
-
 import React, { useState, useCallback, useRef, useEffect } from 'react';
-import { GameState, GameContext, ChatMessage, GameResponse, LocationData, Item, NPC, SaveFile, Location, PlayerCharacter, WorldState, GameSettings, Quest, Faction, PlotOutline, Language, DBSaveSlotInfo, Wound, CustomState } from '../types';
+import { GameState, GameContext, ChatMessage, GameResponse, LocationData, Item, NPC, SaveFile, Location, PlayerCharacter, WorldState, GameSettings, Quest, Faction, PlotOutline, Language, DBSaveSlotInfo, Wound, CustomState, WorldStateFlag } from '../types';
 import { executeTurn, askGmQuestion, getMusicSuggestionFromAi, getModelForStep } from '../utils/gameApi';
 import { createInitialContext, buildNextContext, updateWorldMap, recalculateDerivedStats } from '../utils/gameContext';
 import { processAndApplyResponse, checkAndApplyLevelUp } from '../utils/responseProcessor';
-import { equipItem as equipItemUtil, unequipItem as unequipItemUtil, dropItem as dropItemUtil, moveItem as moveItemUtil, recalculateAllWeights, splitItemStack as splitItemUtil, mergeItemStacks as mergeItemUtil } from '../utils/inventoryManager';
-import { deleteMessage as deleteMessageUtil, clearHalfHistory as clearHalfHistoryUtil, deleteLogs as deleteLogsUtil, forgetNpc as forgetNpcUtil } from '../utils/uiManager';
+import { equipItem as equipItemUtil, unequipItem as unequipItemUtil, dropItem as dropItemUtil, moveItem as moveItemUtil, recalculateAllWeights, splitItemStack as splitItemUtil, mergeItemStacks as mergeItemUtil, transferItemBetweenCharacters, equipItemForNpc as equipItemForNpcUtil, unequipItemForNpc as unequipItemForNpcUtil, splitItemStackForNpc as splitItemForNpcUtil, mergeItemStacksForNpc as mergeItemForNpcUtil } from '../utils/inventoryManager';
+import { deleteMessage as deleteMessageUtil, clearHalfHistory as clearHalfHistoryUtil, deleteLogs as deleteLogsUtil, forgetNpc as forgetNpcUtil, forgetFaction as forgetFactionUtil } from '../utils/uiManager';
 import { saveGameToFile, loadGameFromFile, saveToDB, loadFromDB, getAutosaveTimestampFromDB, saveToDBSlot, loadFromDBSlot, listDBSlots, deleteDBSlot } from '../utils/fileManager';
 import { useLocalization } from '../context/LocalizationContext';
 import { formatError } from '../utils/errorUtils';
@@ -137,6 +133,31 @@ export function useGameLogic({ language, setLanguage }: UseGameLogicProps) {
       if (!loadedGameState.imageCache) {
         loadedGameState.imageCache = {};
       }
+      
+      // Recalculate stats for all NPCs on load to ensure data consistency
+      // This handles old save files that might be missing derived stats.
+      if (loadedGameState.encounteredNPCs) {
+          loadedGameState.encounteredNPCs = loadedGameState.encounteredNPCs.map(npc => {
+              if (!npc || !npc.characteristics) {
+                  return npc; // Skip if npc is null or has no characteristics
+              }
+              let updatedNpc = recalculateDerivedStats(npc);
+              updatedNpc = recalculateAllWeights(updatedNpc);
+              if (updatedNpc.totalWeight !== undefined && updatedNpc.maxWeight !== undefined) {
+                  updatedNpc.isOverloaded = updatedNpc.totalWeight > updatedNpc.maxWeight;
+              } else {
+                  updatedNpc.isOverloaded = false;
+              }
+              if (updatedNpc.criticalExcessWeight === undefined) {
+                  updatedNpc.criticalExcessWeight = 15;
+              }
+              return updatedNpc;
+          });
+          // Also update the context's copy of the NPCs
+          if (gameContextRef.current) {
+              gameContextRef.current.encounteredNPCs = loadedGameState.encounteredNPCs;
+          }
+      }
 
       const { pc: updatedPc, logs: levelUpLogs } = checkAndApplyLevelUp(loadedGameState.playerCharacter, t);
       
@@ -197,7 +218,7 @@ export function useGameLogic({ language, setLanguage }: UseGameLogicProps) {
       
       const onStepStart = (stepName: string, modelName: string) => {
         setCurrentStep(stepName);
-        setCurrentModel(modelName);
+        setCurrentModel(getModelForStep(stepName, context));
       };
 
       const onStreamingChunk = (text: string) => {
@@ -238,7 +259,7 @@ export function useGameLogic({ language, setLanguage }: UseGameLogicProps) {
           imageCache: {},
       };
       
-      const { newState, logsToAdd, combatLogsToAdd } = processAndApplyResponse(finalResponse, baseState, t);
+      const { newState, logsToAdd, combatLogsToAdd } = processAndApplyResponse(finalResponse, baseState, t, true);
       
       if (logsToAdd.length > 0) {
         setGameLog(prev => [...prev, ...logsToAdd]);
@@ -401,7 +422,7 @@ export function useGameLogic({ language, setLanguage }: UseGameLogicProps) {
         
         const onStepStart = (stepName: string, modelName: string) => {
           setCurrentStep(stepName);
-          setCurrentModel(modelName);
+          setCurrentModel(getModelForStep(stepName, context));
         };
         const onStreamingChunk = (text: string) => {
           setLastJsonResponse(text);
@@ -437,7 +458,7 @@ export function useGameLogic({ language, setLanguage }: UseGameLogicProps) {
           imageCache: {},
         };
 
-        const { newState, logsToAdd, combatLogsToAdd } = processAndApplyResponse(response, baseState, t);
+        const { newState, logsToAdd, combatLogsToAdd } = processAndApplyResponse(response, baseState, t, false);
         if (logsToAdd.length > 0) {
           setGameLog(prev => [...prev, ...logsToAdd]);
         }
@@ -710,6 +731,87 @@ export function useGameLogic({ language, setLanguage }: UseGameLogicProps) {
         return newState;
     });
   }, [t]);
+  
+    const disassembleNpcItem = useCallback((npcId: string, itemToDisassemble: Item) => {
+    if (!itemToDisassemble.disassembleTo || itemToDisassemble.disassembleTo.length === 0) {
+        return;
+    }
+
+    setGameState(prevState => {
+        if (!prevState) return null;
+
+        const newState = JSON.parse(JSON.stringify(prevState));
+        const npcIndex = newState.encounteredNPCs.findIndex((n: NPC) => n.NPCId === npcId);
+        if (npcIndex === -1) return prevState;
+
+        let npc = newState.encounteredNPCs[npcIndex] as NPC;
+        if (!npc.inventory) npc.inventory = [];
+        let inventory = npc.inventory as Item[];
+
+        // Find and remove/decrement the original item
+        let itemFoundAndDecremented = false;
+        inventory = inventory.map(item => {
+            if (item.existedId === itemToDisassemble.existedId) {
+                itemFoundAndDecremented = true;
+                return { ...item, count: item.count - 1 };
+            }
+            return item;
+        }).filter(item => item.count > 0);
+
+        if (!itemFoundAndDecremented) {
+            console.warn("Item to disassemble not found in NPC inventory.");
+            return prevState;
+        }
+
+        // Add materials to NPC inventory
+        itemToDisassemble.disassembleTo.forEach((material: any) => {
+            const existingStackIndex = inventory.findIndex(i => 
+                i.name === material.materialName &&
+                !i.equipmentSlot &&
+                i.type === 'Material'
+            );
+
+            if (existingStackIndex > -1) {
+                inventory[existingStackIndex].count += material.quantity;
+            } else {
+                const newItem: Item = {
+                    existedId: generateId('item'),
+                    name: material.materialName,
+                    description: material.description || t('A crafting material.'),
+                    image_prompt: `crafting material, ${material.materialName}, fantasy art, plain background`,
+                    quality: material.quality || 'Common',
+                    type: 'Material',
+                    group: 'CraftingMaterial',
+                    price: material.price || 1,
+                    count: material.quantity,
+                    weight: material.weight || 0.1,
+                    volume: material.volume || 0.1,
+                    bonuses: [],
+                    isContainer: false,
+                    capacity: null,
+                    isConsumption: true,
+                    durability: "100%",
+                    equipmentSlot: null,
+                    requiresTwoHands: false,
+                    contentsPath: null,
+                };
+                inventory.push(newItem);
+            }
+        });
+
+        npc.inventory = inventory;
+        let updatedNpc = recalculateAllWeights(npc);
+        updatedNpc = recalculateDerivedStats(updatedNpc);
+        newState.encounteredNPCs[npcIndex] = updatedNpc;
+
+        if (gameContextRef.current) {
+            gameContextRef.current.encounteredNPCs = newState.encounteredNPCs;
+        }
+
+        return newState;
+    });
+  }, [t]);
+
 
   const spendAttributePoint = useCallback((characteristic: string) => {
     setGameState(prevState => {
@@ -754,6 +856,17 @@ export function useGameLogic({ language, setLanguage }: UseGameLogicProps) {
       const newGameState = forgetNpcUtil(npcIdToForget, prevGameState);
       if (gameContextRef.current) {
         gameContextRef.current.encounteredNPCs = newGameState.encounteredNPCs;
+      }
+      return newGameState;
+    });
+  }, []);
+
+  const forgetFaction = useCallback((factionIdToForget: string) => {
+    setGameState(prevGameState => {
+      if (!prevGameState) return prevGameState;
+      const newGameState = forgetFactionUtil(factionIdToForget, prevGameState);
+      if (gameContextRef.current) {
+        gameContextRef.current.encounteredFactions = newGameState.encounteredFactions;
       }
       return newGameState;
     });
@@ -875,7 +988,88 @@ export function useGameLogic({ language, setLanguage }: UseGameLogicProps) {
       return newState;
     });
   }, [gameHistory, gameLog, combatLog, lastJsonResponse, sceneImagePrompt]);
-  
+
+  const deleteNpcCustomState = useCallback((npcId: string, stateIdOrName: string) => {
+  setGameState(prevState => {
+    if (!prevState) return prevState;
+
+    const newNpcs = prevState.encounteredNPCs.map(npc => {
+      if (npc.NPCId === npcId && npc.customStates) {
+        const newCustomStates = npc.customStates.filter(state => 
+          // Фильтруем по stateId, если он есть, иначе по stateName
+          state.stateId ? state.stateId !== stateIdOrName : state.stateName !== stateIdOrName
+        );
+        return { ...npc, customStates: newCustomStates };
+      }
+      return npc;
+    });
+
+    const newState = { ...prevState, encounteredNPCs: newNpcs };
+
+    if (gameContextRef.current) {
+      const newContext = { ...gameContextRef.current, encounteredNPCs: newNpcs };
+      gameContextRef.current = newContext;
+      
+      const saveData: SaveFile = {
+        gameContext: newContext,
+        gameState: newState,
+        gameHistory: gameHistory,
+        gameLog: gameLog,
+        combatLog: combatLog,
+        lastJsonResponse: lastJsonResponse,
+        sceneImagePrompt: sceneImagePrompt,
+        timestamp: new Date().toISOString(),
+      };
+      
+      saveToDB(saveData).then(() => {
+          setAutosaveTimestamp(saveData.timestamp);
+      }).catch(e => {
+          console.error("Autosave on NPC custom state delete failed", e);
+      });
+    }
+    
+    return newState;
+  });
+}, [gameHistory, gameLog, combatLog, lastJsonResponse, sceneImagePrompt]);
+
+  const deleteWorldStateFlag = useCallback((flagIdToDelete: string) => {
+    setGameState(prevState => {
+        if (!prevState || !prevState.worldStateFlags) return prevState;
+
+        const newFlags = { ...prevState.worldStateFlags };
+        delete newFlags[flagIdToDelete];
+
+        const newState = { ...prevState, worldStateFlags: newFlags };
+
+        if (gameContextRef.current) {
+            const newContext = {
+                ...gameContextRef.current,
+                worldStateFlags: newFlags,
+            };
+            gameContextRef.current = newContext;
+            
+            const saveData: SaveFile = {
+              gameContext: newContext,
+              gameState: newState,
+              gameHistory: gameHistory,
+              gameLog: gameLog,
+              combatLog: combatLog,
+              lastJsonResponse: lastJsonResponse,
+              sceneImagePrompt: sceneImagePrompt,
+              timestamp: new Date().toISOString(),
+            };
+            
+            saveToDB(saveData).then(() => {
+                setAutosaveTimestamp(saveData.timestamp);
+            }).catch(e => {
+                console.error("Autosave on world state flag delete failed", e);
+            });
+        }
+        
+        return newState;
+    });
+  }, [gameHistory, gameLog, combatLog, lastJsonResponse, sceneImagePrompt]);
+
   const updateNpcSortOrder = useCallback((newOrder: string[]) => {
     setGameState(prevState => {
         if (!prevState) return null;
@@ -958,6 +1152,54 @@ export function useGameLogic({ language, setLanguage }: UseGameLogicProps) {
         return newState;
     });
   }, [packageSaveData]);
+
+    const updateNpcItemSortOrder = useCallback((npcId: string, newOrder: string[]) => {
+        setGameState(prevState => {
+            if (!prevState) return null;
+            const newNpcs = prevState.encounteredNPCs.map(npc => {
+                if (npc.NPCId === npcId) {
+                    return { ...npc, itemSortOrder: newOrder };
+                }
+                return npc;
+            });
+            const newState = { ...prevState, encounteredNPCs: newNpcs };
+            if (gameContextRef.current) {
+                gameContextRef.current.encounteredNPCs = newNpcs;
+                 const saveData: SaveFile = {
+                    gameContext: gameContextRef.current,
+                    gameState: newState,
+                    gameHistory, gameLog, combatLog, lastJsonResponse, sceneImagePrompt,
+                    timestamp: new Date().toISOString(),
+                };
+                saveToDB(saveData).then(() => setAutosaveTimestamp(saveData.timestamp));
+            }
+            return newState;
+        });
+    }, [gameHistory, gameLog, combatLog, lastJsonResponse, sceneImagePrompt]);
+
+    const updateNpcItemSortSettings = useCallback((npcId: string, criteria: PlayerCharacter['itemSortCriteria'], direction: PlayerCharacter['itemSortDirection']) => {
+        setGameState(prevState => {
+            if (!prevState) return null;
+            const newNpcs = prevState.encounteredNPCs.map(npc => {
+                if (npc.NPCId === npcId) {
+                    return { ...npc, itemSortCriteria: criteria, itemSortDirection: direction };
+                }
+                return npc;
+            });
+            const newState = { ...prevState, encounteredNPCs: newNpcs };
+            if (gameContextRef.current) {
+                gameContextRef.current.encounteredNPCs = newNpcs;
+                const saveData: SaveFile = {
+                    gameContext: gameContextRef.current,
+                    gameState: newState,
+                    gameHistory, gameLog, combatLog, lastJsonResponse, sceneImagePrompt,
+                    timestamp: new Date().toISOString(),
+                };
+                saveToDB(saveData).then(() => setAutosaveTimestamp(saveData.timestamp));
+            }
+            return newState;
+        });
+    }, [gameHistory, gameLog, combatLog, lastJsonResponse, sceneImagePrompt]);
 
 
   // Save/Load Management
@@ -1069,6 +1311,18 @@ export function useGameLogic({ language, setLanguage }: UseGameLogicProps) {
         const newPc = { ...prevState.playerCharacter, inventory: newInventory };
         if (gameContextRef.current) gameContextRef.current.playerCharacter.inventory = newInventory;
         return { ...prevState, playerCharacter: newPc };
+    });
+  }, [gameSettings]);
+
+  const editFactionData = useCallback((factionId: string, field: keyof Faction, value: any) => {
+    if (!gameSettings?.allowHistoryManipulation) return;
+    setGameState(prevState => {
+        if (!prevState) return null;
+        const newFactions = prevState.encounteredFactions.map(faction => faction.factionId === factionId ? { ...faction, [field]: value } : faction);
+        if (gameContextRef.current) {
+          gameContextRef.current.encounteredFactions = newFactions;
+        }
+        return { ...prevState, encounteredFactions: newFactions };
     });
   }, [gameSettings]);
 
@@ -1184,14 +1438,14 @@ export function useGameLogic({ language, setLanguage }: UseGameLogicProps) {
         const newState = JSON.parse(JSON.stringify(prevState));
         if (characterType === 'player') {
             const pc = newState.playerCharacter as PlayerCharacter;
-            pc.playerWounds = pc.playerWounds.filter((w: Wound) => w.healingState.currentState !== 'Healed');
+            pc.playerWounds = pc.playerWounds.filter((w: Wound) => !w.healingState || w.healingState.currentState !== 'Healed');
              if (gameContextRef.current) {
                 gameContextRef.current.playerCharacter.playerWounds = pc.playerWounds;
             }
         } else if (characterType === 'npc' && characterId) {
             const npcIndex = newState.encounteredNPCs.findIndex((n: NPC) => n.NPCId === characterId);
             if (npcIndex > -1) {
-                newState.encounteredNPCs[npcIndex].wounds = (newState.encounteredNPCs[npcIndex].wounds || []).filter((w: Wound) => w.healingState.currentState !== 'Healed');
+                newState.encounteredNPCs[npcIndex].wounds = (newState.encounteredNPCs[npcIndex].wounds || []).filter((w: Wound) => !w.healingState || w.healingState.currentState !== 'Healed');
                  if (gameContextRef.current) {
                     gameContextRef.current.encounteredNPCs = newState.encounteredNPCs;
                 }
@@ -1310,6 +1564,76 @@ export function useGameLogic({ language, setLanguage }: UseGameLogicProps) {
     }
   }, [gameSettings?.allowHistoryManipulation]);
 
+  // --- Companion Management Handlers ---
+
+    const handleCompanionInventoryAction = useCallback((action: (currentState: GameState) => GameState) => {
+        setGameState(prevState => {
+            if (!prevState) return null;
+            let newState = action(prevState);
+            
+            // Recalculate stats for player
+            newState.playerCharacter = recalculateAllWeights(newState.playerCharacter);
+            newState.playerCharacter = recalculateDerivedStats(newState.playerCharacter);
+
+            // Recalculate stats for all NPCs
+            newState.encounteredNPCs = newState.encounteredNPCs.map((npc) => {
+                let updatedNpc = recalculateAllWeights(npc);
+                updatedNpc = recalculateDerivedStats(updatedNpc);
+                if (updatedNpc.totalWeight !== undefined && updatedNpc.maxWeight !== undefined) {
+                    updatedNpc.isOverloaded = updatedNpc.totalWeight > updatedNpc.maxWeight;
+                } else {
+                    updatedNpc.isOverloaded = false;
+                }
+                return updatedNpc;
+            });
+
+            if (gameContextRef.current) {
+                gameContextRef.current.playerCharacter = newState.playerCharacter;
+                gameContextRef.current.encounteredNPCs = newState.encounteredNPCs;
+            }
+            return newState;
+        });
+    }, []);
+
+    const handleTransferItem = useCallback((sourceType: 'player' | 'npc', targetType: 'player' | 'npc', npcId: string, item: Item, quantity: number) => {
+        if (targetType === 'npc') {
+            const npc = gameState?.encounteredNPCs.find(n => n.NPCId === npcId);
+            if (npc) {
+                const validQuantity = Math.min(quantity, item.count);
+                const weightOfMovedItem = item.weight * validQuantity;
+                
+                let npcWithStats = recalculateAllWeights(npc);
+                npcWithStats = recalculateDerivedStats(npcWithStats);
+
+                const criticalWeight = (npcWithStats.maxWeight || 0) + (npcWithStats.criticalExcessWeight || 15);
+                const prospectiveWeight = (npcWithStats.totalWeight || 0) + weightOfMovedItem;
+
+                if (prospectiveWeight > criticalWeight) {
+                    alert(t('npc_overloaded_refusal'));
+                    return;
+                }
+            }
+        }
+        handleCompanionInventoryAction(currentState => 
+            transferItemBetweenCharacters(sourceType, targetType, npcId, item, quantity, currentState)
+        );
+    }, [handleCompanionInventoryAction, gameState, t]);
+
+    const handleEquipItemForNpc = useCallback((npcId: string, item: Item, slot: string) => {
+        handleCompanionInventoryAction(currentState => equipItemForNpcUtil(npcId, item, slot, currentState));
+    }, [handleCompanionInventoryAction]);
+
+    const handleUnequipItemForNpc = useCallback((npcId: string, item: Item) => {
+        handleCompanionInventoryAction(currentState => unequipItemForNpcUtil(npcId, item, currentState));
+    }, [handleCompanionInventoryAction]);
+
+    const handleSplitItemForNpc = useCallback((npcId: string, item: Item, quantity: number) => {
+        handleCompanionInventoryAction(currentState => splitItemForNpcUtil(npcId, item, quantity, currentState));
+    }, [handleCompanionInventoryAction]);
+
+    const handleMergeItemsForNpc = useCallback((npcId: string, sourceItem: Item, targetItem: Item) => {
+        handleCompanionInventoryAction(currentState => mergeItemForNpcUtil(npcId, sourceItem, targetItem, currentState));
+    }, [handleCompanionInventoryAction]);
 
   return {
     gameState,
@@ -1331,6 +1655,7 @@ export function useGameLogic({ language, setLanguage }: UseGameLogicProps) {
     splitItemStack,
     mergeItemStacks,
     disassembleItem,
+    disassembleNpcItem,
     craftItem,
     moveFromStashToInventory,
     dropItemFromStash,
@@ -1338,6 +1663,7 @@ export function useGameLogic({ language, setLanguage }: UseGameLogicProps) {
     clearHalfHistory,
     deleteLogs,
     forgetNpc,
+    forgetFaction,
     clearNpcJournal,
     deleteOldestNpcJournalEntries,
     forgetLocation,
@@ -1361,6 +1687,7 @@ export function useGameLogic({ language, setLanguage }: UseGameLogicProps) {
     editNpcData,
     editQuestData,
     editItemData,
+    editFactionData,
     editLocationData,
     editPlayerData,
     saveGameToSlot,
@@ -1382,8 +1709,17 @@ export function useGameLogic({ language, setLanguage }: UseGameLogicProps) {
     clearAllHealedWounds,
     onRegenerateId,
     deleteCustomState,
+    deleteNpcCustomState,
+    deleteWorldStateFlag,
     updateNpcSortOrder,
     updateItemSortOrder,
     updateItemSortSettings,
+    updateNpcItemSortOrder,
+    updateNpcItemSortSettings,
+    handleTransferItem,
+    handleEquipItemForNpc,
+    handleUnequipItemForNpc,
+    handleSplitItemForNpc,
+    handleMergeItemsForNpc,
   };
 }

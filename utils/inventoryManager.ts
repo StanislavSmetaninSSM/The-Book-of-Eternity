@@ -1,4 +1,8 @@
-import { GameState, Item, PlayerCharacter } from '../types';
+
+
+
+
+import { GameState, Item, PlayerCharacter, NPC } from '../types';
 
 const generateId = (prefix: string) => `${prefix}-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
 
@@ -152,9 +156,9 @@ export const moveItem = (itemToMove: Item, destinationContainerId: string | null
     return newState;
 };
 
-export function recalculateAllWeights(pc: PlayerCharacter): PlayerCharacter {
+export function recalculateAllWeights<T extends (PlayerCharacter | NPC)>(pc: T): T {
     const newPc = JSON.parse(JSON.stringify(pc));
-    const inventory: Item[] = newPc.inventory;
+    const inventory: Item[] = newPc.inventory || [];
 
     // Find all containers and sort them by depth, deepest first.
     const containers = inventory
@@ -245,6 +249,213 @@ export const mergeItemStacks = (sourceItem: Item, targetItem: Item, currentState
     // Perform merge
     targetInInventory.count += sourceInInventory.count;
     pc.inventory = pc.inventory.filter(i => i.existedId !== sourceInInventory.existedId);
+
+    return newState;
+};
+
+// --- Companion Inventory Management ---
+
+export const transferItemBetweenCharacters = (
+    sourceType: 'player' | 'npc',
+    targetType: 'player' | 'npc',
+    npcId: string,
+    itemToMove: Item,
+    quantity: number,
+    currentState: GameState
+): GameState => {
+    const newState = JSON.parse(JSON.stringify(currentState));
+    const player = newState.playerCharacter as PlayerCharacter;
+    const npcIndex = newState.encounteredNPCs.findIndex((n: NPC) => n.NPCId === npcId);
+    if (npcIndex === -1) return currentState;
+    const npc = newState.encounteredNPCs[npcIndex] as NPC;
+
+    let sourceInventory, targetInventory;
+    if (sourceType === 'player') sourceInventory = player.inventory;
+    else sourceInventory = npc.inventory;
+
+    if (targetType === 'player') targetInventory = player.inventory;
+    else targetInventory = npc.inventory;
+
+    if (!sourceInventory) return currentState;
+    if (!targetInventory) { // Initialize target inventory if it doesn't exist
+        targetInventory = [];
+        if (targetType === 'npc') npc.inventory = [];
+    }
+    
+    const sourceItemIndex = sourceInventory.findIndex((i: Item) => i.existedId === itemToMove.existedId);
+    if (sourceItemIndex === -1) return currentState;
+
+    const sourceItem = sourceInventory[sourceItemIndex];
+    const validQuantity = Math.min(quantity, sourceItem.count);
+
+    // Create the item being moved
+    const movedItemStack = { ...sourceItem, count: validQuantity, existedId: generateId('item'), contentsPath: null };
+    
+    // Add to target
+    const existingTargetStackIndex = targetInventory.findIndex((i: Item) => i.name === movedItemStack.name && !i.equipmentSlot);
+    if (existingTargetStackIndex > -1) {
+        targetInventory[existingTargetStackIndex].count += validQuantity;
+    } else {
+        targetInventory.push(movedItemStack);
+    }
+
+    // Remove from source
+    sourceItem.count -= validQuantity;
+    if (sourceItem.count <= 0) {
+        // If item was equipped by source, unequip it
+        if (sourceType === 'player') {
+             Object.keys(player.equippedItems).forEach(slot => {
+                if (player.equippedItems[slot] === sourceItem.existedId) {
+                    player.equippedItems[slot] = null;
+                }
+            });
+        } else { // It's an NPC
+             Object.keys(npc.equippedItems || {}).forEach(slot => {
+                if (npc.equippedItems?.[slot] === sourceItem.existedId) {
+                    npc.equippedItems![slot] = null;
+                }
+            });
+        }
+        sourceInventory.splice(sourceItemIndex, 1);
+    }
+    
+    return newState;
+};
+
+export const equipItemForNpc = (npcId: string, itemToEquip: Item, slot: string, currentState: GameState): GameState => {
+    const newState = JSON.parse(JSON.stringify(currentState));
+    const npcIndex = newState.encounteredNPCs.findIndex((n: NPC) => n.NPCId === npcId);
+    if (npcIndex === -1) return currentState;
+    
+    const npc = newState.encounteredNPCs[npcIndex] as NPC;
+    
+    if (!npc.inventory) npc.inventory = [];
+    if (!npc.equippedItems) {
+        npc.equippedItems = {
+            Head: null, Neck: null, Chest: null, Back: null, MainHand: null, OffHand: null,
+            Hands: null, Wrists: null, Waist: null, Legs: null, Feet: null,
+            Finger1: null, Finger2: null
+        };
+    }
+    
+    const inventory = npc.inventory as Item[];
+
+    // --- UNEQUIP LOGIC ---
+    if (itemToEquip.requiresTwoHands && (slot === 'MainHand' || slot === 'OffHand')) {
+        npc.equippedItems.MainHand = null;
+        npc.equippedItems.OffHand = null;
+    } else {
+        const displacedItemId = npc.equippedItems[slot];
+        if (displacedItemId) {
+            const displacedItem = inventory.find(i => i.existedId === displacedItemId);
+            if (displacedItem && displacedItem.requiresTwoHands) {
+                npc.equippedItems.MainHand = null;
+                npc.equippedItems.OffHand = null;
+            } else {
+                npc.equippedItems[slot] = null;
+            }
+        }
+
+        if ((slot === 'MainHand' || slot === 'OffHand')) {
+            const otherHand = slot === 'MainHand' ? 'OffHand' : 'MainHand';
+            const otherHandItemId = npc.equippedItems[otherHand];
+            if (otherHandItemId) {
+                const otherHandItem = inventory.find(i => i.existedId === otherHandItemId);
+                if (otherHandItem && otherHandItem.requiresTwoHands) {
+                    npc.equippedItems.MainHand = null;
+                    npc.equippedItems.OffHand = null;
+                }
+            }
+        }
+    }
+
+    // --- EQUIP LOGIC ---
+    if (itemToEquip.requiresTwoHands && (slot === 'MainHand' || slot === 'OffHand')) {
+        npc.equippedItems.MainHand = itemToEquip.existedId;
+        npc.equippedItems.OffHand = itemToEquip.existedId;
+    } else {
+        npc.equippedItems[slot] = itemToEquip.existedId;
+    }
+    
+    return newState;
+};
+
+
+export const unequipItemForNpc = (npcId: string, itemToUnequip: Item, currentState: GameState): GameState => {
+    const newState = JSON.parse(JSON.stringify(currentState));
+    const npcIndex = newState.encounteredNPCs.findIndex((n: NPC) => n.NPCId === npcId);
+    if (npcIndex === -1) return currentState;
+    const npc = newState.encounteredNPCs[npcIndex] as NPC;
+    
+    if (!npc.equippedItems) return currentState;
+
+    Object.keys(npc.equippedItems).forEach(slot => {
+        if (npc.equippedItems?.[slot] === itemToUnequip.existedId) {
+            npc.equippedItems![slot] = null;
+        }
+    });
+    
+    return newState;
+};
+
+export const splitItemStackForNpc = (npcId: string, itemToSplit: Item, splitAmount: number, currentState: GameState): GameState => {
+    const newState = JSON.parse(JSON.stringify(currentState));
+    const npcIndex = newState.encounteredNPCs.findIndex((n: NPC) => n.NPCId === npcId);
+    if (npcIndex === -1) return currentState;
+    const npc = newState.encounteredNPCs[npcIndex] as NPC;
+    if (!npc.inventory) return currentState;
+
+    const originalItem = npc.inventory.find(i => i.existedId === itemToSplit.existedId);
+    if (!originalItem || originalItem.count <= splitAmount || splitAmount <= 0) {
+        return currentState; // Invalid split
+    }
+
+    // Create the new stack
+    const newItem: Item = JSON.parse(JSON.stringify(originalItem));
+    newItem.existedId = generateId('item');
+    newItem.count = splitAmount;
+    newItem.contentsPath = null; // New stacks appear at the root
+
+    // If the item has resources, the new stack is assumed to be of "full" items.
+    if (newItem.resource !== undefined && newItem.maximumResource !== undefined) {
+        newItem.resource = newItem.maximumResource;
+    }
+    npc.inventory.push(newItem);
+
+    // Update the original stack
+    originalItem.count -= splitAmount;
+
+    return newState;
+};
+
+export const mergeItemStacksForNpc = (npcId: string, sourceItem: Item, targetItem: Item, currentState: GameState): GameState => {
+    const newState = JSON.parse(JSON.stringify(currentState));
+    const npcIndex = newState.encounteredNPCs.findIndex((n: NPC) => n.NPCId === npcId);
+    if (npcIndex === -1) return currentState;
+    const npc = newState.encounteredNPCs[npcIndex] as NPC;
+    if (!npc.inventory) return currentState;
+
+    const sourceInInventory = npc.inventory.find(i => i.existedId === sourceItem.existedId);
+    const targetInInventory = npc.inventory.find(i => i.existedId === targetItem.existedId);
+
+    if (!sourceInInventory || !targetInInventory || sourceInInventory.existedId === targetInInventory.existedId) {
+        return currentState;
+    }
+
+    // Merge condition check
+    const canMerge = sourceInInventory.name === targetInInventory.name &&
+        !sourceInInventory.equipmentSlot && !targetInInventory.equipmentSlot &&
+        (sourceInInventory.resource === undefined ||
+            (sourceInInventory.resource === sourceInInventory.maximumResource && targetInInventory.resource === targetInInventory.maximumResource)
+        );
+
+    if (!canMerge) {
+        return currentState; // Cannot merge
+    }
+
+    // Perform merge
+    targetInInventory.count += sourceInInventory.count;
+    npc.inventory = npc.inventory.filter(i => i.existedId !== sourceInInventory.existedId);
 
     return newState;
 };

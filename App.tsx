@@ -1,12 +1,11 @@
 
-
 import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import ChatWindow from './components/ChatWindow';
 import InputBar from './components/InputBar';
 import SidePanel from './components/SidePanel';
 import InventoryScreen from './components/InventoryScreen';
 import { useGameLogic } from './hooks/useGameLogic';
-import { GameState, Item, WorldState, PlayerCharacter, ChatMessage, GameSettings, Quest, Location } from './types';
+import { GameState, Item, WorldState, PlayerCharacter, ChatMessage, GameSettings, Quest, Location, Wound } from './types';
 import { ChevronDoubleLeftIcon, PencilSquareIcon, CheckIcon, XMarkIcon } from '@heroicons/react/24/solid';
 import ImageRenderer from './components/ImageRenderer';
 import Modal from './components/Modal';
@@ -39,6 +38,7 @@ export default function App(): React.ReactNode {
     splitItemStack,
     mergeItemStacks,
     disassembleItem,
+    disassembleNpcItem,
     craftItem,
     moveFromStashToInventory,
     dropItemFromStash,
@@ -46,6 +46,7 @@ export default function App(): React.ReactNode {
     clearHalfHistory,
     deleteLogs,
     forgetNpc,
+    forgetFaction,
     clearNpcJournal,
     deleteOldestNpcJournalEntries,
     forgetLocation,
@@ -69,6 +70,7 @@ export default function App(): React.ReactNode {
     editNpcData,
     editQuestData,
     editItemData,
+    editFactionData,
     editLocationData,
     editPlayerData,
     saveGameToSlot,
@@ -90,15 +92,24 @@ export default function App(): React.ReactNode {
     clearAllHealedWounds,
     onRegenerateId,
     deleteCustomState,
+    deleteNpcCustomState,
+    deleteWorldStateFlag,
     updateNpcSortOrder,
     updateItemSortOrder,
     updateItemSortSettings,
+    updateNpcItemSortOrder,
+    updateNpcItemSortSettings,
+    handleTransferItem,
+    handleEquipItemForNpc,
+    handleUnequipItemForNpc,
+    handleSplitItemForNpc,
+    handleMergeItemsForNpc,
   } = useGameLogic({ language, setLanguage });
   const [hasStarted, setHasStarted] = useState(false);
   const [isInventoryOpen, setIsInventoryOpen] = useState(false);
-  const [messageModalContent, setMessageModalContent] = useState<string | null>(null);
+  const [messageModalState, setMessageModalState] = useState<{ title: string; content: string } | null>(null);
   const [imageModalPrompt, setImageModalPrompt] = useState<string | null>(null);
-  const [detailModalData, setDetailModalData] = useState<{ title: string; data: any } | null>(null);
+  const [detailModalStack, setDetailModalStack] = useState<{ title: string; data: any }[]>([]);
   const [editModalData, setEditModalData] = useState<{ index: number, message: ChatMessage } | null>(null);
   const [editContent, setEditContent] = useState('');
 
@@ -107,14 +118,16 @@ export default function App(): React.ReactNode {
   const [isResizing, setIsResizing] = useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
 
+  const currentDetailModal = useMemo(() => detailModalStack.length > 0 ? detailModalStack[detailModalStack.length - 1] : null, [detailModalStack]);
+
   useEffect(() => {
     // This effect ensures that the data shown in the detail modal is always fresh.
     // When gameState is updated (e.g., after regenerating an ID), this finds the
     // corresponding object in the new state and updates the modal's data,
     // triggering a re-render with the correct information.
-    if (!detailModalData || !gameState) return;
+    if (!currentDetailModal || !gameState) return;
 
-    const { data } = detailModalData;
+    const { data } = currentDetailModal;
     let updatedData = null;
 
     // Type guards to identify the entity
@@ -122,8 +135,39 @@ export default function App(): React.ReactNode {
     const isItem = data.existedId !== undefined;
     const isQuest = data.questId !== undefined;
     const isLocation = data.type === 'location';
+    const isWound = data.type === 'wound';
 
-    if (isNpc && Array.isArray(gameState.encounteredNPCs)) {
+    if (isWound) {
+        // Correctly find the wound in the current game state to get the fresh data.
+        let foundWound: Wound | undefined | null = null;
+        
+        const findWoundInList = (woundList?: Wound[]) => (woundList || []).find(w => 
+            (data.woundId && w.woundId === data.woundId) || 
+            // Fallback for new wounds from the current turn that might not have an ID yet
+            (!data.woundId && w.woundName === data.woundName && w.severity === data.severity)
+        );
+        
+        // Check player wounds first
+        foundWound = findWoundInList(gameState.playerCharacter.playerWounds);
+
+        // If not found, check all NPCs
+        if (!foundWound && Array.isArray(gameState.encounteredNPCs)) {
+            for (const npc of gameState.encounteredNPCs) {
+                foundWound = findWoundInList(npc.wounds);
+                if (foundWound) break;
+            }
+        }
+        
+        if (foundWound) {
+            // CRITICAL FIX: The `foundWound` from the game state does not have the `type` property.
+            // We must create a new object that combines the fresh data from the state
+            // with the essential `type: 'wound'` property from the original modal data.
+            updatedData = { ...foundWound, type: 'wound' };
+        } else {
+            // If no fresh data was found (e.g., wound was just removed), stick with the original data.
+            updatedData = data;
+        }
+    } else if (isNpc && Array.isArray(gameState.encounteredNPCs)) {
         updatedData = gameState.encounteredNPCs.find(npc => 
             (data.NPCId && npc.NPCId === data.NPCId) || // Find by existing ID first
             (!data.NPCId && npc.name === data.name)      // Fallback to name if original had no ID
@@ -148,10 +192,17 @@ export default function App(): React.ReactNode {
     }
 
     // Only update state if the found data is different, to prevent render loops.
-    if (updatedData && JSON.stringify(updatedData) !== JSON.stringify(data)) {
-        setDetailModalData(prev => (prev ? { ...prev, data: updatedData } : null));
+    // Add additional check to ensure updatedData is valid for wounds
+    if (updatedData && updatedData !== data && JSON.stringify(updatedData) !== JSON.stringify(data)) {
+        setDetailModalStack(prev => {
+            const newStack = [...prev];
+            if (newStack.length > 0) {
+                newStack[newStack.length - 1] = { ...newStack[newStack.length - 1], data: updatedData };
+            }
+            return newStack;
+        });
     }
-  }, [gameState, detailModalData, visitedLocations]);
+  }, [gameState, currentDetailModal, visitedLocations]);
 
   const toggleSidebar = useCallback(() => {
     setIsSidebarCollapsed(prev => !prev);
@@ -229,8 +280,8 @@ export default function App(): React.ReactNode {
     }
   };
 
-  const handleShowMessageModal = (content: string) => {
-    setMessageModalContent(content);
+  const handleShowMessageModal = (title: string, content: string) => {
+    setMessageModalState({ title, content });
   };
 
   const handleShowImageModal = (prompt: string | null) => {
@@ -239,9 +290,13 @@ export default function App(): React.ReactNode {
     }
   };
 
-  const handleOpenDetailModal = (title: string, data: any) => {
-    setDetailModalData({ title, data });
-  };
+  const handleOpenDetailModal = useCallback((title: string, data: any) => {
+    setDetailModalStack(prev => [...prev, { title, data }]);
+  }, []);
+  
+  const handleCloseDetailModal = useCallback(() => {
+    setDetailModalStack(prev => prev.slice(0, -1));
+  }, []);
   
   const handleShowEditModal = (index: number, message: ChatMessage) => {
     setEditModalData({ index, message });
@@ -255,10 +310,6 @@ export default function App(): React.ReactNode {
     }
   };
 
-
-  const handleCloseDetailModal = () => {
-    setDetailModalData(null);
-  };
 
   const lastPlayerMessage = useMemo(() => 
     gameHistory.slice().reverse().find(m => m.sender === 'player'),
@@ -395,7 +446,22 @@ export default function App(): React.ReactNode {
               clearAllHealedWounds={clearAllHealedWounds}
               onRegenerateId={onRegenerateId}
               deleteCustomState={deleteCustomState}
+              deleteNpcCustomState={deleteNpcCustomState}
+              deleteWorldStateFlag={deleteWorldStateFlag}
               updateNpcSortOrder={updateNpcSortOrder}
+              updateItemSortOrder={updateItemSortOrder}
+              updateItemSortSettings={updateItemSortSettings}
+              updateNpcItemSortOrder={updateNpcItemSortOrder}
+              updateNpcItemSortSettings={updateNpcItemSortSettings}
+              handleTransferItem={handleTransferItem}
+              handleEquipItemForNpc={handleEquipItemForNpc}
+              handleUnequipItemForNpc={handleUnequipItemForNpc}
+              handleSplitItemForNpc={handleSplitItemForNpc}
+              handleMergeItemsForNpc={handleMergeItemsForNpc}
+              forgetNpc={forgetNpc}
+              forgetFaction={forgetFaction}
+              forgetQuest={forgetQuest}
+              forgetLocation={forgetLocation}
             />
           )}
         </aside>
@@ -427,9 +493,9 @@ export default function App(): React.ReactNode {
           updateItemSortSettings={updateItemSortSettings}
         />
       )}
-       {messageModalContent && (
-        <Modal isOpen={true} onClose={() => setMessageModalContent(null)} title={t("Message Details")} showFontSizeControls={true}>
-            <MarkdownRenderer content={messageModalContent} />
+       {messageModalState && (
+        <Modal isOpen={true} onClose={() => setMessageModalState(null)} title={messageModalState.title} showFontSizeControls={true}>
+            <MarkdownRenderer content={messageModalState.content} />
         </Modal>
       )}
 
@@ -447,9 +513,9 @@ export default function App(): React.ReactNode {
             />
         </Modal>
       )}
-       <Modal isOpen={!!detailModalData} onClose={handleCloseDetailModal} title={detailModalData?.title || t('Details')}>
-        {detailModalData && <DetailRenderer 
-            data={detailModalData.data} 
+       <Modal isOpen={!!currentDetailModal} onClose={handleCloseDetailModal} title={currentDetailModal?.title || t('Details')}>
+        {currentDetailModal && <DetailRenderer 
+            data={currentDetailModal.data} 
             onForgetNpc={forgetNpc} 
             onForgetLocation={forgetLocation} 
             onClearNpcJournal={clearNpcJournal}
@@ -457,10 +523,12 @@ export default function App(): React.ReactNode {
             onForgetQuest={forgetQuest}
             onCloseModal={handleCloseDetailModal} 
             onOpenImageModal={handleShowImageModal}
+            onShowMessageModal={handleShowMessageModal}
             playerCharacter={gameState?.playerCharacter}
             setAutoCombatSkill={setAutoCombatSkill}
             onOpenDetailModal={handleOpenDetailModal}
             disassembleItem={disassembleItem}
+            disassembleNpcItem={disassembleNpcItem}
             currentLocationId={gameState?.currentLocationData?.locationId}
             allowHistoryManipulation={gameSettings?.allowHistoryManipulation ?? false}
             onEditNpcData={editNpcData}
@@ -468,6 +536,7 @@ export default function App(): React.ReactNode {
             onEditItemData={editItemData}
             onEditLocationData={editLocationData}
             onEditPlayerData={editPlayerData}
+            onEditFactionData={editFactionData}
             onRegenerateId={onRegenerateId}
             encounteredFactions={gameState?.encounteredFactions}
             gameSettings={gameSettings}
@@ -475,6 +544,16 @@ export default function App(): React.ReactNode {
             onImageGenerated={onImageGenerated}
             forgetHealedWound={forgetHealedWound}
             clearAllHealedWounds={clearAllHealedWounds}
+            visitedLocations={visitedLocations}
+            handleTransferItem={handleTransferItem}
+            handleEquipItemForNpc={handleEquipItemForNpc}
+            handleUnequipItemForNpc={handleUnequipItemForNpc}
+            handleSplitItemForNpc={handleSplitItemForNpc}
+            handleMergeItemsForNpc={handleMergeItemsForNpc}
+            updateNpcItemSortOrder={updateNpcItemSortOrder}
+            updateNpcItemSortSettings={updateNpcItemSortSettings}
+            deleteNpcCustomState={deleteNpcCustomState}
+            deleteWorldStateFlag={deleteWorldStateFlag}
             />}
       </Modal>
 

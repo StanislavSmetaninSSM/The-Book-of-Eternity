@@ -1,4 +1,5 @@
 
+
 import React, { useMemo, useState } from 'react';
 import { Location, LocationData, PlayerCharacter, AdjacencyMapEntry } from '../../types';
 import { DetailRendererProps } from './types';
@@ -10,7 +11,7 @@ import ImageRenderer from '../ImageRenderer';
 import { useLocalization } from '../../context/LocalizationContext';
 import {
     InformationCircleIcon, MapPinIcon, ExclamationTriangleIcon, GlobeAltIcon, SunIcon, BuildingOfficeIcon,
-    HomeModernIcon, ClockIcon, LinkIcon, CogIcon, TrashIcon, BookOpenIcon, FireIcon, UserGroupIcon, ChevronDownIcon, ChevronUpIcon
+    HomeModernIcon, ClockIcon, LinkIcon, CogIcon, TrashIcon, BookOpenIcon, FireIcon, UserGroupIcon, ChevronDownIcon, ChevronUpIcon, PhotoIcon
 } from '@heroicons/react/24/outline';
 import LocationEventsModal from './Shared/LocationEventsModal';
 
@@ -100,7 +101,7 @@ const LocationDetailsRenderer: React.FC<LocationDetailsProps> = ({ location, onO
     const isCurrentLocation = location.locationId === currentLocationId;
     const isRealLocation = location.locationId && !location.locationId.startsWith('undiscovered-');
 
-    const events = useMemo(() => location.lastEventsDescription ? location.lastEventsDescription.split('\n\n').filter(e => e.trim()) : [], [location.lastEventsDescription]);
+    const events = useMemo(() => location.lastEventsDescription ? location.lastEventsDescription.split('\n\n').filter(e => e.trim()) : [], [location.lastEventsDescription]);    
     
     const handleSaveEvents = (newEvents: string[]) => {
       if (location?.locationId) {
@@ -108,18 +109,35 @@ const LocationDetailsRenderer: React.FC<LocationDetailsProps> = ({ location, onO
           onEditLocationData(location.locationId, 'lastEventsDescription', newEventsString);
       }
     };
+    
+    const imagePrompt = location.custom_image_prompt || location.image_prompt || `A detailed fantasy art image of a ${location.name}.`;
 
 
     return (
         <>
             <div className="space-y-4">
                 {location.image_prompt && (
-                    <div className="w-full h-48 rounded-lg overflow-hidden mb-4 bg-gray-900 group relative cursor-pointer" onClick={() => onOpenImageModal?.(location.image_prompt)}>
-                        <ImageRenderer prompt={location.image_prompt} alt={location.name} imageCache={imageCache} onImageGenerated={onImageGenerated} />
+                    <div className="w-full h-48 rounded-lg overflow-hidden mb-4 bg-gray-900 group relative cursor-pointer" onClick={() => onOpenImageModal?.(imagePrompt)}>
+                        <ImageRenderer prompt={imagePrompt} alt={location.name} imageCache={imageCache} onImageGenerated={onImageGenerated} />
                         <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                             <p className="text-white font-bold text-lg">{t('Enlarge')}</p>
                         </div>
                     </div>
+                )}
+                {allowHistoryManipulation && onEditLocationData && (
+                     <Section title={t("Custom Image Prompt")} icon={PhotoIcon}>
+                        <EditableField 
+                            label={t("Image Prompt")}
+                            value={location.custom_image_prompt || ''}
+                            isEditable={true}
+                            onSave={(val) => { if (location.locationId) onEditLocationData(location.locationId, 'custom_image_prompt', val) }}
+                            as="textarea"
+                        />
+                        <p className="text-xs text-gray-400 mt-2">
+                            <strong>{t("Default prompt from AI:")}</strong> 
+                            {location.image_prompt}
+                        </p>
+                     </Section>
                 )}
                  <div className="text-xl font-bold">
                     <EditableField 

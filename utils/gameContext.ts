@@ -1,7 +1,5 @@
 
-
-
-import { GameState, GameContext, ChatMessage, GameResponse, PlayerCharacter, LocationData, Characteristics, Location, Faction, Language, LootTemplate, UnlockedMemory, Recipe, Item, WorldStateFlag, SkillMastery, GameSettings, WorldState } from '../types';
+import { GameState, GameContext, ChatMessage, GameResponse, PlayerCharacter, LocationData, Characteristics, Location, Faction, Language, LootTemplate, UnlockedMemory, Recipe, Item, WorldStateFlag, SkillMastery, GameSettings, WorldState, NPC, Effect } from '../types';
 import { gameData } from './localizationGameData';
 import { generateLootTemplates } from './lootGenerator';
 
@@ -20,7 +18,7 @@ const BIOME_WEATHER: Record<string, string[]> = {
     Unique: ['Clear', 'Cloudy', 'Rain', 'Storm', 'Snow', 'Foggy'], // a generic fallback
 };
 
-export function recalculateDerivedStats(pc: PlayerCharacter): PlayerCharacter {
+export function recalculateDerivedStats<T extends PlayerCharacter | NPC>(pc: T): T {
   const newPc = JSON.parse(JSON.stringify(pc)); // Work on a copy
   
   const stdStr = newPc.characteristics.standardStrength;
@@ -30,11 +28,14 @@ export function recalculateDerivedStats(pc: PlayerCharacter): PlayerCharacter {
   const stdFth = newPc.characteristics.standardFaith;
   const stdLck = newPc.characteristics.standardLuck;
 
-  newPc.maxHealth = 100 + Math.floor(stdCon * 1.5) + Math.floor(stdStr * 0.5);
-  newPc.maxEnergy = 100 + Math.floor(stdInt * 0.6) + Math.floor(stdWis * 0.6) + Math.floor(stdFth * 0.6) + Math.floor(stdCon * 0.2);
+  newPc.maxHealth = 100 + Math.floor(stdCon * 2.0) + Math.floor(stdStr * 1.0);
+  newPc.maxEnergy = 100 + Math.floor(stdCon * 0.75) + Math.floor(stdInt * 0.75) + Math.floor(stdWis * 0.75) + Math.floor(stdFth * 0.75);
   newPc.maxWeight = 30 + Math.floor(stdStr * 1.8 + stdCon * 0.4);
   newPc.critChanceBuffFromLuck = Math.floor(stdLck / 20);
   newPc.critChanceThreshold = 20 - newPc.critChanceBuffFromLuck;
+  
+  if (newPc.currentHealth === undefined) newPc.currentHealth = newPc.maxHealth;
+  if (newPc.currentEnergy === undefined) newPc.currentEnergy = newPc.maxEnergy;
 
   newPc.currentHealth = Math.min(newPc.currentHealth, newPc.maxHealth);
   newPc.currentEnergy = Math.min(newPc.currentEnergy, newPc.maxEnergy);
@@ -50,9 +51,9 @@ export function recalculateDerivedStats(pc: PlayerCharacter): PlayerCharacter {
     let percentageBonusTotal = 0;
 
     // 1. Bonuses from equipped items (flat)
-    Object.values(newPc.equippedItems).forEach((itemId: string | null) => {
+    Object.values(newPc.equippedItems || {}).forEach((itemId: string | null) => {
         if (!itemId) return;
-        const item = newPc.inventory.find((i: Item) => i.existedId === itemId);
+        const item = (newPc.inventory || []).find((i: Item) => i.existedId === itemId);
         if (!item) return;
 
         // Prioritize new structuredBonuses for mechanics
@@ -81,7 +82,7 @@ export function recalculateDerivedStats(pc: PlayerCharacter): PlayerCharacter {
     });
 
     // 2. Bonuses from passive skills (flat)
-    newPc.passiveSkills.forEach((skill: any) => {
+    (newPc.passiveSkills || []).forEach((skill: any) => {
         if (skill.playerStatBonus) {
             const match = skill.playerStatBonus.match(/^([+-]?\d+)\s+(.+)$/);
             if (match && match[2].toLowerCase() === char) {
@@ -91,7 +92,7 @@ export function recalculateDerivedStats(pc: PlayerCharacter): PlayerCharacter {
     });
 
     // 3. Bonuses from temporary effects (percentage)
-    newPc.activePlayerEffects.forEach((effect: any) => {
+    (newPc.activePlayerEffects || []).forEach((effect: any) => {
         if ((effect.effectType === 'Buff' || effect.effectType === 'Debuff') && effect.targetType === char) {
             if (typeof effect.value === 'string' && effect.value.includes('%')) {
                 const percentageValue = parseInt(effect.value.replace('%', ''));
@@ -248,8 +249,8 @@ export const createInitialContext = (creationData: any, language: Language): Gam
   const stdFth = standardCharacteristics.standardFaith;
   const stdLck = standardCharacteristics.standardLuck;
 
-  const maxHealth = 100 + Math.floor(stdCon * 1.5) + Math.floor(stdStr * 0.5);
-  const maxEnergy = 100 + Math.floor(stdInt * 0.6) + Math.floor(stdWis * 0.6) + Math.floor(stdFth * 0.6) + Math.floor(stdCon * 0.2);
+  const maxHealth = 100 + Math.floor(stdCon * 2.0) + Math.floor(stdStr * 1.0);
+  const maxEnergy = 100 + Math.floor(stdCon * 0.75) + Math.floor(stdInt * 0.75) + Math.floor(stdWis * 0.75) + Math.floor(stdFth * 0.75);
   const maxWeight = 30 + Math.floor(stdStr * 1.8 + stdCon * 0.4);
   const critChanceBuffFromLuck = Math.floor(stdLck / 20);
   const critChanceThreshold = 20 - critChanceBuffFromLuck;

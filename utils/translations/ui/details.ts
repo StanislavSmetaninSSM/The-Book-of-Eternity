@@ -1,3 +1,4 @@
+
 export const details = {
   en: {
     // Common Detail View Titles
@@ -99,8 +100,8 @@ export const details = {
     "Benefits": "Benefits",
 
     // Descriptions
-    "primary_stat_description_health": "Health reflects your vitality and ability to withstand damage. When it reaches zero, you fall unconscious or die. It is calculated based on Constitution and Strength.",
-    "primary_stat_description_energy": "Energy is required to use skills and perform strenuous actions. It represents your stamina and mental focus. It is calculated based on Intelligence, Wisdom, Faith, and Constitution.",
+    "primary_stat_description_health": "Determines your maximum health pool, starting at a base of 100%. It is primarily increased by your standard Constitution, representing raw toughness, with a significant contribution from standard Strength, reflecting muscular resilience. With 100 points in both relevant characteristics, the value reaches a maximum of 400%. This parameter is not influenced by items or temporary effects.",
+    "primary_stat_description_energy": "Determines your maximum energy pool for performing skills and strenuous actions, starting at a base of 100%. It is equally and significantly increased by all four core vitality and mental characteristics: standard Constitution, Intelligence, Wisdom, and Faith. This ensures that both physically resilient and mentally adept characters have a substantial energy pool. With 100 points in all four relevant characteristics, the value reaches a maximum of 400%. This parameter is not influenced by items or temporary effects.",
     "primary_stat_description_experience": "Experience Points (XP) are gained for successful actions, completing quests, and overcoming challenges. Accumulating enough XP allows you to level up.",
     "primary_stat_description_weight": "Shows how much your gear weighs. If the total weight exceeds your Maximum Weight (calculated from Strength and Constitution), you become encumbered and lose more energy.",
     "primary_stat_description_money": "Your wealth. Used to purchase items and services.",
@@ -255,8 +256,8 @@ export const details = {
     "Benefits": "Преимущества",
 
     // Descriptions
-    "primary_stat_description_health": "Здоровье отражает вашу жизненную силу и способность выдерживать урон. Когда оно достигает нуля, вы теряете сознание или умираете. Рассчитывается на основе Телосложения и Силы.",
-    "primary_stat_description_energy": "Энергия необходима для использования навыков и выполнения утомительных действий. Она представляет вашу выносливость и умственную концентрацию. Рассчитывается на основе Интеллекта, Мудрости, Веры и Телосложения.",
+    "primary_stat_description_health": "Определяет ваш максимальный запас здоровья, начиная с базовых 100%. В основном увеличивается за счет вашего стандартного Телосложения, отражающего общую выносливость, со значительным вкладом от стандартной Силы, отражающей мышечную стойкость. При 100 очках в обеих характеристиках значение достигает максимума в 400%. Этот параметр не зависит от предметов или временных эффектов.",
+    "primary_stat_description_energy": "Определяет ваш максимальный запас энергии для использования навыков и выполнения напряженных действий, начиная с базовых 100%. Он в равной и значительной степени увеличивается за счет всех четырех основных жизненных и ментальных характеристик: стандартного Телосложения, Интеллекта, Мудрости и Веры. Это гарантирует, что как физически выносливые, так и умственно одаренные персонажи имеют значительный запас энергии. При 100 очках во всех четырех характеристиках значение достигает максимума в 400%. Этот параметр не зависит от предметов или временных эффектов.",
     "primary_stat_description_experience": "Очки опыта (XP) вы получаете за успешные действия, выполнение квестов и преодоление трудностей. Накопив достаточно XP, вы повышаете свой уровень.",
     "primary_stat_description_weight": "Показывает, сколько весит ваше снаряжение. Если общий вес превысит ваш Максимальный вес (рассчитывается из Силы и Телосложения), вы станете перегруженным и будете терять больше энергии.",
     "primary_stat_description_money": "Ваше богатство. Используется для покупки предметов и услуг.",
