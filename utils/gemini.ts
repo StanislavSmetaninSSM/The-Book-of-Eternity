@@ -64,7 +64,7 @@ async function callOpenRouter(prompt: string, context: GameContext, signal?: Abo
                         const errorBody = await response.text();
                         throw new Error(`OpenRouter API error: ${response.status} ${response.statusText} - ${errorBody}`);
                     }
-                    
+
                     if (!response.body) {
                         throw new Error("Response body is null");
                     }
@@ -83,7 +83,7 @@ async function callOpenRouter(prompt: string, context: GameContext, signal?: Abo
                         if (done) break;
 
                         buffer += decoder.decode(value, { stream: true });
-                        
+
                         const lines = buffer.split('\n');
                         buffer = lines.pop() || ''; // Keep the last, possibly incomplete, line
 
@@ -108,7 +108,7 @@ async function callOpenRouter(prompt: string, context: GameContext, signal?: Abo
                             }
                         }
                     }
-                    
+
                     const parsedResponse = JSON.parse(aggregatedText);
 
                     if (parsedResponse.regenerationRequired === true) {
@@ -141,7 +141,7 @@ async function callOpenRouter(prompt: string, context: GameContext, signal?: Abo
                     }
                 }
             }
-            
+
             console.error("All syntax correction attempts failed. Throwing the last encountered error.");
             if (lastError instanceof SyntaxError) {
                 throw new Error(translate(lang, 'failedToParseGmResponseMultiple', { attempts: MAX_SYNTAX_RETRIES, message: lastError.message }));
@@ -168,11 +168,11 @@ async function callOpenRouter(prompt: string, context: GameContext, signal?: Abo
 
 
 export async function callGenerativeApi(
-    prompt: string, 
+    prompt: string,
     context: GameContext,
-    signal?: AbortSignal, 
-    onChunk?: (chunkText: string) => void, 
-    modelName?: string, 
+    signal?: AbortSignal,
+    onChunk?: (chunkText: string) => void,
+    modelName?: string,
     aiProvider: string = 'gemini',
     apiKey?: string,
 ): Promise<any> {
@@ -183,7 +183,7 @@ export async function callGenerativeApi(
     if (aiProvider === 'openrouter') {
         return callOpenRouter(prompt, context, signal, onChunk, modelName, apiKey);
     }
-    
+
     // Gemini with retry logic for SYNTAX CORRECTION
     const MAX_SYNTAX_RETRIES = 10;
     const MAX_SERVER_ERROR_RETRIES = 5;
@@ -203,7 +203,7 @@ export async function callGenerativeApi(
                         throw new Error(translate(lang, 'geminiApiKeyMissing'));
                     }
                     const ai = new GoogleGenAI({ apiKey: finalApiKey });
-                    
+
                     const config: any = {
                         responseMimeType: "application/json",
                     };
@@ -211,8 +211,8 @@ export async function callGenerativeApi(
                     if (context.gameSettings?.adultMode) {
                         config.systemInstruction = getAdultPrompt();
                     }
-                    
-                    if (context.gameSettings?.aiProvider === 'gemini' && modelForAttempt.includes('flash')) {
+
+                    if (context.gameSettings?.aiProvider === 'gemini') {
                         if (context.gameSettings.useDynamicThinkingBudget === false) {
                             config.thinkingConfig = { thinkingBudget: context.gameSettings.geminiThinkingBudget };
                         }
@@ -235,7 +235,7 @@ export async function callGenerativeApi(
                             onChunk(aggregatedText);
                         }
                     }
-                    
+
                     const parsedResponse = JSON.parse(aggregatedText);
 
                     if (parsedResponse.regenerationRequired === true) {
@@ -252,7 +252,7 @@ export async function callGenerativeApi(
                         serverError.name = 'ServerError';
                         throw serverError;
                     }
-                    
+
                     if (error.name === 'AbortError' || error.name === 'RegenerationRequiredError' || error.name === 'ServerError') {
                         throw error;
                     }
@@ -275,14 +275,14 @@ export async function callGenerativeApi(
                     }
                 }
             }
-            
+
             console.error("All syntax correction attempts failed. Throwing the last encountered error.");
             if (lastError instanceof SyntaxError) {
                 throw new Error(translate(lang, 'failedToParseGmResponseMultiple', { attempts: MAX_SYNTAX_RETRIES, message: lastError.message }));
             }
             throw lastError || new Error('Unknown error in callGenerativeApi after syntax retries.');
         } catch (error: any) {
-             if (error.name === 'ServerError') {
+            if (error.name === 'ServerError') {
                 if (serverAttempt < MAX_SERVER_ERROR_RETRIES) {
                     const delay = 1000 * serverAttempt;
                     console.log(`Server returned 5xx-class error. Retrying in ${delay}ms... (Attempt ${serverAttempt + 1}/${MAX_SERVER_ERROR_RETRIES})`);
