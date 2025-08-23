@@ -1264,6 +1264,12 @@ export const getGameMasterGuideRules = (configuration) => {
                 Structure: { 'tendency': string, 'description': string }.
                 The 'tendency' value MUST be one of the exact strings from the predefined list in 'InstructionBlock id='27'.",
 
+                "setWorldTime": "(object or null)
+                A high-priority command to directly set the world's clock to a specific moment. This overrides any incremental 'timeChange'.
+                Use this for significant time skips, flashbacks, or time travel scenarios.
+                Structure: { 'day': integer, 'minutesIntoDay': integer }.
+                If used, 'day' is the new day number, and 'minutesIntoDay' is the total number of minutes from the start of that day (0 for midnight, 720 for noon).",
+
                 "image_prompt": "(string) 
                 Main scene image prompt (max 150 chars, English, character not visible).",
                
@@ -1275,8 +1281,16 @@ export const getGameMasterGuideRules = (configuration) => {
                 A new race name if the player character's race has changed this turn due to a major plot event.
                 If no change, this is null.",
                 
+                "playerRaceDescriptionChange": "(string or null)
+                A new, full description for the player character's race if it has been fundamentally altered or revealed in a new light due to a major plot event.
+                If no change, this is null.",
+
                 "playerClassChange": "(string or null) 
                 A new class name if the player character's class has changed this turn due to a major plot event.
+                If no change, this is null.",
+
+                "playerClassDescriptionChange": "(string or null)
+                A new, full description for the player character's class if their role or the nature of their abilities has been fundamentally altered by a major plot event.
                 If no change, this is null.",
 
                 "playerAutoCombatSkillChange": "(string, OPTIONAL) 
@@ -22963,6 +22977,223 @@ export const getGameMasterGuideRules = (configuration) => {
                     </Example>
                 </Examples>
             </Rule>
+        </Content>
+    </InstructionBlock>
+
+    <InstructionBlock id="23.A">
+        <Title>Core World and Character Data Override Protocols</Title>
+        <Description>
+            This section defines the rules for high-priority commands that directly manipulate core game state data, such as world time and fundamental character descriptions. 
+            These commands are typically triggered by major plot events or explicit player/GM directives.
+        </Description>
+        <Content type="ruleset">
+
+            <Rule id="23.A.1">
+                <Title>Managing Direct Time Manipulation ('setWorldTime')</Title>
+                <Description>This rule governs the use of the 'setWorldTime' command, which allows for direct, non-incremental changes to the game's clock.</Description>
+                <InstructionText>
+                    <![CDATA[
+
+                    This is a high-priority command and should be used sparingly. It overrides the standard incremental 'timeChange' for the turn.
+                    You MUST use this command ONLY under the following conditions:
+
+                    1.  A major plot event causes a significant time skip (e.g., a magical slumber, a long journey montage, time travel).
+                    2.  The player explicitly uses a meta-command to fast-forward or rewind time (if this functionality is intended).
+
+                    ]]>
+                </InstructionText>
+                <Content type="rule_text">
+                    <![CDATA[
+
+                    1.  Identify Trigger: Determine if a major plot event or an explicit command necessitates a direct time set.
+                    
+                    2.  Determine New Time: The plot or command will specify the new time. 
+                        You must translate this into the required format:
+                        - 'day': The new day number (integer).
+                        - 'minutesIntoDay': The total number of minutes into that day (e.g., 0 for midnight, 720 for noon, 1320 for 10 PM).
+
+                    3.  JSON Reporting: Populate the 'setWorldTime' object in the JSON response with the determined 'day' and 'minutesIntoDay'.
+
+                    4.  Logging: In 'items_and_stat_calculations', you MUST log the reason for the time jump and the new time being set.
+
+                    5.  Narrative Consistency: The 'response' text MUST reflect the new time of day and any consequences of the time skip.
+
+                    ]]>
+                </Content>
+                <Examples>
+                    <Example type="good" contentType="log_and_json_snippet">
+                        <Title>Example: Player emerges from a 3-day magical coma.</Title>
+                        <ScenarioContext>Player was put into a magical sleep. The plot dictates they wake up 3 days later, in the morning.</ScenarioContext>
+                        <LogOutput target="items_and_stat_calculations">
+                            <![CDATA[
+
+                            Plot Event: Player awakens from a 3-day magical coma.
+                            Action: Setting world time directly.
+                            - Current Day (from Context): 15. New Day: 18.
+                            - New Time of Day: Morning. Setting minutesIntoDay to 480 (8:00 AM).
+
+                            ]]>
+                        </LogOutput>
+                        <JsonResponse>
+                            <setWorldTime>
+                                <![CDATA[
+
+                                { "day": 18, "minutesIntoDay": 480 }
+
+                                ]]>
+                            </setWorldTime>
+                            <response>
+                                <![CDATA[
+
+                                You awake with a gasp, the world rushing back in a blur. 
+                                The light filtering through the window is bright morning sun, but looking outside, you realize the leaves on the trees have changed. 
+                                A calendar on the wall confirms your fear: three days have passed since you fell into that enchanted sleep.
+                                
+                                ]]>
+                            </response>
+                        </JsonResponse>
+                    </Example>
+                </Examples>
+            </Rule>
+
+            <Rule id="23.A.2">
+                <Title>Managing Player Race Description ('playerRaceDescriptionChange')</Title>
+                <Description>
+                    This rule applies when the narrative or details of the player's race are fundamentally altered, even if the race name itself does not change.
+                </Description>
+                <InstructionText>
+                    <![CDATA[
+
+                    Use this field for deep narrative shifts that redefine what the character's race means. 
+                    This is not for minor appearance changes like scars (which use 'playerAppearanceChange').
+                    Trigger this ONLY for major plot revelations or transformations.
+
+                    ]]>
+                </InstructionText>
+                <Content type="rule_text">
+                    <![CDATA[
+
+                    1.  Triggering Conditions:
+                        - A major plot event reveals a hidden aspect of the character's heritage 
+                        (e.g., they learn their "Human" lineage is actually descended from ancient dragon-bloods, altering their racial description).
+                        - A magical or physical transformation alters their racial traits without changing the race name itself 
+                        (e.g., becoming an "Ash-touched" version of their race after surviving a volcano).
+                    
+                    2.  Content: 
+                    The 'playerRaceDescriptionChange' field MUST contain the NEW, complete, and detailed description of the race, incorporating the recent changes.
+                    
+                    3.  Reporting: 
+                    If triggered, populate the 'playerRaceDescriptionChange' key with the new string. 
+                    If not triggered, this key MUST be 'null'.
+                    
+                    4.  Logging and Narrative: 
+                    Log the reason for the change in 'items_and_stat_calculations' and ensure the 'response' narrates this profound change to the player.
+                    
+                    ]]>
+                </Content>
+                <Examples>
+                    <Example type="good" contentType="log_and_json_snippet">
+                        <Title>Example: Player discovers their true Elven heritage.</Title>
+                        <ScenarioContext>Player, an Elf, learns they are a rare "Moon Elf", not a "Wood Elf".</ScenarioContext>
+                        <LogOutput target="items_and_stat_calculations">
+                            <![CDATA[
+
+                            Plot Event: Player discovered their Moon Elf heritage.
+                            Action: Updating player's race description to reflect new lore and traits.
+
+                            ]]>
+                        </LogOutput>
+                        <JsonResponse>
+                            <playerRaceDescriptionChange>
+                                <![CDATA[
+
+                                Moon Elves are a reclusive and mystical lineage, known for their silvery hair and an innate connection to lunar magic.
+                                They are often more cerebral and less wild than their Wood Elf cousins, possessing a natural affinity for illusion and divination.
+                                
+                                ]]>
+                            </playerRaceDescriptionChange>
+                            <response>
+                                <![CDATA[
+                                
+                                    The ancient text resonates with your blood. The title "Wood Elf" suddenly feels like an ill-fitting cloak. 
+                                    You are a child of the moon, and with this realization, you feel a subtle shift in your perception of the world, as if seeing the hidden moonlight in all things.
+                                
+                                ]]>
+                            </response>
+                        </JsonResponse>
+                    </Example>
+                </Examples>
+            </Rule>
+
+            <Rule id="23.A.3">
+                <Title>Managing Player Class Description ('playerClassDescriptionChange')</Title>
+                <Description>
+                    This rule applies when the player's understanding or the nature of their class evolves narratively, even if the class name does not change.
+                </Description>
+                <InstructionText>
+                    <![CDATA[
+
+                    Use this field for significant character development that re-contextualizes their class. 
+                    This is not for gaining a new skill, but for a shift in the class's core philosophy or power source.
+                    
+                    ]]>
+                </InstructionText>
+                <Content type="rule_text">
+                    <![CDATA[
+
+                    1.  Triggering Conditions:
+                        - A character's philosophical alignment shifts, changing how they apply their skills 
+                        (e.g., a "Warrior" dedicates themselves to a vow of protection, becoming a "Guardian" in spirit).
+                        - A character discovers a new source of power for their abilities 
+                        (e.g., a "Mage" begins to draw power from a darker, forbidden source, altering the nature of their magic).
+                    
+                    2.  Content: 
+                    The 'playerClassDescriptionChange' field MUST contain the NEW, complete, and detailed description of the class, reflecting this evolution.
+                    
+                    3.  Reporting: 
+                    If triggered, populate the 'playerClassDescriptionChange' key. Otherwise, it MUST be 'null'.
+                    
+                    4.  Logging and Narrative: 
+                    Log the reason for the change and narrate the character's internal transformation in the 'response'.
+
+                    ]]>
+                </Content>
+                <Examples>
+                    <Example type="good" contentType="log_and_json_snippet">
+                        <Title>Example: A Warrior becomes a protector.</Title>
+                        <ScenarioContext>After saving a village, the player's Warrior character decides their purpose is to defend the innocent.</ScenarioContext>
+                        <LogOutput target="items_and_stat_calculations">
+                            <![CDATA[
+
+                            Character Development: The Warrior has adopted a protective philosophy.
+                            Action: Updating the class description from a focus on martial prowess to one of guardianship.
+
+                            ]]>
+                        </LogOutput>
+                        <JsonResponse>
+                            <playerClassDescriptionChange>
+                                <![CDATA[
+
+                                No longer just a wielder of arms for coin or glory, the Warrior has become a steadfast Guardian. 
+                                Their techniques are now honed not just for victory, but for the unwavering defense of those who cannot defend themselves. 
+                                They are a shield for the weak and a bulwark against the darkness.
+                                
+                                ]]>
+                            </playerClassDescriptionChange>
+                            <response>
+                                <![CDATA[
+
+                                As you watch the villagers begin to rebuild, you feel a shift within you. 
+                                The thrill of battle seems a distant memory, replaced by a profound sense of duty. 
+                                Your sword hand no longer feels eager for a fight, but steady and ready to protect.
+                                
+                                ]]>
+                            </response>
+                        </JsonResponse>
+                    </Example>
+                </Examples>
+            </Rule>
+
         </Content>
     </InstructionBlock>
 

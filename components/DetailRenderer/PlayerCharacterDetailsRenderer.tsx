@@ -1,9 +1,9 @@
+
 import React from 'react';
 import { PlayerCharacter } from '../../types';
 import { DetailRendererProps } from './types';
 import Section from './Shared/Section';
 import EditableField from './Shared/EditableField';
-import MarkdownRenderer from '../MarkdownRenderer';
 import { useLocalization } from '../../context/LocalizationContext';
 import { UserIcon, TagIcon, AcademicCapIcon } from '@heroicons/react/24/outline';
 
@@ -25,12 +25,22 @@ const PlayerCharacterDetailsRenderer: React.FC<PlayerCharacterDetailsProps> = ({
             </Section>
             {character.raceDescription && (
             <Section title={t("Race Description")} icon={TagIcon}>
-                <MarkdownRenderer content={t(character.raceDescription as any)} />
+                <EditableField 
+                    label={t('Race Description')}
+                    value={character.raceDescription}
+                    isEditable={allowHistoryManipulation}
+                    onSave={(val) => onEditPlayerData('raceDescription', val)}
+                />
             </Section>
             )}
             {character.classDescription && (
             <Section title={t("Class Description")} icon={AcademicCapIcon}>
-                <MarkdownRenderer content={t(character.classDescription as any)} />
+                 <EditableField 
+                    label={t('Class Description')}
+                    value={character.classDescription}
+                    isEditable={allowHistoryManipulation}
+                    onSave={(val) => onEditPlayerData('classDescription', val)}
+                />
             </Section>
             )}
         </div>

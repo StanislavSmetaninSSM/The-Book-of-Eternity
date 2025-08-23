@@ -1,4 +1,3 @@
-
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { GameState, GameContext, ChatMessage, GameResponse, LocationData, Item, NPC, SaveFile, Location, PlayerCharacter, WorldState, GameSettings, Quest, Faction, PlotOutline, Language, DBSaveSlotInfo, Wound, CustomState, WorldStateFlag, UnlockedMemory } from '../types';
 import { executeTurn, askGmQuestion, getMusicSuggestionFromAi, getModelForStep } from '../utils/gameApi';
@@ -409,7 +408,7 @@ export function useGameLogic({ language, setLanguage }: UseGameLogicProps) {
     if (!gameContextRef.current?.enemiesDataForCurrentTurn || gameContextRef.current.enemiesDataForCurrentTurn.length === 0) {
         setCombatLog([]);
     }
-    setGameLog([]);
+    // setGameLog([]); // Omitted to preserve log during questions
     setLastJsonResponse('');
     setSuggestedActions([]);
     abortControllerRef.current = new AbortController();
@@ -441,7 +440,7 @@ export function useGameLogic({ language, setLanguage }: UseGameLogicProps) {
 
         setLastJsonResponse(JSON.stringify(response, null, 2));
         if (response.items_and_stat_calculations) {
-            setGameLog(response.items_and_stat_calculations);
+            setGameLog(prev => [...prev, ...asArray(response.items_and_stat_calculations)]);
         }
         setSceneImagePrompt(response.image_prompt);
         setSuggestedActions(response.dialogueOptions || []);
@@ -934,6 +933,47 @@ export function useGameLogic({ language, setLanguage }: UseGameLogicProps) {
     });
   }, [gameSettings]);
   
+  const editWorldState = useCallback((day: number, time: string) => {
+    if (!gameContextRef.current || !worldState || !gameSettings?.allowHistoryManipulation) return;
+
+    const [hours, minutes] = time.split(':').map(Number);
+    if (isNaN(hours) || isNaN(minutes)) return;
+
+    const minutesIntoDay = hours * 60 + minutes;
+    const totalMinutes = ((day - 1) * 24 * 60) + minutesIntoDay;
+    
+    let timeOfDay: WorldState['timeOfDay'] = 'Night';
+    if (minutesIntoDay >= 5 * 60 && minutesIntoDay < 12 * 60) timeOfDay = 'Morning';
+    else if (minutesIntoDay >= 12 * 60 && minutesIntoDay < 18 * 60) timeOfDay = 'Afternoon';
+    else if (minutesIntoDay >= 18 * 60 && minutesIntoDay < 22 * 60) timeOfDay = 'Evening';
+
+    const newWorldState: WorldState = {
+        ...worldState,
+        day: day,
+        currentTimeInMinutes: totalMinutes,
+        timeOfDay: timeOfDay,
+    };
+    
+    setWorldState(newWorldState);
+    if (gameContextRef.current) {
+        gameContextRef.current.worldState = newWorldState;
+    }
+  }, [worldState, gameSettings]);
+
+  const editWeather = useCallback((newWeather: string) => {
+    if (!gameContextRef.current || !worldState || !gameSettings?.allowHistoryManipulation) return;
+
+    const newWorldState: WorldState = {
+        ...worldState,
+        weather: newWeather,
+    };
+    
+    setWorldState(newWorldState);
+    if (gameContextRef.current) {
+        gameContextRef.current.worldState = newWorldState;
+    }
+  }, [worldState, gameSettings]);
+
   const onEditNpcMemory = useCallback((npcId: string, memoryToUpdate: UnlockedMemory) => {
     if (!gameSettings?.allowHistoryManipulation) return;
     setGameState(prevState => {
@@ -1605,6 +1645,8 @@ export function useGameLogic({ language, setLanguage }: UseGameLogicProps) {
     editFactionData,
     editLocationData,
     editPlayerData,
+    editWorldState,
+    editWeather,
     saveGameToSlot,
     loadGameFromSlot,
     deleteGameSlot,

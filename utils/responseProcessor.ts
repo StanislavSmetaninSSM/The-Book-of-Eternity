@@ -343,8 +343,14 @@ export const processAndApplyResponse = (response: GameResponse, baseState: GameS
     if (response.playerRaceChange) {
         pc.race = response.playerRaceChange;
     }
+    if (response.playerRaceDescriptionChange) {
+        pc.raceDescription = response.playerRaceDescriptionChange;
+    }
     if (response.playerClassChange) {
         pc.class = response.playerClassChange;
+    }
+    if (response.playerClassDescriptionChange) {
+        pc.classDescription = response.playerClassDescriptionChange;
     }
     if (response.playerAppearanceChange) {
         pc.appearanceDescription = response.playerAppearanceChange;

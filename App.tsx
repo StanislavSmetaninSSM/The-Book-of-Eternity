@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import ChatWindow from './components/ChatWindow';
 import InputBar from './components/InputBar';
@@ -75,6 +74,8 @@ export default function App(): React.ReactNode {
     editFactionData,
     editLocationData,
     editPlayerData,
+    editWorldState,
+    editWeather,
     saveGameToSlot,
     loadGameFromSlot,
     deleteGameSlot,
@@ -418,7 +419,7 @@ export default function App(): React.ReactNode {
         
         <aside 
           style={{ width: isSidebarCollapsed ? '0px' : `${sidebarWidth}px` }}
-          className={`w-full md:w-auto bg-gray-900/30 border-l border-gray-700/50 h-screen flex-shrink-0 transition-all duration-300 ease-in-out overflow-hidden ${isSidebarCollapsed ? 'p-0 border-none' : 'p-4 md:p-6'}`}
+          className={`w-full md:w-auto bg-gray-800/80 rounded-lg backdrop-blur-md border border-gray-700/60 h-screen flex-shrink-0 transition-all duration-300 ease-in-out overflow-hidden ${isSidebarCollapsed ? 'p-0 border-none' : 'p-4 md:p-6'}`}
         >
           {!isSidebarCollapsed && (
             <SidePanel 
@@ -470,6 +471,8 @@ export default function App(): React.ReactNode {
               deleteCustomState={deleteCustomState}
               deleteNpcCustomState={deleteNpcCustomState}
               deleteWorldStateFlag={deleteWorldStateFlag}
+              editWorldState={editWorldState}
+              editWeather={editWeather}
               updateNpcSortOrder={updateNpcSortOrder}
               updateItemSortOrder={updateItemSortOrder}
               updateItemSortSettings={updateItemSortSettings}
@@ -578,7 +581,7 @@ export default function App(): React.ReactNode {
             handleMergeItemsForNpc={handleMergeItemsForNpc}
             updateNpcItemSortOrder={updateNpcItemSortOrder}
             updateNpcItemSortSettings={updateNpcItemSortSettings}
-            deleteNpcCustomState={deleteNpcCustomState}
+            deleteNpcCustomState={deleteCustomState}
             deleteWorldStateFlag={deleteWorldStateFlag}
             onEditNpcMemory={onEditNpcMemory}
             onDeleteNpcMemory={onDeleteNpcMemory}

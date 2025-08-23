@@ -411,7 +411,17 @@ export function buildNextContext(
     const newTurnNumber = advanceTurn ? currentContext.currentTurnNumber + 1 : currentContext.currentTurnNumber;
 
     let newWorldState = { ...currentContext.worldState };
-    if (advanceTurn && response.timeChange && response.timeChange > 0) {
+
+    if (response.setWorldTime) {
+        const { day, minutesIntoDay } = response.setWorldTime;
+        newWorldState.day = day;
+        newWorldState.currentTimeInMinutes = ((day - 1) * 24 * 60) + minutesIntoDay;
+        
+        if (minutesIntoDay >= 5 * 60 && minutesIntoDay < 12 * 60) newWorldState.timeOfDay = 'Morning';
+        else if (minutesIntoDay >= 12 * 60 && minutesIntoDay < 18 * 60) newWorldState.timeOfDay = 'Afternoon';
+        else if (minutesIntoDay >= 18 * 60 && minutesIntoDay < 22 * 60) newWorldState.timeOfDay = 'Evening';
+        else newWorldState.timeOfDay = 'Night';
+    } else if (advanceTurn && response.timeChange && response.timeChange > 0) {
         newWorldState.currentTimeInMinutes += response.timeChange;
         // Rounding to nearest integer to prevent floating point inaccuracies from cumulative additions.
         const totalDays = Math.floor(Math.round(newWorldState.currentTimeInMinutes) / (24 * 60));

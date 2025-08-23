@@ -611,11 +611,14 @@ export interface GameResponse {
   moneyChange: number;
   timeChange: number | null;
   weatherChange: { tendency: string; description: string; } | null;
+  setWorldTime?: { day: number; minutesIntoDay: number } | null;
   image_prompt: string;
   playerNameChange: string | null;
   playerAppearanceChange: string | null;
   playerRaceChange: string | null;
+  playerRaceDescriptionChange?: string | null;
   playerClassChange: string | null;
+  playerClassDescriptionChange?: string | null;
   playerAutoCombatSkillChange: string | null;
   playerStealthStateChange?: {
     isActive: boolean;

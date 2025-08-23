@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import CharacterSheet from './CharacterSheet';
 import QuestLog from './QuestLog';
@@ -54,6 +53,8 @@ interface SidePanelProps {
   dropItemFromStash: (item: Item) => void;
   turnNumber: number | null;
   editLocationData: (locationId: string, field: keyof Location, value: any) => void;
+  editWorldState: (day: number, time: string) => void;
+  editWeather: (newWeather: string) => void;
   saveGameToSlot: (slotId: number) => Promise<void>;
   loadGameFromSlot: (slotId: number) => Promise<void>;
   deleteGameSlot: (slotId: number) => Promise<void>;
@@ -222,6 +223,8 @@ export default function SidePanel(props: SidePanelProps): React.ReactNode {
     dropItemFromStash,
     turnNumber,
     editLocationData,
+    editWorldState,
+    editWeather,
     saveGameToSlot,
     loadGameFromSlot,
     deleteGameSlot,
@@ -273,6 +276,8 @@ export default function SidePanel(props: SidePanelProps): React.ReactNode {
         setActiveTab('Stash');
     }
   }, [showStash]);
+
+  const biome = gameState?.currentLocationData?.biome;
 
   return (
     <>
@@ -341,7 +346,7 @@ export default function SidePanel(props: SidePanelProps): React.ReactNode {
         <div className="flex-1 overflow-y-auto p-4">
           {activeTab === 'Character' && gameState && <CharacterSheet character={gameState.playerCharacter} gameSettings={gameSettings} onOpenModal={onOpenDetailModal} onOpenInventory={onOpenInventory} onSpendAttributePoint={onSpendAttributePoint} forgetHealedWound={forgetHealedWound} clearAllHealedWounds={clearAllHealedWounds} onDeleteCustomState={deleteCustomState} />}
           {activeTab === 'Quests' && gameState && <QuestLog activeQuests={gameState.activeQuests} completedQuests={gameState.completedQuests} onOpenModal={onOpenDetailModal} lastUpdatedQuestId={lastUpdatedQuestId} allowHistoryManipulation={gameSettings?.allowHistoryManipulation ?? false} forgetQuest={forgetQuest} />}
-          {activeTab === 'World' && <WorldPanel worldState={worldState} worldStateFlags={gameState?.worldStateFlags} turnNumber={turnNumber} allowHistoryManipulation={gameSettings?.allowHistoryManipulation ?? false} onDeleteFlag={deleteWorldStateFlag} />}
+          {activeTab === 'World' && <WorldPanel worldState={worldState} worldStateFlags={gameState?.worldStateFlags} turnNumber={turnNumber} allowHistoryManipulation={gameSettings?.allowHistoryManipulation ?? false} onDeleteFlag={deleteWorldStateFlag} onEditWorldState={editWorldState} onEditWeather={editWeather} biome={biome} />}
           {activeTab === 'Factions' && gameState && <FactionLog factions={gameState.encounteredFactions} onOpenModal={onOpenDetailModal} allowHistoryManipulation={gameSettings?.allowHistoryManipulation ?? false} forgetFaction={forgetFaction} imageCache={gameState.imageCache} onImageGenerated={onImageGenerated} />}
           {activeTab === 'NPCs' && gameState && <NpcLog gameState={gameState} npcs={gameState.encounteredNPCs} encounteredFactions={gameState.encounteredFactions} onOpenModal={onOpenDetailModal} onOpenJournalModal={onOpenJournalModal} imageCache={gameState?.imageCache ?? {}} onImageGenerated={onImageGenerated} updateNpcSortOrder={updateNpcSortOrder} forgetNpc={forgetNpc} allowHistoryManipulation={gameSettings?.allowHistoryManipulation ?? false} />}
           {activeTab === 'Locations' && gameState && <LocationLog locations={visitedLocations} currentLocation={gameState.currentLocationData} onOpenModal={onOpenDetailModal} allowHistoryManipulation={gameSettings?.allowHistoryManipulation ?? false} onEditLocationData={editLocationData} imageCache={gameState.imageCache} onImageGenerated={onImageGenerated} forgetLocation={forgetLocation} />}
