@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo, useRef, useCallback } from 'react';
 import { 
     PaperAirplaneIcon, 
@@ -10,7 +9,9 @@ import {
     ChatBubbleLeftEllipsisIcon,
     EyeIcon,
     EyeSlashIcon,
-    MusicalNoteIcon
+    MusicalNoteIcon,
+    ChevronUpIcon,
+    ChevronDownIcon
 } from '@heroicons/react/24/solid';
 import { ArchiveBoxXMarkIcon } from '@heroicons/react/24/outline';
 import { ChatMessage, GameSettings, PlayerCharacter } from '../types';
@@ -133,6 +134,7 @@ export default function InputBar({ onSendMessage, onAskQuestion, onCancelRequest
   const [content, setContent] = useState('');
   const [isQuestionMode, setIsQuestionMode] = useState(false);
   const [activeView, setActiveView] = useState<'write' | 'preview'>('write');
+  const [isSuggestionsExpanded, setIsSuggestionsExpanded] = useState(true);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const { t } = useLocalization();
 
@@ -198,17 +200,33 @@ export default function InputBar({ onSendMessage, onAskQuestion, onCancelRequest
   return (
     <form onSubmit={(e) => { e.preventDefault(); doSubmit(); }} className="mt-auto space-y-2 pointer-events-auto">
       {suggestedActions && suggestedActions.length > 0 && !isLoading && (
-        <div className="flex flex-wrap gap-2 pb-2 justify-center">
-          {suggestedActions.map((action, i) => (
+        <div className="pb-2">
+          <div className="flex justify-center items-center mb-2">
             <button
-              key={i}
               type="button"
-              onClick={() => onSendMessage(action)}
-              className="px-4 py-2 text-sm bg-gray-700/60 text-cyan-300 rounded-full hover:bg-cyan-600/60 hover:text-white transition-all shadow-md transform hover:-translate-y-0.5"
+              onClick={() => setIsSuggestionsExpanded(prev => !prev)}
+              className="flex items-center gap-2 text-sm text-gray-400 hover:text-white transition-colors py-1 px-3 rounded-full"
+              aria-expanded={isSuggestionsExpanded}
+              title={isSuggestionsExpanded ? t('Collapse Suggestions') : t('Expand Suggestions')}
             >
-              {action}
+              <span>{t('Suggested Actions')}</span>
+              {isSuggestionsExpanded ? <ChevronUpIcon className="w-4 h-4" /> : <ChevronDownIcon className="w-4 h-4" />}
             </button>
-          ))}
+          </div>
+          {isSuggestionsExpanded && (
+            <div className="flex flex-wrap gap-2 justify-center animate-fade-in-down-fast">
+              {suggestedActions.map((action, i) => (
+                <button
+                  key={i}
+                  type="button"
+                  onClick={() => onSendMessage(action)}
+                  className="px-4 py-2 text-sm bg-gray-700/60 text-cyan-300 rounded-full hover:bg-cyan-600/60 hover:text-white transition-all shadow-md transform hover:-translate-y-0.5"
+                >
+                  {action}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       )}
       {stealthState?.isActive && (

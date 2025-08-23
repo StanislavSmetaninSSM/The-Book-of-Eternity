@@ -154,6 +154,9 @@ export const common = {
     "Delete Memory": "Delete Memory",
     "Memory Content": "Memory Content",
     "Are you sure you want to permanently delete this memory?": "Are you sure you want to permanently delete this memory?",
+    "Suggested Actions": "Suggested Actions",
+    "Collapse Suggestions": "Collapse Suggestions",
+    "Expand Suggestions": "Expand Suggestions",
     ...ui_overrides.en
   },
   ru: {
@@ -308,6 +311,9 @@ export const common = {
     "Delete Memory": "Удалить воспоминание",
     "Memory Content": "Содержание воспоминания",
     "Are you sure you want to permanently delete this memory?": "Вы уверены, что хотите навсегда удалить это воспоминание?",
+    "Suggested Actions": "Варианты действий",
+    "Collapse Suggestions": "Свернуть варианты",
+    "Expand Suggestions": "Развернуть варианты",
     ...ui_overrides.ru
   }
 };
