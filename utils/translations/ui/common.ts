@@ -1,6 +1,3 @@
-
-
-
 import { ui as ui_overrides } from './ui_overrides';
 
 
@@ -153,6 +150,10 @@ export const common = {
     "Delete Flag": "Delete Flag",
     'delete_flag_title': 'Delete Flag "{name}"',
     'delete_flag_confirm': 'Are you sure you want to permanently delete the "{name}" flag? This will remove it from the game and cannot be undone.',
+    "Edit Memory": "Edit Memory",
+    "Delete Memory": "Delete Memory",
+    "Memory Content": "Memory Content",
+    "Are you sure you want to permanently delete this memory?": "Are you sure you want to permanently delete this memory?",
     ...ui_overrides.en
   },
   ru: {
@@ -303,6 +304,10 @@ export const common = {
     "Delete Flag": "Удалить флаг",
     'delete_flag_title': 'Удалить флаг «{name}»',
     'delete_flag_confirm': 'Вы уверены, что хотите навсегда удалить флаг «{name}»? Он будет безвозвратно удален из игры.',
+    "Edit Memory": "Редактировать воспоминание",
+    "Delete Memory": "Удалить воспоминание",
+    "Memory Content": "Содержание воспоминания",
+    "Are you sure you want to permanently delete this memory?": "Вы уверены, что хотите навсегда удалить это воспоминание?",
     ...ui_overrides.ru
   }
 };

@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import CharacterSheet from './CharacterSheet';
 import QuestLog from './QuestLog';
-import { GameState, Location, WorldState, GameSettings, PlayerCharacter, Faction, PlotOutline, Item, DBSaveSlotInfo, WorldStateFlag, Wound, CustomState } from '../types';
+import { GameState, Location, WorldState, GameSettings, PlayerCharacter, Faction, PlotOutline, Item, DBSaveSlotInfo, WorldStateFlag, Wound, CustomState, UnlockedMemory, NPC } from '../types';
 import { UserCircleIcon, BookOpenIcon, CodeBracketIcon, DocumentTextIcon, UsersIcon, ShieldExclamationIcon, Cog6ToothIcon, MapIcon, MapPinIcon, QuestionMarkCircleIcon, UserGroupIcon, GlobeAltIcon, ArchiveBoxXMarkIcon, BeakerIcon, TrashIcon } from '@heroicons/react/24/outline';
 import { ChevronDoubleRightIcon } from '@heroicons/react/24/solid';
 import JsonDebugView from './JsonDebugView';
@@ -37,6 +37,7 @@ interface SidePanelProps {
   autosaveTimestamp: string | null;
   visitedLocations: Location[];
   onOpenDetailModal: (title: string, data: any) => void;
+  onOpenJournalModal: (npc: NPC) => void;
   onOpenImageModal: (prompt: string) => void;
   onSpendAttributePoint: (characteristic: string) => void;
   onToggleSidebar: () => void;
@@ -83,6 +84,9 @@ interface SidePanelProps {
   forgetFaction: (factionId: string) => void;
   forgetQuest: (questId: string) => void;
   forgetLocation: (locationId: string) => void;
+  onEditNpcMemory: (npcId: string, memory: UnlockedMemory) => void;
+  onDeleteNpcMemory: (npcId: string, memoryId: string) => void;
+  clearNpcJournalsNow: () => void;
 }
 
 type Tab = 'Character' | 'Quests' | 'Factions' | 'NPCs' | 'Locations' | 'Map' | 'Combat' | 'Log' | 'Guide' | 'Debug' | 'Game' | 'Stash' | 'Crafting' | 'World';
@@ -129,7 +133,7 @@ const FactionLog: React.FC<{
         {factions && factions.length > 0 ? (
           <div className="space-y-3">
             {factions.map((faction) => {
-              const imagePrompt = faction.image_prompt || `A detailed fantasy art image of a symbol for the ${faction.name} faction.`;
+              const imagePrompt = faction.custom_image_prompt || faction.image_prompt;
               return (
               <div key={faction.factionId || faction.name} className="relative group">
                  {allowHistoryManipulation && (
@@ -149,7 +153,7 @@ const FactionLog: React.FC<{
                   className="w-full text-left bg-gray-900/40 p-3 rounded-lg border border-gray-700/50 shadow-md transition-all hover:ring-1 hover:ring-cyan-500/50 hover:border-cyan-500/50 flex items-center gap-4"
                 >
                     <div className="w-12 h-12 rounded-md overflow-hidden flex-shrink-0 bg-gray-800 flex items-center justify-center">
-                        {faction.image_prompt ? (
+                        {imagePrompt ? (
                             <ImageRenderer prompt={imagePrompt} alt={faction.name} className="w-full h-full object-cover" imageCache={imageCache} onImageGenerated={onImageGenerated} />
                         ) : (
                             <UserGroupIcon className="w-8 h-8 text-cyan-400" />
@@ -184,7 +188,8 @@ const FactionLog: React.FC<{
 };
 
 
-export default function SidePanel({ 
+export default function SidePanel(props: SidePanelProps): React.ReactNode {
+  const { 
     gameState, 
     worldState, 
     worldStateFlags,
@@ -200,6 +205,7 @@ export default function SidePanel({
     autosaveTimestamp, 
     visitedLocations, 
     onOpenDetailModal,
+    onOpenJournalModal,
     onOpenImageModal,
     onSpendAttributePoint, 
     onToggleSidebar,
@@ -246,7 +252,10 @@ export default function SidePanel({
     forgetFaction,
     forgetQuest,
     forgetLocation,
-}: SidePanelProps): React.ReactNode {
+    onEditNpcMemory,
+    onDeleteNpcMemory,
+    clearNpcJournalsNow,
+  } = props;
   const [activeTab, setActiveTab] = useState<Tab>('Character');
   const { language, t } = useLocalization();
 
@@ -334,7 +343,7 @@ export default function SidePanel({
           {activeTab === 'Quests' && gameState && <QuestLog activeQuests={gameState.activeQuests} completedQuests={gameState.completedQuests} onOpenModal={onOpenDetailModal} lastUpdatedQuestId={lastUpdatedQuestId} allowHistoryManipulation={gameSettings?.allowHistoryManipulation ?? false} forgetQuest={forgetQuest} />}
           {activeTab === 'World' && <WorldPanel worldState={worldState} worldStateFlags={gameState?.worldStateFlags} turnNumber={turnNumber} allowHistoryManipulation={gameSettings?.allowHistoryManipulation ?? false} onDeleteFlag={deleteWorldStateFlag} />}
           {activeTab === 'Factions' && gameState && <FactionLog factions={gameState.encounteredFactions} onOpenModal={onOpenDetailModal} allowHistoryManipulation={gameSettings?.allowHistoryManipulation ?? false} forgetFaction={forgetFaction} imageCache={gameState.imageCache} onImageGenerated={onImageGenerated} />}
-          {activeTab === 'NPCs' && gameState && <NpcLog gameState={gameState} npcs={gameState.encounteredNPCs} encounteredFactions={gameState.encounteredFactions} onOpenModal={onOpenDetailModal} imageCache={gameState?.imageCache ?? {}} onImageGenerated={onImageGenerated} updateNpcSortOrder={updateNpcSortOrder} forgetNpc={forgetNpc} allowHistoryManipulation={gameSettings?.allowHistoryManipulation ?? false} />}
+          {activeTab === 'NPCs' && gameState && <NpcLog gameState={gameState} npcs={gameState.encounteredNPCs} encounteredFactions={gameState.encounteredFactions} onOpenModal={onOpenDetailModal} onOpenJournalModal={onOpenJournalModal} imageCache={gameState?.imageCache ?? {}} onImageGenerated={onImageGenerated} updateNpcSortOrder={updateNpcSortOrder} forgetNpc={forgetNpc} allowHistoryManipulation={gameSettings?.allowHistoryManipulation ?? false} />}
           {activeTab === 'Locations' && gameState && <LocationLog locations={visitedLocations} currentLocation={gameState.currentLocationData} onOpenModal={onOpenDetailModal} allowHistoryManipulation={gameSettings?.allowHistoryManipulation ?? false} onEditLocationData={editLocationData} imageCache={gameState.imageCache} onImageGenerated={onImageGenerated} forgetLocation={forgetLocation} />}
           {activeTab === 'Map' && gameState && <LocationViewer visitedLocations={visitedLocations} currentLocation={gameState.currentLocationData} onOpenModal={onOpenDetailModal} imageCache={gameState.imageCache} onImageGenerated={onImageGenerated} />}
           {activeTab === 'Combat' && gameState && <CombatTracker 
@@ -381,6 +390,7 @@ export default function SidePanel({
               onDeleteSlot={deleteGameSlot}
               dbSaveSlots={dbSaveSlots}
               refreshDbSaveSlots={refreshDbSaveSlots}
+              clearNpcJournalsNow={clearNpcJournalsNow}
             />
           }
         </div>

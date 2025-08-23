@@ -19,7 +19,7 @@ interface FactionDetailsProps extends Omit<DetailRendererProps, 'data'> {
 const FactionDetailsRenderer: React.FC<FactionDetailsProps> = ({ faction, perspectiveFor, onOpenImageModal, imageCache, onImageGenerated, allowHistoryManipulation, onEditFactionData }) => {
     const { t } = useLocalization();
 
-    const imagePrompt = faction.custom_image_prompt || faction.image_prompt || `A detailed fantasy art image of the symbol for the ${faction.name} faction. Epic, high quality.`;
+    const imagePrompt = faction.custom_image_prompt || faction.image_prompt;
 
     const getNextRankRep = (): number | null => {
         if (!faction.isPlayerMember || !faction.ranks || !faction.playerRank) return null;

@@ -62,6 +62,15 @@ export const general = {
     "Night": "Night",
     "Please select an image file.": "Please select an image file.",
     "stat_at_training_cap": "Your {statName} is at its training cap ({cap}) for your level. You gain 25 XP instead.",
+    
+    // Deletion confirmation keys
+    "Delete Entry": "Delete Entry",
+    "Delete Oldest": "Delete Oldest",
+    "Clear All Entries": "Clear All Entries",
+    "Delete Oldest Entries": "Delete Oldest Entries",
+    "Are you sure you want to delete this event entry?": "Are you sure you want to delete this event entry?",
+    "Are you sure you want to delete the {count} oldest event entries for {name}?": "Are you sure you want to delete the {count} oldest event entries for {name}?",
+    "Are you sure you want to delete all event entries for {name}? This cannot be undone.": "Are you sure you want to delete all event entries for {name}? This cannot be undone.",
   },
   ru: {
     // General
@@ -125,5 +134,14 @@ export const general = {
     "Night": "Ночь",
     "Please select an image file.": "Пожалуйста, выберите файл изображения.",
     "stat_at_training_cap": "Ваша характеристика '{statName}' достигла тренировочного предела ({cap}) для вашего уровня. Вместо этого вы получаете 25 очков опыта.",
+    
+    // Deletion confirmation keys
+    "Delete Entry": "Удалить запись",
+    "Delete Oldest": "Удалить старые",
+    "Clear All Entries": "Очистить все записи",
+    "Delete Oldest Entries": "Удалить старые записи",
+    "Are you sure you want to delete this event entry?": "Вы уверены, что хотите удалить эту запись о событии?",
+    "Are you sure you want to delete the {count} oldest event entries for {name}?": "Вы уверены, что хотите удалить {count} старейших записей о событиях для {name}?",
+    "Are you sure you want to delete all event entries for {name}? This cannot be undone.": "Вы уверены, что хотите удалить все записи о событиях для {name}? Это действие необратимо.",
   }
 };

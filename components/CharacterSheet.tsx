@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo } from 'react';
 import { PlayerCharacter, Item, ActiveSkill, PassiveSkill, Effect, Wound, GameSettings, StructuredBonus, CustomState } from '../types';
 import {
@@ -753,7 +752,7 @@ export default function CharacterSheet({ character, gameSettings, onOpenModal, o
             <span className="font-mono text-cyan-300 font-bold">{character.critChanceThreshold}+</span>
       </button>
       
-      <div className="flex space-x-1 rounded-lg bg-gray-900/50 p-1">
+      <div className="flex flex-wrap gap-1 rounded-lg bg-gray-900/50 p-1">
           {TABS.map(tab => {
             const Icon = tab.icon
             const isActive = activeTab === tab.name;
@@ -761,7 +760,7 @@ export default function CharacterSheet({ character, gameSettings, onOpenModal, o
               <button 
                   key={tab.name}
                   onClick={() => setActiveTab(tab.name)}
-                  className={`w-full rounded-md py-2 text-xs font-medium leading-5 transition flex items-center justify-center gap-1.5 ${isActive ? 'bg-gray-700 text-cyan-400 shadow' : 'text-gray-300 hover:bg-gray-700/50'}`}
+                  className={`flex-auto rounded-md py-2 text-xs font-medium leading-5 transition flex items-center justify-center gap-1.5 ${isActive ? 'bg-gray-700 text-cyan-400 shadow' : 'text-gray-300 hover:bg-gray-700/50'}`}
               >
                   <Icon className="w-4 h-4" />
                   {t(tab.name)}

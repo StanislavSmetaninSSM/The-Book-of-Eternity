@@ -1,4 +1,3 @@
-
 export const npc = {
   en: {
     // NPC Details
@@ -44,6 +43,16 @@ export const npc = {
     "Default prompt from AI:": "Default prompt from AI:",
     "Corrupted Journal Entry": "Corrupted Journal Entry",
     "corrupted_item": "Corrupted Item",
+    "Hide Older Memories": "Hide Older Memories",
+    "Show {count} Older Memories": "Show {count} Older Memories",
+    "Delete Entry": "Delete Entry",
+    "Are you sure you want to delete this journal entry?": "Are you sure you want to delete this journal entry?",
+    "Delete Oldest Entries": "Delete Oldest Entries",
+    "Number of entries to delete": "Number of entries to delete",
+    "Delete Oldest": "Delete Oldest",
+    "Clear All Entries": "Clear All Entries",
+    "Are you sure you want to delete the {count} oldest journal entries for {name}?": "Are you sure you want to delete the {count} oldest journal entries for {name}?",
+    "Are you sure you want to delete all journal entries for {name}? This cannot be undone.": "Are you sure you want to delete all journal entries for {name}? This cannot be undone.",
 
 
     // NPC Log
@@ -122,6 +131,17 @@ export const npc = {
     "Default prompt from AI:": "Промпт по умолчанию от ИИ:",
     "Corrupted Journal Entry": "Поврежденная запись в журнале",
     "corrupted_item": "Поврежденный предмет",
+    "Hide Older Memories": "Скрыть старые воспоминания",
+    "Show {count} Older Memories": "Показать {count} старых воспоминаний",
+    "Delete Entry": "Удалить запись",
+    "Are you sure you want to delete this journal entry?": "Вы уверены, что хотите удалить эту запись в журнале?",
+    "Delete Oldest Entries": "Удалить старые записи",
+    "Number of entries to delete": "Количество записей для удаления",
+    "Delete Oldest": "Удалить старые",
+    "Clear All Entries": "Очистить все записи",
+    "Are you sure you want to delete the {count} oldest journal entries for {name}?": "Вы уверены, что хотите удалить {count} самых старых записей в журнале для {name}?",
+    "Are you sure you want to delete all journal entries for {name}? This cannot be undone.": "Вы уверены, что хотите удалить все записи в журнале для {name}? Это действие нельзя отменить.",
+
 
     // NPC Log
     "Encountered NPCs": "Встреченные NPC",

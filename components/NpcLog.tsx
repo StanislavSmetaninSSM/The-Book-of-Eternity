@@ -1,4 +1,5 @@
 
+
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { NPC, Faction, GameState } from '../types';
 import { UserGroupIcon, UserIcon, UserPlusIcon, ArrowsUpDownIcon, TrashIcon } from '@heroicons/react/24/outline';
@@ -12,6 +13,7 @@ interface NpcLogProps {
   npcs: NPC[];
   encounteredFactions: Faction[];
   onOpenModal: (title: string, data: any) => void;
+  onOpenJournalModal: (npc: NPC) => void;
   imageCache: Record<string, string>;
   onImageGenerated: (prompt: string, base64: string) => void;
   updateNpcSortOrder: (newOrder: string[]) => void;
@@ -23,13 +25,14 @@ const NpcItem: React.FC<{
     npc: NPC, 
     faction: Faction | undefined, 
     factionName: string | undefined, 
-    onOpenModal: (title: string, data: any) => void, 
+    onOpenModal: (title: string, data: any) => void,
+    onOpenJournalModal: (npc: NPC) => void, 
     imageCache: Record<string, string>, 
     onImageGenerated: (prompt: string, base64: string) => void,
     isSorting: boolean,
     onDelete: () => void,
     allowHistoryManipulation: boolean
-}> = ({ npc, faction, factionName, onOpenModal, imageCache, onImageGenerated, isSorting, onDelete, allowHistoryManipulation }) => {
+}> = ({ npc, faction, factionName, onOpenModal, onOpenJournalModal, imageCache, onImageGenerated, isSorting, onDelete, allowHistoryManipulation }) => {
     const { t } = useLocalization();
     const primaryAffiliation = npc.factionAffiliations?.[0];
     const displayFactionName = faction ? faction.name : (factionName || t('Unknown Faction'));
@@ -114,7 +117,7 @@ const NpcItem: React.FC<{
                     <button 
                         onClick={(e) => {
                             e.stopPropagation();
-                            onOpenModal(t("Full Journal: {name}", { name: npc.name }), { ...npc, openJournal: true });
+                            onOpenJournalModal(npc);
                         }} 
                         className="text-xs font-semibold text-cyan-400 hover:underline mt-2"
                     >
@@ -136,7 +139,7 @@ const attitudeColorMap: Record<string, string> = {
 };
 
 
-export default function NpcLog({ gameState, npcs, encounteredFactions, onOpenModal, imageCache, onImageGenerated, updateNpcSortOrder, forgetNpc, allowHistoryManipulation }: NpcLogProps): React.ReactNode {
+export default function NpcLog({ gameState, npcs, encounteredFactions, onOpenModal, onOpenJournalModal, imageCache, onImageGenerated, updateNpcSortOrder, forgetNpc, allowHistoryManipulation }: NpcLogProps): React.ReactNode {
   const { t } = useLocalization();
   const factionMapById = new Map((encounteredFactions || []).filter(f => f.factionId).map(f => [f.factionId, f]));
   const factionMapByName = new Map((encounteredFactions || []).map(f => [f.name.toLowerCase(), f]));
@@ -222,7 +225,8 @@ export default function NpcLog({ gameState, npcs, encounteredFactions, onOpenMod
                     npc={npc} 
                     faction={faction} 
                     factionName={primaryAffiliation?.factionName} 
-                    onOpenModal={onOpenModal} 
+                    onOpenModal={onOpenModal}
+                    onOpenJournalModal={onOpenJournalModal} 
                     imageCache={imageCache} 
                     onImageGenerated={onImageGenerated}
                     isSorting={isSorting}

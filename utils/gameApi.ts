@@ -1,4 +1,3 @@
-
 import { GameContext, GameResponse } from '../types';
 // @ts-ignore
 import * as mainPromptModule from '../prompts/mainPromptModule.js';
@@ -28,10 +27,20 @@ const worldLogic = worldLogicGuide.getGuide();
 const narrativeStyle = narrativeStyleGuide.getGuide();
 
 function unmaskText(text: string): string {
-    // This regex uses \S to match ANY single non-whitespace character inside the noise tag.
-    // This makes it universally compatible with any alphabet.
-    const regex = /~~(.*?)(?:<!--\S-->)?(.*?)~~/g;
-    return text.replace(regex, '$1$2');
+  if (typeof text !== 'string') {
+    return text;
+  }
+  
+  // This regex finds all words wrapped in ~~...~~.
+  // It then uses a replacer function to process the content inside.
+  const mainRegex = /~~(.*?)~~/g;
+
+  return text.replace(mainRegex, (match, content) => {
+    // Inside the wrapped content, find noise tags like <!--s--> and replace them with just the letter.
+    // The (\S) captures any single non-whitespace character.
+    const noiseRegex = /<!--(\S)-->/g;
+    return content.replace(noiseRegex, '$1');
+  });
 }
 
 function recursivelyUnmaskText(obj: any): any {

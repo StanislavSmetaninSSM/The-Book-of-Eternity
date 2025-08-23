@@ -1,5 +1,3 @@
-
-
 export const settings = {
   en: {
     "Non-Magic Mode": "Non-Magic Mode",
@@ -84,6 +82,15 @@ export const settings = {
     "Notification Sound": "Notification Sound",
     "Play a sound when the GM's response is ready.": "Play a sound when the GM's response is ready.",
     "notificationSoundTooltip": "To enable, toggle the switch. A preview sound will play upon activation to confirm it's working. This is required due to browser security policies that block sound until a user interacts with the page.",
+    "Game Master's Memory": "Game Master's Memory",
+    "keep_journals_label": "Keep only recent NPC thought entries",
+    "keep_journals_tooltip": "When enabled, the game automatically deletes old entries from each NPC's thought journal, keeping only the specified number of recent ones. This significantly reduces data sent to the AI each turn, speeding up responses and reducing memory-related errors.",
+    "Helps reduce context size and speed up turns.": "Helps reduce context size and speed up turns.",
+    "Number of entries to keep": "Number of entries to keep",
+    "Clear now": "Clear now",
+    "Confirm Journal Clearing": "Confirm Journal Clearing",
+    "confirm_journal_clearing_p1": "This will permanently delete older journal entries for all NPCs, keeping only the most recent {count} for each.",
+    "confirm_journal_clearing_p2": "This action cannot be undone. Are you sure you want to proceed?"
   },
   ru: {
     "Non-Magic Mode": "Мир без магии",
@@ -168,5 +175,14 @@ export const settings = {
     "Notification Sound": "Звук уведомления",
     "Play a sound when the GM's response is ready.": "Воспроизводить звук, когда ответ ГМ будет готов.",
     "notificationSoundTooltip": "Чтобы включить, переключите переключатель. При активации прозвучит предварительный звук для подтверждения работы. Это требуется из-за политик безопасности браузеров, которые блокируют звук до взаимодействия пользователя со страницей.",
+    "Game Master's Memory": "Память Мастера Игры",
+    "keep_journals_label": "Сохранять только последние записи журнала мыслей NPC",
+    "keep_journals_tooltip": "Когда эта опция включена, игра будет автоматически удалять старые записи из журнала мыслей каждого NPC, сохраняя только указанное количество последних. Это значительно уменьшает объем данных, отправляемых ИИ на каждом ходу, что может ускорить его ответы и снизить риск ошибок, связанных с памятью.",
+    "Helps reduce context size and speed up turns.": "Помогает уменьшить размер контекста и ускорить ходы.",
+    "Number of entries to keep": "Количество записей для сохранения",
+    "Clear now": "Очистить сейчас",
+    "Confirm Journal Clearing": "Подтвердите очистку журналов",
+    "confirm_journal_clearing_p1": "Это действие навсегда удалит старые записи в журналах всех NPC, оставив только последние {count} для каждого.",
+    "confirm_journal_clearing_p2": "Это действие нельзя отменить. Вы уверены, что хотите продолжить?"
   }
 };

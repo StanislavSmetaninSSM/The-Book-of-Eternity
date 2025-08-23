@@ -184,6 +184,8 @@ export const createInitialContext = (creationData: any, language: Language): Gam
       currencyName,
       hardMode,
       notificationSound,
+      keepLatestNpcJournals,
+      latestNpcJournalsCount,
   } = creationData;
 
   const standardCharacteristics: any = {};
@@ -337,6 +339,8 @@ export const createInitialContext = (creationData: any, language: Language): Gam
     allowHistoryManipulation,
     hardMode,
     notificationSound: notificationSound ?? false,
+    keepLatestNpcJournals: keepLatestNpcJournals ?? false,
+    latestNpcJournalsCount: latestNpcJournalsCount ?? 20,
   };
 
   const initialLocation: LocationData = {

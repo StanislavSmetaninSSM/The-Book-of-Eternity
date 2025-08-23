@@ -104,10 +104,27 @@ const LocationDetailsRenderer: React.FC<LocationDetailsProps> = ({ location, onO
     const events = useMemo(() => location.lastEventsDescription ? location.lastEventsDescription.split('\n\n').filter(e => e.trim()) : [], [location.lastEventsDescription]);    
     
     const handleSaveEvents = (newEvents: string[]) => {
-      if (location?.locationId) {
+      if (location?.locationId && onEditLocationData) {
           const newEventsString = newEvents.join('\n\n');
           onEditLocationData(location.locationId, 'lastEventsDescription', newEventsString);
       }
+    };
+
+    const handleDeleteEntry = (indexToDelete: number) => {
+        const newEvents = events.filter((_, index) => index !== indexToDelete);
+        handleSaveEvents(newEvents);
+    };
+
+    const handleDeleteOldest = (count: number) => {
+        const numToDelete = Math.max(0, count);
+        if (numToDelete === 0) return;
+        // Newest entries are at the start of the array
+        const newEvents = events.slice(0, Math.max(0, events.length - numToDelete));
+        handleSaveEvents(newEvents);
+    };
+
+    const handleClearAll = () => {
+        handleSaveEvents([]);
     };
     
     const imagePrompt = location.custom_image_prompt || location.image_prompt || `A detailed fantasy art image of a ${location.name}.`;
@@ -267,6 +284,9 @@ const LocationDetailsRenderer: React.FC<LocationDetailsProps> = ({ location, onO
                     events={events}
                     isEditable={allowHistoryManipulation}
                     onSaveEvents={handleSaveEvents}
+                    onDeleteEntry={handleDeleteEntry}
+                    onDeleteOldest={handleDeleteOldest}
+                    onClearAll={handleClearAll}
                 />
             )}
         </>

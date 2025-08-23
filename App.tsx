@@ -5,7 +5,7 @@ import InputBar from './components/InputBar';
 import SidePanel from './components/SidePanel';
 import InventoryScreen from './components/InventoryScreen';
 import { useGameLogic } from './hooks/useGameLogic';
-import { GameState, Item, WorldState, PlayerCharacter, ChatMessage, GameSettings, Quest, Location, Wound } from './types';
+import { GameState, Item, WorldState, PlayerCharacter, ChatMessage, GameSettings, Quest, Location, Wound, UnlockedMemory, NPC } from './types';
 import { ChevronDoubleLeftIcon, PencilSquareIcon, CheckIcon, XMarkIcon } from '@heroicons/react/24/solid';
 import ImageRenderer from './components/ImageRenderer';
 import Modal from './components/Modal';
@@ -14,6 +14,7 @@ import DetailRenderer from './components/DetailRenderer/index';
 import { useLocalization } from './context/LocalizationContext';
 import MusicPlayer from './components/MusicPlayer';
 import StartScreen from './components/StartScreen';
+import JournalModal from './components/DetailRenderer/Shared/JournalModal';
 
 export default function App(): React.ReactNode {
   const { language, setLanguage, t } = useLocalization();
@@ -49,6 +50,7 @@ export default function App(): React.ReactNode {
     forgetFaction,
     clearNpcJournal,
     deleteOldestNpcJournalEntries,
+    deleteNpcJournalEntry,
     forgetLocation,
     forgetQuest,
     spendAttributePoint,
@@ -104,6 +106,9 @@ export default function App(): React.ReactNode {
     handleUnequipItemForNpc,
     handleSplitItemForNpc,
     handleMergeItemsForNpc,
+    onEditNpcMemory,
+    onDeleteNpcMemory,
+    clearNpcJournalsNow,
   } = useGameLogic({ language, setLanguage });
   const [hasStarted, setHasStarted] = useState(false);
   const [isInventoryOpen, setIsInventoryOpen] = useState(false);
@@ -112,6 +117,8 @@ export default function App(): React.ReactNode {
   const [detailModalStack, setDetailModalStack] = useState<{ title: string; data: any }[]>([]);
   const [editModalData, setEditModalData] = useState<{ index: number, message: ChatMessage } | null>(null);
   const [editContent, setEditContent] = useState('');
+  const [journalModalNpc, setJournalModalNpc] = useState<NPC | null>(null);
+
 
   // Resizable sidebar state and logic
   const [sidebarWidth, setSidebarWidth] = useState(384); // Default width (e.g., lg:w-96)
@@ -168,10 +175,16 @@ export default function App(): React.ReactNode {
             updatedData = data;
         }
     } else if (isNpc && Array.isArray(gameState.encounteredNPCs)) {
-        updatedData = gameState.encounteredNPCs.find(npc => 
+        const foundNpc = gameState.encounteredNPCs.find(npc => 
             (data.NPCId && npc.NPCId === data.NPCId) || // Find by existing ID first
             (!data.NPCId && npc.name === data.name)      // Fallback to name if original had no ID
         );
+        if (foundNpc) {
+            updatedData = { ...foundNpc }; // Create a copy
+            if ((data as any).openJournal) {
+                (updatedData as any).openJournal = true;
+            }
+        }
     } else if (isItem && Array.isArray(gameState.playerCharacter.inventory)) {
         updatedData = gameState.playerCharacter.inventory.find(item => item.existedId === data.existedId);
     } else if (isQuest && Array.isArray(gameState.activeQuests)) {
@@ -310,6 +323,14 @@ export default function App(): React.ReactNode {
     }
   };
 
+  const handleOpenJournalModal = useCallback((npc: NPC) => {
+    setJournalModalNpc(npc);
+  }, []);
+
+  const handleCloseJournalModal = useCallback(() => {
+    setJournalModalNpc(null);
+  }, []);
+
 
   const lastPlayerMessage = useMemo(() => 
     gameHistory.slice().reverse().find(m => m.sender === 'player'),
@@ -409,13 +430,14 @@ export default function App(): React.ReactNode {
               lastRequestJsonForDebug={lastRequestJson} 
               gameLog={gameLog} 
               combatLog={combatLog}
-              onDeleteLogs={deleteLogs} 
+              onDeleteLogs={deleteLogs}
               onSaveGame={handleSaveGame} 
               onLoadGame={handleLoadGame} 
               onLoadAutosave={handleLoadAutosave} 
               autosaveTimestamp={autosaveTimestamp} 
               visitedLocations={visitedLocations} 
               onOpenDetailModal={handleOpenDetailModal}
+              onOpenJournalModal={handleOpenJournalModal}
               onOpenImageModal={handleShowImageModal}
               onSpendAttributePoint={spendAttributePoint} 
               onToggleSidebar={toggleSidebar}
@@ -462,6 +484,9 @@ export default function App(): React.ReactNode {
               forgetFaction={forgetFaction}
               forgetQuest={forgetQuest}
               forgetLocation={forgetLocation}
+              onEditNpcMemory={onEditNpcMemory}
+              onDeleteNpcMemory={onDeleteNpcMemory}
+              clearNpcJournalsNow={clearNpcJournalsNow}
             />
           )}
         </aside>
@@ -520,6 +545,7 @@ export default function App(): React.ReactNode {
             onForgetLocation={forgetLocation} 
             onClearNpcJournal={clearNpcJournal}
             onDeleteOldestNpcJournalEntries={deleteOldestNpcJournalEntries}
+            onDeleteNpcJournalEntry={deleteNpcJournalEntry}
             onForgetQuest={forgetQuest}
             onCloseModal={handleCloseDetailModal} 
             onOpenImageModal={handleShowImageModal}
@@ -554,6 +580,8 @@ export default function App(): React.ReactNode {
             updateNpcItemSortSettings={updateNpcItemSortSettings}
             deleteNpcCustomState={deleteNpcCustomState}
             deleteWorldStateFlag={deleteWorldStateFlag}
+            onEditNpcMemory={onEditNpcMemory}
+            onDeleteNpcMemory={onDeleteNpcMemory}
             />}
       </Modal>
 
@@ -583,6 +611,43 @@ export default function App(): React.ReactNode {
           videoIds={musicVideoIds} 
           onClear={clearMusic}
           onRegenerate={fetchMusicSuggestion}
+        />
+      )}
+       {journalModalNpc && (
+        <JournalModal
+          isOpen={!!journalModalNpc}
+          onClose={handleCloseJournalModal}
+          journalEntries={journalModalNpc.journalEntries || []}
+          npcName={journalModalNpc.name}
+          isEditable={gameSettings?.allowHistoryManipulation ?? false}
+          onSaveEntry={(index, newContent) => {
+              if (journalModalNpc.NPCId) {
+                  const newEntries = [...(journalModalNpc.journalEntries || [])];
+                  newEntries[index] = newContent;
+                  editNpcData(journalModalNpc.NPCId, 'journalEntries', newEntries);
+                  setJournalModalNpc(prev => prev ? { ...prev, journalEntries: newEntries } : null);
+              }
+          }}
+          onDeleteOldest={deleteOldestNpcJournalEntries && journalModalNpc.NPCId ? (count) => {
+              deleteOldestNpcJournalEntries(journalModalNpc.NPCId!, count);
+              setJournalModalNpc(prev => {
+                  if (!prev) return null;
+                  const newEntries = (prev.journalEntries || []).slice(0, Math.max(0, (prev.journalEntries || []).length - count));
+                  return { ...prev, journalEntries: newEntries };
+              });
+          } : undefined}
+          onDeleteEntry={deleteNpcJournalEntry && journalModalNpc.NPCId ? (index) => {
+              deleteNpcJournalEntry(journalModalNpc.NPCId!, index);
+              setJournalModalNpc(prev => {
+                  if (!prev) return null;
+                  const newEntries = (prev.journalEntries || []).filter((_, i) => i !== index);
+                  return { ...prev, journalEntries: newEntries };
+              });
+          } : undefined}
+          onClearAll={clearNpcJournal && journalModalNpc.NPCId ? () => {
+              clearNpcJournal(journalModalNpc.NPCId!);
+              setJournalModalNpc(prev => prev ? { ...prev, journalEntries: [] } : null);
+          } : undefined}
         />
       )}
     </>

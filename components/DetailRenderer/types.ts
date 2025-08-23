@@ -1,5 +1,4 @@
-
-import { Item, Quest, NPC, Location, PlayerCharacter, Faction, GameSettings, Wound } from '../../types';
+import { Item, Quest, NPC, Location, PlayerCharacter, Faction, GameSettings, Wound, UnlockedMemory } from '../../types';
 
 export interface WoundDetailsProps extends Omit<DetailRendererProps, 'data'> {
     wound: Wound;
@@ -9,7 +8,8 @@ export interface DetailRendererProps {
     data: any;
     onForgetNpc?: (npcId: string) => void;
     onClearNpcJournal?: (npcId: string) => void;
-    onDeleteOldestNpcJournalEntries?: (npcId: string) => void;
+    onDeleteOldestNpcJournalEntries?: (npcId: string, count: number) => void;
+    onDeleteNpcJournalEntry?: (npcId: string, entryIndex: number) => void;
     onCloseModal?: () => void;
     onOpenImageModal?: (prompt: string) => void;
     onForgetLocation?: (locationId: string) => void;
@@ -39,6 +39,8 @@ export interface DetailRendererProps {
     deleteNpcCustomState?: (npcId: string, stateId: string) => void;
     deleteCustomState?: (stateId: string) => void;
     deleteWorldStateFlag?: (flagId: string) => void;
+    onEditNpcMemory?: (npcId: string, memory: UnlockedMemory) => void;
+    onDeleteNpcMemory?: (npcId: string, memoryId: string) => void;
     // Companion interaction handlers
     handleTransferItem?: (sourceType: 'player' | 'npc', targetType: 'player' | 'npc', npcId: string, item: Item, quantity: number) => void;
     handleEquipItemForNpc?: (npcId: string, item: Item, slot: string) => void;

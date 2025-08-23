@@ -1,5 +1,4 @@
 
-
 import React, { useState, useEffect } from 'react';
 import { ArrowDownTrayIcon, ArrowUpTrayIcon, ClockIcon, CpuChipIcon, WrenchScrewdriverIcon, InformationCircleIcon, TrashIcon, CloudArrowDownIcon, ExclamationTriangleIcon } from '@heroicons/react/24/outline';
 import { GameSettings, DBSaveSlotInfo } from '../types';
@@ -25,6 +24,7 @@ interface GameMenuViewProps {
     onDeleteSlot: (slotId: number) => Promise<void>;
     dbSaveSlots: DBSaveSlotInfo[];
     refreshDbSaveSlots: () => Promise<void>;
+    clearNpcJournalsNow: () => void;
 }
 
 const formatTimestamp = (timestamp: string | null, t: (key: string, replacements?: any) => string): string => {
@@ -59,6 +59,7 @@ export default function GameMenuView({
     onDeleteSlot,
     dbSaveSlots,
     refreshDbSaveSlots,
+    clearNpcJournalsNow,
 }: GameMenuViewProps): React.ReactNode {
     const [isAdultConfirmOpen, setIsAdultConfirmOpen] = useState(false);
     const [advancedBudget, setAdvancedBudget] = useState(false);
@@ -67,6 +68,7 @@ export default function GameMenuView({
     const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState<number | null>(null);
     const [isOverwriteConfirmOpen, setIsOverwriteConfirmOpen] = useState<number | null>(null);
     const [isCustomModelModalOpen, setIsCustomModelModalOpen] = useState(false);
+    const [isClearJournalConfirmOpen, setIsClearJournalConfirmOpen] = useState(false);
     const { t } = useLocalization();
 
     useEffect(() => {
@@ -117,6 +119,11 @@ export default function GameMenuView({
         }
     };
     
+    const handleClearJournalsConfirm = () => {
+        clearNpcJournalsNow();
+        setIsClearJournalConfirmOpen(false);
+    };
+    
     if (!gameSettings) {
         return (
              <div className="space-y-6">
@@ -132,7 +139,7 @@ export default function GameMenuView({
         )
     }
 
-    const { aiProvider, modelName, geminiThinkingBudget, adultMode, geminiApiKey, openRouterApiKey, youtubeApiKey, allowHistoryManipulation, correctionModelName, useDynamicThinkingBudget, isCustomModel, customModelName, openRouterModelName, hardMode, notificationSound } = gameSettings;
+    const { aiProvider, modelName, geminiThinkingBudget, adultMode, geminiApiKey, openRouterApiKey, youtubeApiKey, allowHistoryManipulation, correctionModelName, useDynamicThinkingBudget, isCustomModel, customModelName, openRouterModelName, hardMode, notificationSound, keepLatestNpcJournals, latestNpcJournalsCount } = gameSettings;
 
     const handleProviderChange = (provider: 'gemini' | 'openrouter') => {
         updateGameSettings({
@@ -313,10 +320,10 @@ export default function GameMenuView({
                             <input
                                 type="range"
                                 id="inGameGeminiThinkingBudget"
-                                min="0"
+                                min="128"
                                 max="1000"
                                 step="1"
-                                value={geminiThinkingBudget || 0}
+                                value={Math.max(128, geminiThinkingBudget || 0)}
                                 onChange={(e) => updateGameSettings({ geminiThinkingBudget: parseInt(e.target.value, 10) })}
                                 className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-cyan-500"
                             />
@@ -368,7 +375,7 @@ export default function GameMenuView({
                             <label className="font-medium text-gray-300">{t("Hard Mode")}</label>
                             <p className="text-xs text-gray-400">{t("Increases enemy health and action difficulty for a greater challenge and enhanced rewards.")}</p>
                         </div>
-                        <label htmlFor="inGameHardMode" className="relative inline-flex items-center cursor-pointer">
+                         <label htmlFor="inGameHardMode" className="relative inline-flex items-center cursor-pointer">
                             <input
                                 type="checkbox"
                                 id="inGameHardMode"
@@ -448,6 +455,57 @@ export default function GameMenuView({
                 </div>
             </fieldset>
 
+             <fieldset disabled={!isGameActive || isLoading}>
+                <h3 className="text-xl font-bold text-cyan-400 my-4 narrative-text">{t("Game Master's Memory")}</h3>
+                <div className="p-4 bg-gray-900/30 rounded-lg border border-cyan-500/20 space-y-4">
+                    <div className="flex items-center justify-between p-3 bg-gray-900/30 rounded-lg" title={t('keep_journals_tooltip')}>
+                        <div>
+                            <label className="font-medium text-gray-300">{t("keep_journals_label")}</label>
+                            <p className="text-xs text-gray-400">{t("Helps reduce context size and speed up turns.")}</p>
+                        </div>
+                        <label htmlFor="keepLatestNpcJournals" className="relative inline-flex items-center cursor-pointer">
+                            <input
+                                type="checkbox"
+                                id="keepLatestNpcJournals"
+                                name="keepLatestNpcJournals"
+                                className="sr-only peer"
+                                checked={!!keepLatestNpcJournals}
+                                onChange={(e) => updateGameSettings({ keepLatestNpcJournals: e.target.checked })}
+                            />
+                            <div className="w-11 h-6 bg-gray-600 rounded-full peer peer-focus-within:ring-2 peer-focus-within:ring-cyan-500 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-cyan-600"></div>
+                        </label>
+                    </div>
+                    <div className={`p-3 bg-gray-900/30 rounded-lg transition-opacity ${!keepLatestNpcJournals ? 'opacity-50' : ''}`}>
+                        <fieldset disabled={!keepLatestNpcJournals}>
+                            <label htmlFor="latestNpcJournalsCount" className="block text-sm font-medium text-gray-300 mb-2">{t("Number of entries to keep")}</label>
+                            <input
+                                type="number"
+                                id="latestNpcJournalsCount"
+                                name="latestNpcJournalsCount"
+                                min="1"
+                                max="100"
+                                value={latestNpcJournalsCount || 20}
+                                onChange={(e) => {
+                                    const value = parseInt(e.target.value, 10);
+                                    if (!isNaN(value)) {
+                                        updateGameSettings({ latestNpcJournalsCount: value });
+                                    }
+                                }}
+                                className="w-full bg-gray-700/50 border border-gray-600 rounded-md p-2 text-gray-200 focus:ring-2 focus:ring-cyan-500 transition font-mono"
+                            />
+                        </fieldset>
+                        <button
+                            onClick={() => setIsClearJournalConfirmOpen(true)}
+                            disabled={!keepLatestNpcJournals || isLoading}
+                            className="w-full mt-3 flex items-center justify-center gap-2 px-4 py-2 text-sm font-semibold text-yellow-300 bg-yellow-600/20 rounded-md hover:bg-yellow-600/40 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                            <TrashIcon className="w-5 h-5" />
+                            {t("Clear now")}
+                        </button>
+                    </div>
+                </div>
+            </fieldset>
+
             <div>
               <h3 className="text-xl font-bold text-cyan-400 mb-4 narrative-text">{t('Game Management')}</h3>
               <div className="space-y-3">
@@ -513,6 +571,15 @@ export default function GameMenuView({
                 <p>{t("adult_mode_warning_p2")}</p>
                 <p>{t("adult_mode_warning_p3")}</p>
                 <p className="font-bold">{t("adult_mode_warning_p4")}</p>
+            </ConfirmationModal>
+             <ConfirmationModal
+                isOpen={isClearJournalConfirmOpen}
+                onClose={() => setIsClearJournalConfirmOpen(false)}
+                onConfirm={handleClearJournalsConfirm}
+                title={t("Confirm Journal Clearing")}
+            >
+                <p>{t("confirm_journal_clearing_p1", { count: latestNpcJournalsCount })}</p>
+                <p className="mt-2 text-sm text-gray-400">{t("confirm_journal_clearing_p2")}</p>
             </ConfirmationModal>
         </div>
     );

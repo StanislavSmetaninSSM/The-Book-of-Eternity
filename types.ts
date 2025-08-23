@@ -1,5 +1,4 @@
 
-
 // Represents the entire state of the game world passed between turns
 
 export interface WorldStateFlag {
@@ -101,6 +100,8 @@ export interface GameSettings {
   customModelName?: string;
   openRouterModelName?: string;
   notificationSound: boolean;
+  keepLatestNpcJournals: boolean;
+  latestNpcJournalsCount: number;
 }
 
 export interface RecipeMaterial {

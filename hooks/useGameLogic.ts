@@ -1,5 +1,6 @@
+
 import React, { useState, useCallback, useRef, useEffect } from 'react';
-import { GameState, GameContext, ChatMessage, GameResponse, LocationData, Item, NPC, SaveFile, Location, PlayerCharacter, WorldState, GameSettings, Quest, Faction, PlotOutline, Language, DBSaveSlotInfo, Wound, CustomState, WorldStateFlag } from '../types';
+import { GameState, GameContext, ChatMessage, GameResponse, LocationData, Item, NPC, SaveFile, Location, PlayerCharacter, WorldState, GameSettings, Quest, Faction, PlotOutline, Language, DBSaveSlotInfo, Wound, CustomState, WorldStateFlag, UnlockedMemory } from '../types';
 import { executeTurn, askGmQuestion, getMusicSuggestionFromAi, getModelForStep } from '../utils/gameApi';
 import { createInitialContext, buildNextContext, updateWorldMap, recalculateDerivedStats } from '../utils/gameContext';
 import { processAndApplyResponse, checkAndApplyLevelUp } from '../utils/responseProcessor';
@@ -170,9 +171,17 @@ export function useGameLogic({ language, setLanguage }: UseGameLogicProps) {
           finalGameLog = [...finalGameLog, ...levelUpLogs];
       }
       
+      const loadedSettings = data.gameContext.gameSettings;
+      // Add default values for new settings if they don't exist in the save file
+      if (loadedSettings.keepLatestNpcJournals === undefined) {
+          loadedSettings.keepLatestNpcJournals = false;
+      }
+      if (loadedSettings.latestNpcJournalsCount === undefined) {
+          loadedSettings.latestNpcJournalsCount = 20;
+      }
+
       setGameState(loadedGameState);
       setWorldState(data.gameContext.worldState);
-      const loadedSettings = data.gameContext.gameSettings;
       setGameSettings(loadedSettings);
       setSuperInstructions(data.gameContext.superInstructions || '');
       setLanguage(loadedSettings.language || 'en');
@@ -259,7 +268,7 @@ export function useGameLogic({ language, setLanguage }: UseGameLogicProps) {
           imageCache: {},
       };
       
-      const { newState, logsToAdd, combatLogsToAdd } = processAndApplyResponse(finalResponse, baseState, t, true);
+      const { newState, logsToAdd, combatLogsToAdd } = processAndApplyResponse(finalResponse, baseState, context.gameSettings, t, true);
       
       if (logsToAdd.length > 0) {
         setGameLog(prev => [...prev, ...logsToAdd]);
@@ -458,7 +467,7 @@ export function useGameLogic({ language, setLanguage }: UseGameLogicProps) {
           imageCache: {},
         };
 
-        const { newState, logsToAdd, combatLogsToAdd } = processAndApplyResponse(response, baseState, t, false);
+        const { newState, logsToAdd, combatLogsToAdd } = processAndApplyResponse(response, baseState, gameSettings, t, false);
         if (logsToAdd.length > 0) {
           setGameLog(prev => [...prev, ...logsToAdd]);
         }
@@ -494,7 +503,7 @@ export function useGameLogic({ language, setLanguage }: UseGameLogicProps) {
           turnStartTimeRef.current = null;
       }
     }
-  }, [isLoading, gameState, gameHistory, t]);
+  }, [isLoading, gameState, gameHistory, t, gameSettings]);
   
   const updateGameSettings = useCallback((newSettings: Partial<GameSettings>) => {
     setGameSettings(prevSettings => {
@@ -837,434 +846,6 @@ export function useGameLogic({ language, setLanguage }: UseGameLogicProps) {
     });
   }, []);
 
-  // Client-side UI State Management
-  const deleteMessage = useCallback((indexToDelete: number) => {
-    setGameHistory(prev => deleteMessageUtil(indexToDelete, prev));
-  }, []);
-
-  const clearHalfHistory = useCallback(() => {
-    setGameHistory(prev => clearHalfHistoryUtil(prev));
-  }, []);
-
-  const deleteLogs = useCallback(() => {
-    setGameLog(deleteLogsUtil());
-  }, []);
-
-  const forgetNpc = useCallback((npcIdToForget: string) => {
-    setGameState(prevGameState => {
-      if (!prevGameState) return prevGameState;
-      const newGameState = forgetNpcUtil(npcIdToForget, prevGameState);
-      if (gameContextRef.current) {
-        gameContextRef.current.encounteredNPCs = newGameState.encounteredNPCs;
-      }
-      return newGameState;
-    });
-  }, []);
-
-  const forgetFaction = useCallback((factionIdToForget: string) => {
-    setGameState(prevGameState => {
-      if (!prevGameState) return prevGameState;
-      const newGameState = forgetFactionUtil(factionIdToForget, prevGameState);
-      if (gameContextRef.current) {
-        gameContextRef.current.encounteredFactions = newGameState.encounteredFactions;
-      }
-      return newGameState;
-    });
-  }, []);
-  
-  const clearNpcJournal = useCallback((npcIdToClear: string) => {
-    setGameState(prevGameState => {
-      if (!prevGameState) return prevGameState;
-      
-      const newNPCs = prevGameState.encounteredNPCs.map(n => {
-        if (n.NPCId === npcIdToClear) {
-          const { journalEntries, ...rest } = n;
-          return rest;
-        }
-        return n;
-      }) as NPC[];
-
-      const newState = { ...prevGameState, encounteredNPCs: newNPCs };
-
-      if (gameContextRef.current) {
-        gameContextRef.current.encounteredNPCs = newNPCs;
-      }
-      return newState;
-    });
-  }, []);
-
-  const deleteOldestNpcJournalEntries = useCallback((npcId: string) => {
-    setGameState(prevGameState => {
-      if (!prevGameState) return prevGameState;
-      
-      const newNPCs = prevGameState.encounteredNPCs.map(n => {
-        if (n.NPCId === npcId && n.journalEntries && n.journalEntries.length > 10) {
-          // New entries are added to the start (unshift), so oldest are at the end.
-          // slice(0, -10) keeps the newest entries and removes the 10 oldest from the end.
-          return { ...n, journalEntries: n.journalEntries.slice(0, -10) };
-        }
-        return n;
-      });
-
-      const newState = { ...prevGameState, encounteredNPCs: newNPCs };
-
-      if (gameContextRef.current) {
-        gameContextRef.current.encounteredNPCs = newNPCs;
-      }
-      
-      return newState;
-    });
-  }, []);
-
-  const forgetLocation = useCallback((locationIdToForget: string) => {
-    setVisitedLocations(prevLocations => {
-      const newVisitedLocations = prevLocations.filter(loc => loc.locationId !== locationIdToForget);
-      if (gameContextRef.current) {
-          gameContextRef.current.visitedLocations = newVisitedLocations;
-      }
-      return newVisitedLocations;
-    });
-  }, []);
-
-  const forgetQuest = useCallback((questIdToForget: string) => {
-    setGameState(prevGameState => {
-      if (!prevGameState) return prevGameState;
-
-      const newActiveQuests = prevGameState.activeQuests.filter(q => q.questId !== questIdToForget);
-      const newCompletedQuests = prevGameState.completedQuests.filter(q => q.questId !== questIdToForget);
-      
-      const newState = {
-        ...prevGameState,
-        activeQuests: newActiveQuests,
-        completedQuests: newCompletedQuests,
-      };
-
-      if (gameContextRef.current) {
-        gameContextRef.current.activeQuests = newActiveQuests;
-        gameContextRef.current.completedQuests = newCompletedQuests;
-      }
-      return newState;
-    });
-  }, []);
-
-  const deleteCustomState = useCallback((stateIdToDelete: string) => {
-    setGameState(prevState => {
-      if (!prevState || !prevState.playerCustomStates) return prevState;
-
-      const newCustomStates = prevState.playerCustomStates.filter(state => state.stateId !== stateIdToDelete);
-
-      const newPc = { ...prevState.playerCharacter, playerCustomStates: newCustomStates };
-      const newState = { ...prevState, playerCharacter: newPc, playerCustomStates: newCustomStates };
-
-      if (gameContextRef.current) {
-        // Update the mutable ref immediately
-        const newContext = {
-            ...gameContextRef.current,
-            playerCharacter: newPc,
-            playerCustomStates: newCustomStates,
-        };
-        gameContextRef.current = newContext;
-        
-        // Construct save data with the new state and context
-        const saveData: SaveFile = {
-          gameContext: newContext,
-          gameState: newState,
-          gameHistory: gameHistory,
-          gameLog: gameLog,
-          combatLog: combatLog,
-          lastJsonResponse: lastJsonResponse,
-          sceneImagePrompt: sceneImagePrompt,
-          timestamp: new Date().toISOString(),
-        };
-        
-        // Call the save to DB function directly for immediate persistence.
-        saveToDB(saveData).then(() => {
-            setAutosaveTimestamp(saveData.timestamp);
-        }).catch(e => {
-            console.error("Autosave on custom state delete failed", e);
-        });
-      }
-      
-      return newState;
-    });
-  }, [gameHistory, gameLog, combatLog, lastJsonResponse, sceneImagePrompt]);
-
-  const deleteNpcCustomState = useCallback((npcId: string, stateIdOrName: string) => {
-  setGameState(prevState => {
-    if (!prevState) return prevState;
-
-    const newNpcs = prevState.encounteredNPCs.map(npc => {
-      if (npc.NPCId === npcId && npc.customStates) {
-        const newCustomStates = npc.customStates.filter(state => 
-          // Фильтруем по stateId, если он есть, иначе по stateName
-          state.stateId ? state.stateId !== stateIdOrName : state.stateName !== stateIdOrName
-        );
-        return { ...npc, customStates: newCustomStates };
-      }
-      return npc;
-    });
-
-    const newState = { ...prevState, encounteredNPCs: newNpcs };
-
-    if (gameContextRef.current) {
-      const newContext = { ...gameContextRef.current, encounteredNPCs: newNpcs };
-      gameContextRef.current = newContext;
-      
-      const saveData: SaveFile = {
-        gameContext: newContext,
-        gameState: newState,
-        gameHistory: gameHistory,
-        gameLog: gameLog,
-        combatLog: combatLog,
-        lastJsonResponse: lastJsonResponse,
-        sceneImagePrompt: sceneImagePrompt,
-        timestamp: new Date().toISOString(),
-      };
-      
-      saveToDB(saveData).then(() => {
-          setAutosaveTimestamp(saveData.timestamp);
-      }).catch(e => {
-          console.error("Autosave on NPC custom state delete failed", e);
-      });
-    }
-    
-    return newState;
-  });
-}, [gameHistory, gameLog, combatLog, lastJsonResponse, sceneImagePrompt]);
-
-  const deleteWorldStateFlag = useCallback((flagIdToDelete: string) => {
-    setGameState(prevState => {
-        if (!prevState || !prevState.worldStateFlags) return prevState;
-
-        const newFlags = { ...prevState.worldStateFlags };
-        delete newFlags[flagIdToDelete];
-
-        const newState = { ...prevState, worldStateFlags: newFlags };
-
-        if (gameContextRef.current) {
-            const newContext = {
-                ...gameContextRef.current,
-                worldStateFlags: newFlags,
-            };
-            gameContextRef.current = newContext;
-            
-            const saveData: SaveFile = {
-              gameContext: newContext,
-              gameState: newState,
-              gameHistory: gameHistory,
-              gameLog: gameLog,
-              combatLog: combatLog,
-              lastJsonResponse: lastJsonResponse,
-              sceneImagePrompt: sceneImagePrompt,
-              timestamp: new Date().toISOString(),
-            };
-            
-            saveToDB(saveData).then(() => {
-                setAutosaveTimestamp(saveData.timestamp);
-            }).catch(e => {
-                console.error("Autosave on world state flag delete failed", e);
-            });
-        }
-        
-        return newState;
-    });
-  }, [gameHistory, gameLog, combatLog, lastJsonResponse, sceneImagePrompt]);
-
-  const updateNpcSortOrder = useCallback((newOrder: string[]) => {
-    setGameState(prevState => {
-        if (!prevState) return null;
-        const newState = { ...prevState, npcSortOrder: newOrder };
-
-        if (gameContextRef.current) {
-            const saveData: SaveFile = {
-              gameContext: gameContextRef.current,
-              gameState: newState,
-              gameHistory: gameHistory,
-              gameLog: gameLog,
-              combatLog: combatLog,
-              lastJsonResponse: lastJsonResponse,
-              sceneImagePrompt: sceneImagePrompt,
-              timestamp: new Date().toISOString(),
-            };
-            
-            saveToDB(saveData).then(() => {
-                setAutosaveTimestamp(saveData.timestamp);
-            }).catch(e => {
-                console.error("Autosave on NPC sort order change failed", e);
-            });
-        }
-        return newState;
-    });
-  }, [gameHistory, gameLog, combatLog, lastJsonResponse, sceneImagePrompt]);
-  
-  const updateItemSortOrder = useCallback((newOrder: string[]) => {
-    setGameState(prevState => {
-        if (!prevState) return null;
-        const newPlayerCharacter = { ...prevState.playerCharacter, itemSortOrder: newOrder };
-        const newState = { ...prevState, playerCharacter: newPlayerCharacter };
-
-        if (gameContextRef.current) {
-            gameContextRef.current.playerCharacter = newPlayerCharacter;
-            const saveData: SaveFile = {
-              gameContext: gameContextRef.current,
-              gameState: newState,
-              gameHistory: gameHistory,
-              gameLog: gameLog,
-              combatLog: combatLog,
-              lastJsonResponse: lastJsonResponse,
-              sceneImagePrompt: sceneImagePrompt,
-              timestamp: new Date().toISOString(),
-            };
-            
-            saveToDB(saveData).then(() => {
-                setAutosaveTimestamp(saveData.timestamp);
-            }).catch(e => {
-                console.error("Autosave on item sort order change failed", e);
-            });
-        }
-        return newState;
-    });
-  }, [gameHistory, gameLog, combatLog, lastJsonResponse, sceneImagePrompt]);
-
-  const updateItemSortSettings = useCallback((criteria: PlayerCharacter['itemSortCriteria'], direction: PlayerCharacter['itemSortDirection']) => {
-    setGameState(prevState => {
-        if (!prevState) return null;
-        const newPlayerCharacter = { 
-            ...prevState.playerCharacter, 
-            itemSortCriteria: criteria,
-            itemSortDirection: direction 
-        };
-        const newState = { ...prevState, playerCharacter: newPlayerCharacter };
-
-        if (gameContextRef.current) {
-            gameContextRef.current.playerCharacter = newPlayerCharacter;
-            const saveData: SaveFile | null = packageSaveData();
-            if (saveData) {
-                // Update the game state in the save data before saving
-                saveData.gameState.playerCharacter = newPlayerCharacter;
-                saveToDB(saveData).then(() => {
-                    setAutosaveTimestamp(saveData.timestamp);
-                }).catch(e => {
-                    console.error("Autosave on item sort settings change failed", e);
-                });
-            }
-        }
-        return newState;
-    });
-  }, [packageSaveData]);
-
-    const updateNpcItemSortOrder = useCallback((npcId: string, newOrder: string[]) => {
-        setGameState(prevState => {
-            if (!prevState) return null;
-            const newNpcs = prevState.encounteredNPCs.map(npc => {
-                if (npc.NPCId === npcId) {
-                    return { ...npc, itemSortOrder: newOrder };
-                }
-                return npc;
-            });
-            const newState = { ...prevState, encounteredNPCs: newNpcs };
-            if (gameContextRef.current) {
-                gameContextRef.current.encounteredNPCs = newNpcs;
-                 const saveData: SaveFile = {
-                    gameContext: gameContextRef.current,
-                    gameState: newState,
-                    gameHistory, gameLog, combatLog, lastJsonResponse, sceneImagePrompt,
-                    timestamp: new Date().toISOString(),
-                };
-                saveToDB(saveData).then(() => setAutosaveTimestamp(saveData.timestamp));
-            }
-            return newState;
-        });
-    }, [gameHistory, gameLog, combatLog, lastJsonResponse, sceneImagePrompt]);
-
-    const updateNpcItemSortSettings = useCallback((npcId: string, criteria: PlayerCharacter['itemSortCriteria'], direction: PlayerCharacter['itemSortDirection']) => {
-        setGameState(prevState => {
-            if (!prevState) return null;
-            const newNpcs = prevState.encounteredNPCs.map(npc => {
-                if (npc.NPCId === npcId) {
-                    return { ...npc, itemSortCriteria: criteria, itemSortDirection: direction };
-                }
-                return npc;
-            });
-            const newState = { ...prevState, encounteredNPCs: newNpcs };
-            if (gameContextRef.current) {
-                gameContextRef.current.encounteredNPCs = newNpcs;
-                const saveData: SaveFile = {
-                    gameContext: gameContextRef.current,
-                    gameState: newState,
-                    gameHistory, gameLog, combatLog, lastJsonResponse, sceneImagePrompt,
-                    timestamp: new Date().toISOString(),
-                };
-                saveToDB(saveData).then(() => setAutosaveTimestamp(saveData.timestamp));
-            }
-            return newState;
-        });
-    }, [gameHistory, gameLog, combatLog, lastJsonResponse, sceneImagePrompt]);
-
-
-  // Save/Load Management
-  const saveGame = useCallback(async () => {
-    const saveData = packageSaveData();
-    if (saveData) {
-      saveGameToFile(saveData, t);
-    }
-  }, [packageSaveData, t]);
-
-  const loadGame = useCallback(async (): Promise<boolean> => {
-    const loadedData = await loadGameFromFile(t);
-    if (loadedData) {
-      try {
-        restoreFromSaveData(loadedData);
-        return true;
-      } catch (e) {
-        console.error("Error restoring game state:", e);
-        return false;
-      }
-    }
-    return false;
-  }, [restoreFromSaveData, t]);
-
-  const loadAutosave = useCallback(async (): Promise<boolean> => {
-    try {
-        const loadedData = await loadFromDB();
-        if (loadedData) {
-            restoreFromSaveData(loadedData);
-            return true;
-        }
-        return false;
-    } catch (e) {
-      console.error("Error restoring autosave from DB:", e);
-      return false;
-    }
-  }, [restoreFromSaveData]);
-  
-  const saveGameToSlot = useCallback(async (slotId: number) => {
-    const saveData = packageSaveData();
-    if (saveData) {
-      await saveToDBSlot(slotId, saveData);
-      await refreshDbSaveSlots();
-    }
-  }, [packageSaveData, refreshDbSaveSlots]);
-
-  const loadGameFromSlot = useCallback(async (slotId: number): Promise<boolean> => {
-    const loadedData = await loadFromDBSlot(slotId);
-    if (loadedData) {
-      try {
-        restoreFromSaveData(loadedData);
-        return true;
-      } catch (e) {
-        console.error("Error restoring game state from DB slot:", e);
-        return false;
-      }
-    }
-    return false;
-  }, [restoreFromSaveData]);
-
-  const deleteGameSlot = useCallback(async (slotId: number) => {
-    await deleteDBSlot(slotId);
-    await refreshDbSaveSlots();
-  }, [refreshDbSaveSlots]);
-
   // --- History Manipulation Functions ---
 
   const editChatMessage = useCallback((indexToEdit: number, newContent: string) => {
@@ -1350,6 +931,44 @@ export function useGameLogic({ language, setLanguage }: UseGameLogicProps) {
         const newPc = { ...prevState.playerCharacter, [field]: value };
         if (gameContextRef.current) gameContextRef.current.playerCharacter = newPc;
         return { ...prevState, playerCharacter: newPc };
+    });
+  }, [gameSettings]);
+  
+  const onEditNpcMemory = useCallback((npcId: string, memoryToUpdate: UnlockedMemory) => {
+    if (!gameSettings?.allowHistoryManipulation) return;
+    setGameState(prevState => {
+        if (!prevState) return null;
+        const newNpcs = prevState.encounteredNPCs.map(npc => {
+            if (npc.NPCId === npcId && npc.unlockedMemories) {
+                const newMemories = npc.unlockedMemories.map(mem => 
+                    mem.memoryId === memoryToUpdate.memoryId ? memoryToUpdate : mem
+                );
+                return { ...npc, unlockedMemories: newMemories };
+            }
+            return npc;
+        });
+        if (gameContextRef.current) {
+            gameContextRef.current.encounteredNPCs = newNpcs;
+        }
+        return { ...prevState, encounteredNPCs: newNpcs };
+    });
+  }, [gameSettings]);
+
+  const onDeleteNpcMemory = useCallback((npcId: string, memoryId: string) => {
+    if (!gameSettings?.allowHistoryManipulation) return;
+    setGameState(prevState => {
+        if (!prevState) return null;
+        const newNpcs = prevState.encounteredNPCs.map(npc => {
+            if (npc.NPCId === npcId && npc.unlockedMemories) {
+                const newMemories = npc.unlockedMemories.filter(mem => mem.memoryId !== memoryId);
+                return { ...npc, unlockedMemories: newMemories };
+            }
+            return npc;
+        });
+        if (gameContextRef.current) {
+            gameContextRef.current.encounteredNPCs = newNpcs;
+        }
+        return { ...prevState, encounteredNPCs: newNpcs };
     });
   }, [gameSettings]);
 
@@ -1635,6 +1254,301 @@ export function useGameLogic({ language, setLanguage }: UseGameLogicProps) {
         handleCompanionInventoryAction(currentState => mergeItemForNpcUtil(npcId, sourceItem, targetItem, currentState));
     }, [handleCompanionInventoryAction]);
 
+  const deleteMessage = useCallback((indexToDelete: number) => {
+    setGameHistory(prevHistory => deleteMessageUtil(indexToDelete, prevHistory));
+  }, []);
+
+  const clearHalfHistory = useCallback(() => {
+    setGameHistory(prevHistory => clearHalfHistoryUtil(prevHistory));
+  }, []);
+
+  const deleteLogs = useCallback(() => {
+    setGameLog(deleteLogsUtil());
+    setCombatLog([]);
+  }, []);
+
+  const forgetNpc = useCallback((npcIdToForget: string) => {
+    setGameState(prevState => {
+        if (!prevState) return null;
+        return forgetNpcUtil(npcIdToForget, prevState);
+    });
+  }, []);
+
+  const forgetFaction = useCallback((factionIdToForget: string) => {
+    setGameState(prevState => {
+        if (!prevState) return null;
+        return forgetFactionUtil(factionIdToForget, prevState);
+    });
+  }, []);
+
+  const clearNpcJournal = useCallback((npcId: string) => {
+    if (!gameSettings?.allowHistoryManipulation) return;
+    setGameState(prevState => {
+        if (!prevState) return null;
+        const newNpcs = prevState.encounteredNPCs.map(npc => {
+            if (npc.NPCId === npcId) {
+                return { ...npc, journalEntries: [] };
+            }
+            return npc;
+        });
+        if (gameContextRef.current) gameContextRef.current.encounteredNPCs = newNpcs;
+        return { ...prevState, encounteredNPCs: newNpcs };
+    });
+  }, [gameSettings]);
+
+  const deleteNpcJournalEntry = useCallback((npcId: string, entryIndex: number) => {
+    if (!gameSettings?.allowHistoryManipulation) return;
+    setGameState(prevState => {
+        if (!prevState) return null;
+        const newNpcs = prevState.encounteredNPCs.map(npc => {
+            if (npc.NPCId === npcId) {
+                const newEntries = (npc.journalEntries || []).filter((_, index) => index !== entryIndex);
+                return { ...npc, journalEntries: newEntries };
+            }
+            return npc;
+        });
+        if (gameContextRef.current) gameContextRef.current.encounteredNPCs = newNpcs;
+        return { ...prevState, encounteredNPCs: newNpcs };
+    });
+  }, [gameSettings]);
+
+  const deleteOldestNpcJournalEntries = useCallback((npcId: string, count: number) => {
+    if (!gameSettings?.allowHistoryManipulation) return;
+    const numToDelete = Math.max(0, count);
+    if (numToDelete === 0) return;
+    setGameState(prevState => {
+        if (!prevState) return null;
+        const newNpcs = prevState.encounteredNPCs.map(npc => {
+            if (npc.NPCId === npcId && npc.journalEntries && npc.journalEntries.length > 0) {
+                // unshift adds to the beginning, so oldest are at the end.
+                const newEntries = npc.journalEntries.slice(0, Math.max(0, npc.journalEntries.length - numToDelete));
+                return { ...npc, journalEntries: newEntries };
+            }
+            return npc;
+        });
+        if (gameContextRef.current) gameContextRef.current.encounteredNPCs = newNpcs;
+        return { ...prevState, encounteredNPCs: newNpcs };
+    });
+  }, [gameSettings]);
+
+  const forgetLocation = useCallback((locationId: string) => {
+    if (!gameSettings?.allowHistoryManipulation) return;
+    setVisitedLocations(prev => {
+        const newLocations = prev.filter(l => l.locationId !== locationId);
+        if (gameContextRef.current) gameContextRef.current.visitedLocations = newLocations;
+        return newLocations;
+    });
+    setWorldMap(prev => {
+        const newMap = { ...prev };
+        delete newMap[locationId];
+        Object.keys(newMap).forEach(key => {
+            if (newMap[key].adjacencyMap) {
+                newMap[key].adjacencyMap = newMap[key].adjacencyMap!.filter(link => {
+                    const targetLoc = Object.values(newMap).find(l => l.coordinates?.x === link.targetCoordinates.x && l.coordinates?.y === link.targetCoordinates.y);
+                    return !(targetLoc && targetLoc.locationId === locationId);
+                });
+            }
+        });
+        if (gameContextRef.current) gameContextRef.current.worldMap = newMap;
+        return newMap;
+    });
+  }, [gameSettings]);
+
+  const forgetQuest = useCallback((questId: string) => {
+    if (!gameSettings?.allowHistoryManipulation) return;
+    setGameState(prevState => {
+        if (!prevState) return null;
+        const newActive = prevState.activeQuests.filter(q => q.questId !== questId);
+        const newCompleted = prevState.completedQuests.filter(q => q.questId !== questId);
+        if (gameContextRef.current) {
+            gameContextRef.current.activeQuests = newActive;
+            gameContextRef.current.completedQuests = newCompleted;
+        }
+        return { ...prevState, activeQuests: newActive, completedQuests: newCompleted };
+    });
+  }, [gameSettings]);
+
+  const saveGame = useCallback(async () => {
+    const saveData = packageSaveData();
+    if (saveData) {
+      saveGameToFile(saveData, t);
+    }
+  }, [packageSaveData, t]);
+
+  const loadGame = useCallback(async () => {
+    const saveData = await loadGameFromFile(t);
+    if (saveData) {
+      restoreFromSaveData(saveData);
+      return true;
+    }
+    return false;
+  }, [restoreFromSaveData, t]);
+
+  const loadAutosave = useCallback(async () => {
+    const saveData = await loadFromDB();
+    if (saveData) {
+      restoreFromSaveData(saveData);
+      return true;
+    }
+    return false;
+  }, [restoreFromSaveData]);
+
+  const saveGameToSlot = useCallback(async (slotId: number) => {
+    const saveData = packageSaveData();
+    if (saveData) {
+        try {
+            await saveToDBSlot(slotId, saveData);
+            await refreshDbSaveSlots();
+        } catch (e) {
+            console.error(`Failed to save to DB slot ${slotId}`, e);
+        }
+    }
+  }, [packageSaveData, refreshDbSaveSlots]);
+
+  const loadGameFromSlot = useCallback(async (slotId: number) => {
+    try {
+        const saveData = await loadFromDBSlot(slotId);
+        if (saveData) {
+            restoreFromSaveData(saveData);
+            return true;
+        }
+        return false;
+    } catch (e) {
+        console.error(`Failed to load from DB slot ${slotId}`, e);
+        return false;
+    }
+  }, [restoreFromSaveData]);
+
+  const deleteGameSlot = useCallback(async (slotId: number) => {
+    try {
+        await deleteDBSlot(slotId);
+        await refreshDbSaveSlots();
+    } catch (e) {
+        console.error(`Failed to delete DB slot ${slotId}`, e);
+    }
+  }, [refreshDbSaveSlots]);
+
+  const deleteCustomState = useCallback((stateId: string) => {
+    if (!gameSettings?.allowHistoryManipulation) return;
+    setGameState(prevState => {
+        if (!prevState || !prevState.playerCustomStates) return prevState;
+        const newStates = prevState.playerCustomStates.filter(s => s.stateId !== stateId && s.stateName !== stateId);
+        if (gameContextRef.current) gameContextRef.current.playerCustomStates = newStates;
+        return { ...prevState, playerCustomStates: newStates };
+    });
+  }, [gameSettings]);
+
+  const deleteNpcCustomState = useCallback((npcId: string, stateId: string) => {
+    if (!gameSettings?.allowHistoryManipulation) return;
+    setGameState(prevState => {
+        if (!prevState) return null;
+        const newNpcs = prevState.encounteredNPCs.map(npc => {
+            if (npc.NPCId === npcId && npc.customStates) {
+                const newStates = npc.customStates.filter(s => s.stateId !== stateId && s.stateName !== stateId);
+                return { ...npc, customStates: newStates };
+            }
+            return npc;
+        });
+        if (gameContextRef.current) gameContextRef.current.encounteredNPCs = newNpcs;
+        return { ...prevState, encounteredNPCs: newNpcs };
+    });
+  }, [gameSettings]);
+
+  const deleteWorldStateFlag = useCallback((flagId: string) => {
+    if (!gameSettings?.allowHistoryManipulation) return;
+    setGameState(prevState => {
+        if (!prevState || !prevState.worldStateFlags) return prevState;
+        const newFlags = { ...prevState.worldStateFlags };
+        delete newFlags[flagId];
+        if (gameContextRef.current) gameContextRef.current.worldStateFlags = newFlags;
+        return { ...prevState, worldStateFlags: newFlags };
+    });
+  }, [gameSettings]);
+  
+  const updateNpcSortOrder = useCallback((newOrder: string[]) => {
+    setGameState(prevState => {
+        if (!prevState) return null;
+        const newNpcs = prevState.encounteredNPCs.map(npc => {
+            if (npc.NPCId && !newOrder.includes(npc.NPCId)) {
+                newOrder.push(npc.NPCId);
+            }
+            return npc;
+        });
+        const finalState = { ...prevState, npcSortOrder: newOrder, encounteredNPCs: newNpcs };
+        // No need to update contextRef here, as it's a UI-only setting.
+        return finalState;
+    });
+  }, []);
+  
+  const updateItemSortOrder = useCallback((newOrder: string[]) => {
+    setGameState(prevState => {
+        if (!prevState) return null;
+        const newPc = { ...prevState.playerCharacter, itemSortOrder: newOrder };
+        // No context update needed for UI setting.
+        return { ...prevState, playerCharacter: newPc };
+    });
+  }, []);
+  
+  const updateItemSortSettings = useCallback((criteria: PlayerCharacter['itemSortCriteria'], direction: PlayerCharacter['itemSortDirection']) => {
+    setGameState(prevState => {
+        if (!prevState) return null;
+        const newPc = { ...prevState.playerCharacter, itemSortCriteria: criteria, itemSortDirection: direction };
+        return { ...prevState, playerCharacter: newPc };
+    });
+  }, []);
+  
+  const updateNpcItemSortOrder = useCallback((npcId: string, newOrder: string[]) => {
+    setGameState(prevState => {
+        if (!prevState) return null;
+        const newNpcs = prevState.encounteredNPCs.map(npc => {
+            if (npc.NPCId === npcId) {
+                return { ...npc, itemSortOrder: newOrder };
+            }
+            return npc;
+        });
+        return { ...prevState, encounteredNPCs: newNpcs };
+    });
+  }, []);
+  
+  const updateNpcItemSortSettings = useCallback((npcId: string, criteria: PlayerCharacter['itemSortCriteria'], direction: PlayerCharacter['itemSortDirection']) => {
+    setGameState(prevState => {
+        if (!prevState) return null;
+        const newNpcs = prevState.encounteredNPCs.map(npc => {
+            if (npc.NPCId === npcId) {
+                return { ...npc, itemSortCriteria: criteria, itemSortDirection: direction };
+            }
+            return npc;
+        });
+        return { ...prevState, encounteredNPCs: newNpcs };
+    });
+  }, []);
+
+  const clearNpcJournalsNow = useCallback(() => {
+    if (!gameSettings?.keepLatestNpcJournals || !gameState) return;
+
+    setGameState(prevState => {
+        if (!prevState) return null;
+
+        const countToKeep = gameSettings.latestNpcJournalsCount || 20;
+
+        const newNpcs = prevState.encounteredNPCs.map(npc => {
+            if (npc.journalEntries && npc.journalEntries.length > countToKeep) {
+                const updatedEntries = npc.journalEntries.slice(0, countToKeep);
+                return { ...npc, journalEntries: updatedEntries };
+            }
+            return npc;
+        });
+
+        const newState = { ...prevState, encounteredNPCs: newNpcs };
+        
+        if (gameContextRef.current) {
+            gameContextRef.current.encounteredNPCs = newNpcs;
+        }
+
+        return newState;
+    });
+  }, [gameSettings, gameState]);
+
   return {
     gameState,
     gameHistory,
@@ -1666,6 +1580,7 @@ export function useGameLogic({ language, setLanguage }: UseGameLogicProps) {
     forgetFaction,
     clearNpcJournal,
     deleteOldestNpcJournalEntries,
+    deleteNpcJournalEntry,
     forgetLocation,
     forgetQuest,
     spendAttributePoint,
@@ -1721,5 +1636,8 @@ export function useGameLogic({ language, setLanguage }: UseGameLogicProps) {
     handleUnequipItemForNpc,
     handleSplitItemForNpc,
     handleMergeItemsForNpc,
+    onEditNpcMemory,
+    onDeleteNpcMemory,
+    clearNpcJournalsNow,
   };
 }

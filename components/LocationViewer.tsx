@@ -30,7 +30,7 @@ const Tooltip = ({
     const modalRoot = document.getElementById('modal-root');
     if (!modalRoot) return null;
     
-    const imagePrompt = location.custom_image_prompt || location.image_prompt;
+    const imagePrompt = location.custom_image_prompt || location.image_prompt || `A detailed fantasy art image of a ${location.name}.`;
 
     return ReactDOM.createPortal(
         <div 
@@ -403,14 +403,13 @@ export default function LocationViewer({ visitedLocations, currentLocation, onOp
                         <DocumentTextIcon className="w-4 h-4" />
                     </button>
                 </div>
-                 <form className="map-goto-controls" onSubmit={handleGoToCoords}>
+                 <form className="map-goto-controls" onSubmit={handleGoToCoords} onMouseDown={(e) => e.stopPropagation()}>
                     <input 
                         type="number" 
                         className="map-goto-input" 
                         placeholder="X" 
                         value={goToCoords.x}
                         onChange={(e) => setGoToCoords(prev => ({...prev, x: e.target.value}))}
-                        onClick={(e) => e.stopPropagation()}
                     />
                     <input 
                         type="number" 
@@ -418,7 +417,6 @@ export default function LocationViewer({ visitedLocations, currentLocation, onOp
                         placeholder="Y" 
                         value={goToCoords.y}
                         onChange={(e) => setGoToCoords(prev => ({...prev, y: e.target.value}))}
-                        onClick={(e) => e.stopPropagation()}
                     />
                     <button type="submit" className="map-control-button" title={t("Go")}>
                         <ArrowRightIcon className="w-4 h-4" />

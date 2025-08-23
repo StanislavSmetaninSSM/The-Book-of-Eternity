@@ -1,7 +1,6 @@
 
-
 import React, { useState, useMemo, useRef, useEffect } from 'react';
-import { NPC, FateCard, Faction, Wound, Item, PlayerCharacter, Location, ActiveSkill, PassiveSkill, CustomState } from '../../types';
+import { NPC, FateCard, Faction, Wound, Item, PlayerCharacter, Location, ActiveSkill, PassiveSkill, CustomState, UnlockedMemory } from '../../types';
 import { DetailRendererProps } from './types';
 import Section from './Shared/Section';
 import EditableField from './Shared/EditableField';
@@ -18,7 +17,7 @@ import {
     AcademicCapIcon, FingerPrintIcon, ArrowUpOnSquareIcon, ArrowsRightLeftIcon, PlusIcon, MapPinIcon,
     ExclamationTriangleIcon, ChevronDownIcon, ChevronUpIcon, ShieldExclamationIcon, ClockIcon, ScaleIcon,
 } from '@heroicons/react/24/outline';
-import { UserCircleIcon } from '@heroicons/react/24/solid';
+import { UserCircleIcon, CheckIcon, XMarkIcon } from '@heroicons/react/24/solid';
 import ConfirmationModal from '../ConfirmationModal';
 import Modal from '../Modal';
 import DetailRow from './Shared/DetailRow';
@@ -32,15 +31,40 @@ interface NpcDetailsProps extends Omit<DetailRendererProps, 'data'> {
 }
 
 const qualityColorMap: Record<string, string> = {
-    'Trash': 'text-gray-500 border-gray-700',
-    'Common': 'text-gray-300 border-gray-500',
-    'Uncommon': 'text-green-400 border-green-700/80',
-    'Good': 'text-blue-400 border-blue-700/80',
-    'Rare': 'text-indigo-400 border-indigo-700/80',
-    'Epic': 'text-purple-400 border-purple-700/80',
-    'Legendary': 'text-orange-400 border-orange-700/80',
-    'Unique': 'text-yellow-400 border-yellow-600/80',
+    'Trash': 'border-gray-700 hover:border-gray-500',
+    'Common': 'border-gray-600 hover:border-gray-400',
+    'Uncommon': 'border-green-800 hover:border-green-600',
+    'Good': 'border-blue-800 hover:border-blue-600',
+    'Rare': 'border-indigo-800 hover:border-indigo-600',
+    'Epic': 'border-purple-800 hover:border-purple-600',
+    'Legendary': 'border-orange-700 hover:border-orange-500',
+    'Unique': 'border-yellow-700 hover:border-yellow-500',
 };
+
+interface DragData {
+    item: Item;
+    isEquipped: boolean;
+    isFromContainer: boolean;
+}
+
+interface InventoryManagerUIProps {
+    character: PlayerCharacter | NPC;
+    playerCharacter?: PlayerCharacter; // Player, used when character is an NPC
+    isCompanionMode?: boolean;
+    onEquip: (item: Item, slot: string) => void;
+    onUnequip: (item: Item) => void;
+    onDropItem: (item: Item) => void; // For Player: drop. For NPC: take.
+    onGiveItem?: (item: Item, quantity: number) => void;
+    onMoveItem: (item: Item, containerId: string | null) => void;
+    onSplitItem: (item: Item, quantity: number) => void;
+    onMergeItems: (sourceItem: Item, targetItem: Item) => void;
+    onOpenDetailModal: (title: string, data: any) => void;
+    onOpenImageModal: (prompt: string) => void;
+    imageCache: Record<string, string>;
+    onImageGenerated: (prompt: string, base64: string) => void;
+    updateItemSortOrder: (newOrder: string[]) => void;
+    updateItemSortSettings: (criteria: PlayerCharacter['itemSortCriteria'], direction: PlayerCharacter['itemSortDirection']) => void;
+}
 
 const qualityOrder: Record<string, number> = {
     'Trash': 0, 'Common': 1, 'Uncommon': 2, 'Good': 3,
@@ -79,24 +103,21 @@ const NpcDetailsRenderer: React.FC<NpcDetailsProps> = (props) => {
         imageCache, onImageGenerated, forgetHealedWound, clearAllHealedWounds, onRegenerateId,
         handleTransferItem, handleEquipItemForNpc, handleUnequipItemForNpc, handleSplitItemForNpc, handleMergeItemsForNpc,
         updateNpcItemSortOrder, updateNpcItemSortSettings, playerCharacter, visitedLocations,
-        onShowMessageModal, deleteNpcCustomState
+        onShowMessageModal, deleteNpcCustomState, onEditNpcMemory, onDeleteNpcMemory, onCloseModal,
+        onDeleteNpcJournalEntry
     } = props;
     const { t } = useLocalization();
     const [isJournalOpen, setIsJournalOpen] = useState(false);
     const [isInventoryManagerOpen, setIsInventoryManagerOpen] = useState(false);
     const [confirmDeleteState, setConfirmDeleteState] = useState<CustomState | null>(null);
     
-    useEffect(() => {
-        if ((npc as any).openJournal) {
-            setIsJournalOpen(true);
-        }
-    }, [npc]);
+    const [memoriesExpanded, setMemoriesExpanded] = useState(false);
+    const [editingMemory, setEditingMemory] = useState<UnlockedMemory | null>(null);
+    const [editedContent, setEditedContent] = useState('');
+    const [deletingMemory, setDeletingMemory] = useState<UnlockedMemory | null>(null);
 
-    const handleSaveJournalEntry = (index: number, newContent: string) => {
-        if (!npc.NPCId || !npc.journalEntries) return;
-        const newJournalEntries = [...npc.journalEntries];
-        newJournalEntries[index] = newContent;
-        onEditNpcData(npc.NPCId, 'journalEntries', newJournalEntries);
+    const handleJournalClose = () => {
+        setIsJournalOpen(false);
     };
     
     const handleDeleteCustomState = () => {
@@ -105,6 +126,14 @@ const NpcDetailsRenderer: React.FC<NpcDetailsProps> = (props) => {
             deleteNpcCustomState(npc.NPCId, idToDelete);
         }
         setConfirmDeleteState(null);
+    };
+
+    const handleSaveJournalEntry = (index: number, newContent: string) => {
+        if (npc.NPCId && onEditNpcData) {
+            const newJournalEntries = [...(npc.journalEntries || [])];
+            newJournalEntries[index] = newContent;
+            onEditNpcData(npc.NPCId, 'journalEntries', newJournalEntries);
+        }
     };
 
     const factionMapById = new Map((encounteredFactions || []).filter(f => f.factionId).map(f => [f.factionId, f]));
@@ -155,7 +184,7 @@ const NpcDetailsRenderer: React.FC<NpcDetailsProps> = (props) => {
     const isCompanion = npc.progressionType === 'Companion';
 
     const isNpcItemEquipped = (itemId: string | null): boolean => {
-        if (!isCompanion || !itemId) return false;
+        if (!itemId) return false;
         return Object.values(npc.equippedItems || {}).includes(itemId);
     };
 
@@ -242,6 +271,32 @@ const NpcDetailsRenderer: React.FC<NpcDetailsProps> = (props) => {
         return [...equippedItems, ...unequippedItems];
 
     }, [npc.inventory, npc.equippedItems, npc.itemSortCriteria, npc.itemSortDirection, npc.itemSortOrder]);
+
+    const sortedMemories = useMemo(() => {
+        return npc.unlockedMemories ? [...npc.unlockedMemories].sort((a, b) => b.unlockedAtRelationshipLevel - a.unlockedAtRelationshipLevel) : [];
+    }, [npc.unlockedMemories]);
+
+    const latestMemory = sortedMemories.length > 0 ? sortedMemories[0] : null;
+    const otherMemories = sortedMemories.slice(1);
+
+    const handleOpenEditMemory = (memory: UnlockedMemory) => {
+        setEditingMemory(memory);
+        setEditedContent(memory.content);
+    };
+
+    const handleSaveMemory = () => {
+        if (editingMemory && npc.NPCId && onEditNpcMemory) {
+            onEditNpcMemory(npc.NPCId, { ...editingMemory, content: editedContent });
+        }
+        setEditingMemory(null);
+    };
+
+    const handleDeleteMemoryConfirm = () => {
+        if (deletingMemory && npc.NPCId && onDeleteNpcMemory) {
+            onDeleteNpcMemory(npc.NPCId, deletingMemory.memoryId);
+        }
+        setDeletingMemory(null);
+    };
 
     return (
     <>
@@ -389,7 +444,7 @@ const NpcDetailsRenderer: React.FC<NpcDetailsProps> = (props) => {
                         <button 
                             onClick={(e) => {
                                 e.stopPropagation();
-                                onOpenDetailModal(t("Full Journal: {name}", { name: npc.name }), { ...npc, openJournal: true });
+                                setIsJournalOpen(true);
                             }} 
                             className="w-full text-center py-2 px-4 bg-slate-700/60 hover:bg-slate-700 rounded-md text-cyan-300 font-semibold transition-colors"
                         >
@@ -399,16 +454,44 @@ const NpcDetailsRenderer: React.FC<NpcDetailsProps> = (props) => {
                 </div>
             )}
 
-            {npc.unlockedMemories && npc.unlockedMemories.length > 0 && (
+            {sortedMemories.length > 0 && (
                 <Section title={t("Unlocked Memories")} icon={BookOpenIcon}>
                     <div className="space-y-3">
-                        {npc.unlockedMemories.map(memory => onShowMessageModal && (
-                             <MemoryCard 
-                                key={memory.memoryId} 
-                                memory={memory} 
-                                onOpenMemoryModal={onShowMessageModal} 
+                        {latestMemory && (
+                            <MemoryCard
+                                key={latestMemory.memoryId}
+                                memory={latestMemory}
+                                onOpenMemoryModal={onShowMessageModal}
+                                isEditable={allowHistoryManipulation}
+                                onEdit={() => handleOpenEditMemory(latestMemory)}
+                                onDelete={() => setDeletingMemory(latestMemory)}
                             />
-                        ))}
+                        )}
+                        {otherMemories.length > 0 && (
+                            <>
+                                <button
+                                    onClick={() => setMemoriesExpanded(!memoriesExpanded)}
+                                    className="w-full flex justify-between items-center px-3 py-2 text-sm text-cyan-300 bg-gray-700/50 hover:bg-gray-700/80 rounded-md transition-colors"
+                                >
+                                    <span>{memoriesExpanded ? t('Hide Older Memories') : t('Show {count} Older Memories', { count: otherMemories.length })}</span>
+                                    {memoriesExpanded ? <ChevronUpIcon className="w-4 h-4" /> : <ChevronDownIcon className="w-4 h-4" />}
+                                </button>
+                                {memoriesExpanded && (
+                                    <div className="space-y-3 pt-2 animate-fade-in-down">
+                                        {otherMemories.map(memory => (
+                                            <MemoryCard
+                                                key={memory.memoryId}
+                                                memory={memory}
+                                                onOpenMemoryModal={onShowMessageModal}
+                                                isEditable={allowHistoryManipulation}
+                                                onEdit={() => handleOpenEditMemory(memory)}
+                                                onDelete={() => setDeletingMemory(memory)}
+                                            />
+                                        ))}
+                                    </div>
+                                )}
+                            </>
+                        )}
                     </div>
                 </Section>
             )}
@@ -607,7 +690,10 @@ const NpcDetailsRenderer: React.FC<NpcDetailsProps> = (props) => {
                             return (
                                 <button
                                     key={item.existedId || index}
-                                    onClick={() => onOpenDetailModal(t("Item: {name}", { name: itemName }), { ...item, ownerType: 'npc', ownerId: npc.NPCId, isEquippedByOwner: isEquipped })}
+                                    onClick={() => {
+                                        const detailData = { ...item, ownerType: 'npc', ownerId: npc.NPCId, isEquippedByOwner: isEquipped };
+                                        onOpenDetailModal(t("Item: {name}", { name: itemName }), detailData);
+                                    }}
                                     className={`w-full text-left p-3 rounded-md border-l-4 ${qualityColorMap[item.quality] || 'border-gray-500'} bg-gray-700/50 shadow-sm hover:bg-gray-700/80 hover:border-cyan-400 transition-colors`}
                                 >
                                     <div className="flex justify-between items-start">
@@ -682,12 +768,14 @@ const NpcDetailsRenderer: React.FC<NpcDetailsProps> = (props) => {
         
         <JournalModal
             isOpen={isJournalOpen}
-            onClose={() => setIsJournalOpen(false)}
+            onClose={handleJournalClose}
             journalEntries={npc.journalEntries || []}
             npcName={npc.name}
             isEditable={allowHistoryManipulation && !!npc.NPCId}
             onSaveEntry={handleSaveJournalEntry}
-            onDeleteOldest={onDeleteOldestNpcJournalEntries && npc.NPCId ? () => onDeleteOldestNpcJournalEntries(npc.NPCId) : undefined}
+            onDeleteOldest={onDeleteOldestNpcJournalEntries && npc.NPCId ? (count) => onDeleteOldestNpcJournalEntries(npc.NPCId!, count) : undefined}
+            onDeleteEntry={onDeleteNpcJournalEntry && npc.NPCId ? (index) => onDeleteNpcJournalEntry(npc.NPCId!, index) : undefined}
+            onClearAll={onOpenClearJournalConfirm}
         />
         <ConfirmationModal
             isOpen={confirmClear}
@@ -734,6 +822,41 @@ const NpcDetailsRenderer: React.FC<NpcDetailsProps> = (props) => {
                     onImageGenerated={onImageGenerated}
                 />
             </Modal>
+        )}
+        {editingMemory && (
+            <Modal
+                isOpen={!!editingMemory}
+                onClose={() => setEditingMemory(null)}
+                title={`${t('Edit Memory')}: ${editingMemory.title}`}
+            >
+                <div className="space-y-4">
+                    <textarea
+                      value={editedContent}
+                      onChange={(e) => setEditedContent(e.target.value)}
+                      className="w-full bg-gray-700/50 border border-gray-600 rounded-md p-3 text-gray-200 focus:ring-2 focus:ring-cyan-500 transition min-h-[300px]"
+                    />
+                    <div className="flex justify-end gap-2">
+                      <button onClick={() => setEditingMemory(null)} className="px-4 py-2 rounded-md bg-gray-600 hover:bg-gray-500 text-white font-semibold transition flex items-center gap-2">
+                        <XMarkIcon className="w-5 h-5" />
+                        {t('Cancel')}
+                      </button>
+                      <button onClick={handleSaveMemory} className="px-4 py-2 rounded-md bg-cyan-600 hover:bg-cyan-500 text-white font-semibold transition flex items-center gap-2">
+                        <CheckIcon className="w-5 h-5" />
+                        {t('Save')}
+                      </button>
+                    </div>
+                </div>
+            </Modal>
+        )}
+        {deletingMemory && (
+            <ConfirmationModal
+                isOpen={!!deletingMemory}
+                onClose={() => setDeletingMemory(null)}
+                onConfirm={handleDeleteMemoryConfirm}
+                title={`${t('Delete Memory')}: ${deletingMemory.title}`}
+            >
+                <p>{t('Are you sure you want to permanently delete this memory?')}</p>
+            </ConfirmationModal>
         )}
     </>
     );

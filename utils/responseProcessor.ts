@@ -1,7 +1,5 @@
 
-
-
-import { GameState, GameResponse, PlayerCharacter, Item, ActiveSkill, PassiveSkill, NPC, LocationData, Quest, EnemyCombatObject, AllyCombatObject, CustomState, Wound, Faction, SkillMastery, Effect, Recipe, UnlockedMemory, WorldStateFlag, NPCCustomStateChange } from '../types';
+import { GameState, GameResponse, PlayerCharacter, Item, ActiveSkill, PassiveSkill, NPC, LocationData, Quest, EnemyCombatObject, AllyCombatObject, CustomState, Wound, Faction, SkillMastery, Effect, Recipe, UnlockedMemory, WorldStateFlag, NPCCustomStateChange, GameSettings } from '../types';
 import { recalculateDerivedStats } from './gameContext';
 import { recalculateAllWeights } from './inventoryManager';
 import { characteristics as charTranslations } from './translations/characteristics';
@@ -271,7 +269,7 @@ export function checkAndApplyLevelUp(pc: PlayerCharacter, t: TFunction): { pc: P
     return { pc: newPc, logs };
 }
 
-export const processAndApplyResponse = (response: GameResponse, baseState: GameState, t: TFunction, advanceTurn: boolean): { newState: GameState, logsToAdd: string[], combatLogsToAdd: string[] } => {
+export const processAndApplyResponse = (response: GameResponse, baseState: GameState, gameSettings: GameSettings | null, t: TFunction, advanceTurn: boolean): { newState: GameState, logsToAdd: string[], combatLogsToAdd: string[] } => {
     const newState: GameState = JSON.parse(JSON.stringify(baseState));
     let pc = newState.playerCharacter;
     const logsToAdd: string[] = [];
@@ -904,6 +902,16 @@ export const processAndApplyResponse = (response: GameResponse, baseState: GameS
             npc.journalEntries.unshift(journal.lastJournalNote);
         }
     });
+
+    // --- NPC JOURNAL PRUNING ---
+    if (advanceTurn && gameSettings?.keepLatestNpcJournals) {
+        const countToKeep = gameSettings.latestNpcJournalsCount || 20;
+        newState.encounteredNPCs.forEach(npc => {
+            if (npc.journalEntries && npc.journalEntries.length > countToKeep) {
+                npc.journalEntries = npc.journalEntries.slice(0, countToKeep);
+            }
+        });
+    }
 
     asArray(response.NPCUnlockedMemories).forEach(memory => {
         const npc = findNpc(memory);
