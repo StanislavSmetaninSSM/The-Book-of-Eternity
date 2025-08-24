@@ -199,7 +199,7 @@ export async function executeTurn(
         finalResponse = await executeApiStep(
             stepSimpleName,
             mainPromptModule.getStepSimpleFullResponse,
-            narrativeStyle,
+            worldLogic + narrativeStyle,
             context,
             partialResponse,
             abortSignal,
@@ -211,7 +211,7 @@ export async function executeTurn(
             { name: 'Step1_NarrativeGeneration', getPrompt: mainPromptModule.getStep1, guide: narrativeStyle, condition: () => true },
             { name: 'Step2_CoreState', getPrompt: mainPromptModule.getStep2, guide: "", condition: () => true },
             { name: 'Step3_Combat', getPrompt: mainPromptModule.getStep3, guide: "", condition: (f: InternalFlags) => f.isCombatActive },
-            { name: 'Step4_NPC', getPrompt: mainPromptModule.getStep4, guide: narrativeStyle, condition: (f: InternalFlags) => f.needsNPCProcessing },
+            { name: 'Step4_NPC', getPrompt: mainPromptModule.getStep4, guide: worldLogic + narrativeStyle, condition: (f: InternalFlags) => f.needsNPCProcessing },
             { name: 'Step5_Inventory', getPrompt: mainPromptModule.getStep5, guide: "", condition: (f: InternalFlags) => f.needsInventoryProcessing },
             { name: 'Step6_Finalization', getPrompt: mainPromptModule.getStep6, guide: "", condition: () => true },
         ];
