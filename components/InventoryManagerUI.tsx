@@ -1,6 +1,6 @@
 
 
-import React, { useState, useMemo, useRef, useEffect } from 'react';
+import React, { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import { Item, PlayerCharacter, NPC } from '../types';
 import Modal from './Modal';
 import {
@@ -91,6 +91,32 @@ export default function InventoryManagerUI({
     const dragItemIndex = useRef<number | null>(null);
     const dragOverItemIndex = useRef<number | null>(null);
 
+    const containerRef = useRef<HTMLDivElement>(null);
+    const [topPanelFlexBasis, setTopPanelFlexBasis] = useState('50%');
+
+    const startResize = useCallback((mouseDownEvent: React.MouseEvent) => {
+        mouseDownEvent.preventDefault();
+        
+        const onMouseMove = (mouseMoveEvent: MouseEvent) => {
+            if (containerRef.current) {
+                const containerRect = containerRef.current.getBoundingClientRect();
+                const containerHeight = containerRect.height - 12; // Account for resizer and margins
+                const newTopHeight = mouseMoveEvent.clientY - containerRect.top;
+                const newPercentage = (newTopHeight / containerHeight) * 100;
+                const clampedPercentage = Math.max(15, Math.min(85, newPercentage));
+                setTopPanelFlexBasis(`${clampedPercentage}%`);
+            }
+        };
+    
+        const onMouseUp = () => {
+            window.removeEventListener('mousemove', onMouseMove);
+            window.removeEventListener('mouseup', onMouseUp);
+        };
+    
+        window.addEventListener('mousemove', onMouseMove);
+        window.addEventListener('mouseup', onMouseUp);
+    }, []);
+
     const { itemSortCriteria = 'manual', itemSortDirection = 'asc' } = character;
 
     const handleSplit = () => {
@@ -125,12 +151,6 @@ export default function InventoryManagerUI({
         { id: 'Finger1', label: 'Finger 1', icon: FingerPrintIcon },
         { id: 'Finger2', label: 'Finger 2', icon: FingerPrintIcon },
     ];
-
-    const isNpcItemEquipped = (itemId: string | null): boolean => {
-        if (!isCompanionMode || !itemId) return false;
-        const npc = character as NPC;
-        return Object.values(npc.equippedItems || {}).includes(itemId);
-    };
 
     const ItemCard = ({ item }: { item: Item }) => {
         const isBroken = item.durability === '0%';
@@ -441,7 +461,7 @@ export default function InventoryManagerUI({
         <div className={`flex flex-col md:flex-row gap-8 ${isCompanionMode ? 'h-[80vh]' : 'h-[70vh]'}`}>
             {/* Equipment Panel */}
             <div className="flex-shrink-0 w-full md:w-auto text-center">
-                <h3 className="text-xl font-bold text-cyan-400 mb-4 narrative-text">{t('Equipment')}</h3>
+                <h3 className="text-xl font-bold text-cyan-400 mb-4 narrative-text">{isCompanionMode ? character.name : t('Equipment')}</h3>
                 <div className="grid grid-cols-2 md:grid-cols-2 gap-4 justify-items-center">
                     {EQUIPMENT_SLOTS.map(slot => (
                         <EquipmentSlotComponent 
@@ -453,126 +473,85 @@ export default function InventoryManagerUI({
                 </div>
             </div>
             
-            {/* Inventory Panel */}
-            <div className="flex-1 flex flex-col min-h-0">
-                <div className="flex justify-between items-center mb-4 flex-wrap gap-2">
-                    <h3 className="text-xl font-bold text-cyan-400 narrative-text">
-                        {viewingContainer ? viewingContainer.name : (isCompanionMode ? t('Carried Items') : t('Inventory'))}
-                    </h3>
-                     <div className="flex items-center gap-2">
-                        <fieldset disabled={isSorting} className="flex items-center gap-2">
-                            <label htmlFor="sort-criteria" className="text-sm text-gray-400 flex-shrink-0">{t('Sort by:')}</label>
-                            <select
-                                id="sort-criteria"
-                                value={itemSortCriteria}
-                                onChange={(e) => {
-                                    const newCriteria = e.target.value as typeof itemSortCriteria;
-                                    updateItemSortSettings(newCriteria, itemSortDirection);
-                                    if (newCriteria !== 'manual') {
-                                        setIsSorting(false);
-                                    }
-                                }}
-                                className="bg-gray-700/50 border border-gray-600 rounded-md py-1 px-2 text-xs text-gray-200 focus:ring-1 focus:ring-cyan-500 transition"
-                            >
-                                <option value="manual">{t('Manual')}</option>
-                                <option value="name">{t('Name')}</option>
-                                <option value="quality">{t('Quality')}</option>
-                                <option value="weight">{t('Weight')}</option>
-                                <option value="price">{t('Price')}</option>
-                                <option value="type">{t('Type')}</option>
-                            </select>
-                            <button
-                                onClick={() => updateItemSortSettings(itemSortCriteria, itemSortDirection === 'asc' ? 'desc' : 'asc')}
-                                className="p-1 bg-gray-700/50 border border-gray-600 rounded-md text-gray-200 hover:bg-gray-700"
-                                title={itemSortDirection === 'asc' ? t('Ascending') : t('Descending')}
-                            >
-                                {itemSortDirection === 'asc' ? <ArrowUpIcon className="w-4 h-4" /> : <ArrowDownIcon className="w-4 h-4" />}
-                            </button>
-                        </fieldset>
-                         <button
-                            onClick={handleSortToggle}
-                            className="flex items-center gap-2 px-3 py-1.5 text-xs font-semibold text-cyan-300 bg-cyan-500/10 rounded-md hover:bg-cyan-500/20 transition-colors"
-                        >
-                            {isSorting ? <CheckIcon className="w-4 h-4" /> : <ArrowsUpDownIcon className="w-4 h-4" />}
-                            {isSorting ? t('Done') : t('Sort')}
-                        </button>
-                        {viewingContainer && (
-                            <button onClick={() => setViewingContainer(null)} className="flex items-center gap-2 px-3 py-1.5 text-xs font-semibold text-cyan-300 bg-cyan-500/10 rounded-md hover:bg-cyan-500/20 transition-colors">
-                                <ArrowUturnLeftIcon className="w-4 h-4" />
-                                {t('Back to Inventory')}
-                            </button>
-                        )}
-                    </div>
-                </div>
-                <div 
-                    onDrop={handleDropOnInventory}
-                    onDragOver={allowDrop}
-                    className="flex-1 bg-gray-900/30 p-4 rounded-lg overflow-y-auto flex flex-col"
-                >
-                   <div className="flex-1">
-                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                            {itemsToDisplay.map((item, index) => (
-                                <div
-                                    key={item.existedId}
-                                    draggable={item.durability !== '0%'}
-                                    onDragStart={(e) => handleItemDragStart(e, index, item)}
-                                    onDragEnd={handleItemDragEnd}
-                                    onDragEnter={isSorting ? () => (dragOverItemIndex.current = index) : undefined}
-                                    onDragOver={(e) => e.preventDefault()}
-                                    onDrop={(e) => handleDropOnItem(e, item)}
-                                    onClick={() => {
-                                        if (isSorting) return;
-                                        if (item.isContainer) {
-                                            setViewingContainer(item);
-                                        } else {
-                                            const detailData = (isCompanionMode && 'NPCId' in character)
-                                                ? { ...item, ownerType: 'npc', ownerId: character.NPCId, isEquippedByOwner: isNpcItemEquipped(item.existedId) }
-                                                : item;
-                                            onOpenDetailModal(t("Item: {name}", { name: item.name }), detailData);
-                                        }
-                                    }}
-                                    onContextMenu={(e) => { e.preventDefault(); if (!isSorting && item.count > 1) { setSplitItem(item); setSplitAmount('1'); } }}
-                                    className={`${isSorting ? 'cursor-move' : 'cursor-pointer'}`}
-                                >
-                                    <ItemCard item={item} />
-                                </div>
-                            ))}
+            {/* Inventory Panels (Conditional Rendering for Companion Mode) */}
+            <div ref={containerRef} className="flex-1 flex flex-col min-h-0">
+                {!isCompanionMode ? (
+                    // --- SINGLE PLAYER VIEW ---
+                    <div className="flex-1 flex flex-col min-h-0">
+                        <div className="flex justify-between items-center mb-4 flex-wrap gap-2">
+                            <h3 className="text-xl font-bold text-cyan-400 narrative-text">
+                                {viewingContainer ? viewingContainer.name : t('Inventory')}
+                            </h3>
+                            {/* Sorting controls for player */}
+                            <div className="flex items-center gap-2">
+                                <fieldset disabled={isSorting} className="flex items-center gap-2">
+                                    <label htmlFor="sort-criteria" className="text-sm text-gray-400 flex-shrink-0">{t('Sort by:')}</label>
+                                    <select id="sort-criteria" value={itemSortCriteria} onChange={(e) => updateItemSortSettings(e.target.value as any, itemSortDirection)} className="bg-gray-700/50 border border-gray-600 rounded-md py-1 px-2 text-xs text-gray-200 focus:ring-1 focus:ring-cyan-500 transition">
+                                        <option value="manual">{t('Manual')}</option><option value="name">{t('Name')}</option><option value="quality">{t('Quality')}</option><option value="weight">{t('Weight')}</option><option value="price">{t('Price')}</option><option value="type">{t('Type')}</option>
+                                    </select>
+                                    <button onClick={() => updateItemSortSettings(itemSortCriteria, itemSortDirection === 'asc' ? 'desc' : 'asc')} className="p-1 bg-gray-700/50 border border-gray-600 rounded-md text-gray-200 hover:bg-gray-700" title={itemSortDirection === 'asc' ? t('Ascending') : t('Descending')}>
+                                        {itemSortDirection === 'asc' ? <ArrowUpIcon className="w-4 h-4" /> : <ArrowDownIcon className="w-4 h-4" />}
+                                    </button>
+                                </fieldset>
+                                <button onClick={handleSortToggle} className="flex items-center gap-2 px-3 py-1.5 text-xs font-semibold text-cyan-300 bg-cyan-500/10 rounded-md hover:bg-cyan-500/20 transition-colors">
+                                    {isSorting ? <CheckIcon className="w-4 h-4" /> : <ArrowsUpDownIcon className="w-4 h-4" />}
+                                    {isSorting ? t('Done') : t('Sort')}
+                                </button>
+                                {viewingContainer && <button onClick={() => setViewingContainer(null)} className="flex items-center gap-2 px-3 py-1.5 text-xs font-semibold text-cyan-300 bg-cyan-500/10 rounded-md hover:bg-cyan-500/20 transition-colors"><ArrowUturnLeftIcon className="w-4 h-4" />{t('Back to Inventory')}</button>}
+                            </div>
                         </div>
-                        {itemsToDisplay.length === 0 && <p className="text-gray-500 text-center mt-16">{isCompanionMode ? t('No carried items.') : t('Your pockets are empty.')}</p>}
-                   </div>
-                   <div 
-                        onDrop={handleDropOnDropZone} 
-                        onDragOver={allowDrop}
-                        className={`mt-4 p-4 border-2 border-dashed rounded-lg text-center ${isCompanionMode ? 'border-green-800/50 text-green-400/70' : 'border-red-800/50 text-red-400/70'}`}
-                   >
-                        {React.createElement(dropZoneIcon, { className: "w-8 h-8 mx-auto mb-2" })}
-                        {dropZoneLabel}
-                   </div>
-                </div>
-                 {isCompanionMode && playerCharacter && (
-                    <div className="mt-4 flex-1 flex flex-col">
-                        <h3 className="text-xl font-bold text-cyan-400 narrative-text mb-4">{t("Your Inventory")}</h3>
-                        <div className="flex-1 bg-gray-900/30 p-4 rounded-lg overflow-y-auto">
-                           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                                {playerUnequippedInventory.map(item => (
-                                    <div key={item.existedId} className="flex flex-col gap-2">
-                                        <ItemCard item={item} />
-                                        <button 
-                                            onClick={() => onGiveItem?.(item, item.count)}
-                                            className="w-full flex items-center justify-center gap-2 px-2 py-1.5 text-xs font-semibold rounded-md transition-colors bg-green-600/20 text-green-300 hover:bg-green-600/40"
-                                            title={t('Give Item')}
-                                        >
-                                            <ArrowUpOnSquareIcon className="w-4 h-4" />
-                                            <span>{t('Give Item')}</span>
+                        <div onDrop={handleDropOnInventory} onDragOver={allowDrop} className="flex-1 bg-gray-900/30 p-4 rounded-lg overflow-y-auto flex flex-col">
+                            <div className="flex-1"><div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 gap-4">{itemsToDisplay.map((item, index) => <div key={item.existedId} draggable={item.durability !== '0%'} onDragStart={(e) => handleItemDragStart(e, index, item)} onDragEnd={handleItemDragEnd} onDragEnter={isSorting ? () => (dragOverItemIndex.current = index) : undefined} onDragOver={(e) => e.preventDefault()} onDrop={(e) => handleDropOnItem(e, item)} onClick={() => {if (isSorting) return; if (item.isContainer) {setViewingContainer(item);} else {onOpenDetailModal(t("Item: {name}", { name: item.name }), item);}}} onContextMenu={(e) => { e.preventDefault(); if (!isSorting && item.count > 1) { setSplitItem(item); setSplitAmount('1'); } }} className={`${isSorting ? 'cursor-move' : 'cursor-pointer'}`}><ItemCard item={item} /></div>)}</div>{itemsToDisplay.length === 0 && <p className="text-gray-500 text-center mt-16">{t('Your pockets are empty.')}</p>}</div>
+                            <div onDrop={handleDropOnDropZone} onDragOver={allowDrop} className={`mt-4 p-4 border-2 border-dashed rounded-lg text-center ${'border-red-800/50 text-red-400/70'}`}>{React.createElement(dropZoneIcon, { className: "w-8 h-8 mx-auto mb-2" })}{dropZoneLabel}</div>
+                        </div>
+                    </div>
+                ) : (
+                    // --- COMPANION VIEW ---
+                    <>
+                        {/* NPC Inventory Panel */}
+                        <div style={{ flex: `0 0 ${topPanelFlexBasis}` }} className="flex flex-col min-h-0">
+                            <div className="flex justify-between items-center mb-4 flex-wrap gap-2">
+                                <h3 className="text-xl font-bold text-cyan-400 narrative-text">{viewingContainer ? viewingContainer.name : t('Carried Items')}</h3>
+                                {/* Sorting controls for NPC */}
+                                <div className="flex items-center gap-2">
+                                    <fieldset disabled={isSorting} className="flex items-center gap-2">
+                                        <label htmlFor="sort-criteria-npc" className="text-sm text-gray-400 flex-shrink-0">{t('Sort by:')}</label>
+                                        <select id="sort-criteria-npc" value={itemSortCriteria} onChange={(e) => updateItemSortSettings(e.target.value as any, itemSortDirection)} className="bg-gray-700/50 border border-gray-600 rounded-md py-1 px-2 text-xs text-gray-200 focus:ring-1 focus:ring-cyan-500 transition">
+                                            <option value="manual">{t('Manual')}</option><option value="name">{t('Name')}</option><option value="quality">{t('Quality')}</option><option value="weight">{t('Weight')}</option><option value="price">{t('Price')}</option><option value="type">{t('Type')}</option>
+                                        </select>
+                                        <button onClick={() => updateItemSortSettings(itemSortCriteria, itemSortDirection === 'asc' ? 'desc' : 'asc')} className="p-1 bg-gray-700/50 border border-gray-600 rounded-md text-gray-200 hover:bg-gray-700" title={itemSortDirection === 'asc' ? t('Ascending') : t('Descending')}>
+                                            {itemSortDirection === 'asc' ? <ArrowUpIcon className="w-4 h-4" /> : <ArrowDownIcon className="w-4 h-4" />}
                                         </button>
-                                    </div>
-                                ))}
-                           </div>
-                           {playerUnequippedInventory.length === 0 && <p className="text-gray-500 text-center mt-16">{t('Your pockets are empty.')}</p>}
+                                    </fieldset>
+                                    <button onClick={handleSortToggle} className="flex items-center gap-2 px-3 py-1.5 text-xs font-semibold text-cyan-300 bg-cyan-500/10 rounded-md hover:bg-cyan-500/20 transition-colors">
+                                        {isSorting ? <CheckIcon className="w-4 h-4" /> : <ArrowsUpDownIcon className="w-4 h-4" />}
+                                        {isSorting ? t('Done') : t('Sort')}
+                                    </button>
+                                    {viewingContainer && <button onClick={() => setViewingContainer(null)} className="flex items-center gap-2 px-3 py-1.5 text-xs font-semibold text-cyan-300 bg-cyan-500/10 rounded-md hover:bg-cyan-500/20 transition-colors"><ArrowUturnLeftIcon className="w-4 h-4" />{t('Back to Inventory')}</button>}
+                                </div>
+                            </div>
+                            <div onDrop={handleDropOnInventory} onDragOver={allowDrop} className="flex-1 bg-gray-900/30 p-4 rounded-lg overflow-y-auto flex flex-col min-h-0">
+                                <div className="flex-1"><div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 gap-4">{itemsToDisplay.map((item, index) => <div key={item.existedId} draggable={item.durability !== '0%'} onDragStart={(e) => handleItemDragStart(e, index, item)} onDragEnd={handleItemDragEnd} onDragEnter={isSorting ? () => (dragOverItemIndex.current = index) : undefined} onDragOver={(e) => e.preventDefault()} onDrop={(e) => handleDropOnItem(e, item)} onClick={() => { if (isSorting) return; if (item.isContainer) { setViewingContainer(item); } else { const detailData = { ...item, ownerType: 'npc', ownerId: 'NPCId' in character ? character.NPCId : '', isEquippedByOwner: 'NPCId' in character ? Object.values(character.equippedItems || {}).includes(item.existedId) : false }; onOpenDetailModal(t("Item: {name}", { name: item.name }), detailData); } }} onContextMenu={(e) => { e.preventDefault(); if (!isSorting && item.count > 1) { setSplitItem(item); setSplitAmount('1'); } }} className={`${isSorting ? 'cursor-move' : 'cursor-pointer'}`}><ItemCard item={item} /></div>)}</div>{itemsToDisplay.length === 0 && <p className="text-gray-500 text-center mt-16">{t('No carried items.')}</p>}</div>
+                                <div onDrop={handleDropOnDropZone} onDragOver={allowDrop} className={`mt-4 p-4 border-2 border-dashed rounded-lg text-center ${'border-green-800/50 text-green-400/70'}`}>{React.createElement(dropZoneIcon, { className: "w-8 h-8 mx-auto mb-2" })}{dropZoneLabel}</div>
+                            </div>
                         </div>
-                    </div>
+
+                        <div onMouseDown={startResize} className="w-full h-3 my-1 bg-gray-600 hover:bg-cyan-500 cursor-row-resize flex-shrink-0" />
+
+                        {/* Player Inventory Panel */}
+                        <div style={{ flex: '1 1 0' }} className="flex flex-col min-h-0">
+                            <h3 className="text-xl font-bold text-cyan-400 narrative-text mb-4">{t("Your Inventory")}</h3>
+                            <div className="flex-1 bg-gray-900/30 p-4 rounded-lg overflow-y-auto min-h-0">
+                                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                                    {playerUnequippedInventory.map(item => (<div key={item.existedId} className="flex flex-col gap-2"><ItemCard item={item} /><button onClick={() => onGiveItem?.(item, item.count)} className="w-full flex items-center justify-center gap-2 px-2 py-1.5 text-xs font-semibold rounded-md transition-colors bg-green-600/20 text-green-300 hover:bg-green-600/40" title={t('Give Item')}><ArrowUpOnSquareIcon className="w-4 h-4" /><span>{t('Give Item')}</span></button></div>))}
+                                </div>
+                                {playerUnequippedInventory.length === 0 && <p className="text-gray-500 text-center mt-16">{t('Your pockets are empty.')}</p>}
+                            </div>
+                        </div>
+                    </>
                 )}
             </div>
+            
             {splitItem && (
                 <Modal isOpen={!!splitItem} onClose={() => setSplitItem(null)} title={`${t('Split Stack')}: ${splitItem.name}`}>
                     <div className="space-y-4">

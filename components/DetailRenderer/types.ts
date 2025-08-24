@@ -11,7 +11,7 @@ export interface DetailRendererProps {
     onDeleteOldestNpcJournalEntries?: (npcId: string, count: number) => void;
     onDeleteNpcJournalEntry?: (npcId: string, entryIndex: number) => void;
     onCloseModal?: () => void;
-    onOpenImageModal?: (prompt: string) => void;
+    onOpenImageModal?: (prompt: string, onRegenerate?: (newPrompt: string) => void) => void;
     onForgetLocation?: (locationId: string) => void;
     onForgetQuest?: (questId: string) => void;
     playerCharacter: PlayerCharacter | null;

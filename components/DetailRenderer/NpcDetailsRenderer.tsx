@@ -1,5 +1,5 @@
 
-import React, { useState, useMemo, useRef, useEffect } from 'react';
+import React, { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import { NPC, FateCard, Faction, Wound, Item, PlayerCharacter, Location, ActiveSkill, PassiveSkill, CustomState, UnlockedMemory } from '../../types';
 import { DetailRendererProps } from './types';
 import Section from './Shared/Section';
@@ -31,14 +31,14 @@ interface NpcDetailsProps extends Omit<DetailRendererProps, 'data'> {
 }
 
 const qualityColorMap: Record<string, string> = {
-    'Trash': 'border-gray-700 hover:border-gray-500',
-    'Common': 'border-gray-600 hover:border-gray-400',
-    'Uncommon': 'border-green-800 hover:border-green-600',
-    'Good': 'border-blue-800 hover:border-blue-600',
-    'Rare': 'border-indigo-800 hover:border-indigo-600',
-    'Epic': 'border-purple-800 hover:border-purple-600',
-    'Legendary': 'border-orange-700 hover:border-orange-500',
-    'Unique': 'border-yellow-700 hover:border-yellow-500',
+    'Trash': 'text-gray-500 border-gray-700',
+    'Common': 'text-gray-300 border-gray-500',
+    'Uncommon': 'text-green-400 border-green-700/80',
+    'Good': 'text-blue-400 border-blue-700/80',
+    'Rare': 'text-indigo-400 border-indigo-700/80',
+    'Epic': 'text-purple-400 border-purple-700/80',
+    'Legendary': 'text-orange-400 border-orange-700/80',
+    'Unique': 'text-yellow-400 border-yellow-600/80',
 };
 
 interface DragData {
@@ -135,6 +135,19 @@ const NpcDetailsRenderer: React.FC<NpcDetailsProps> = (props) => {
             onEditNpcData(npc.NPCId, 'journalEntries', newJournalEntries);
         }
     };
+    
+    const handleFateCardImageRegenerated = useCallback((cardId: string, newPrompt: string) => {
+        if (!onEditNpcData || !npc.NPCId) return;
+
+        const newFateCards = (npc.fateCards || []).map(card => {
+            if (card.cardId === cardId) {
+                return { ...card, image_prompt: newPrompt };
+            }
+            return card;
+        });
+
+        onEditNpcData(npc.NPCId, 'fateCards', newFateCards);
+    }, [npc, onEditNpcData]);
 
     const factionMapById = new Map((encounteredFactions || []).filter(f => f.factionId).map(f => [f.factionId, f]));
     const factionMapByName = new Map((encounteredFactions || []).map(f => [f.name.toLowerCase(), f]));
@@ -633,7 +646,7 @@ const NpcDetailsRenderer: React.FC<NpcDetailsProps> = (props) => {
                             ? (masteryData.currentMasteryProgress / masteryData.masteryProgressNeeded) * 100
                             : 0;
                         return (
-                            <button key={index} onClick={() => onOpenDetailModal(t("Active Skill: {name}", { name: skill.skillName }), { ...skill, owner: 'npc' })} className={`w-full text-left bg-gray-700/50 p-3 rounded-md border-l-4 ${qualityColorMap[skill.rarity] || 'border-gray-500'} shadow-sm hover:bg-gray-700/80 hover:border-cyan-400 transition-colors`}>
+                            <button key={index} onClick={() => onOpenDetailModal(t("Active Skill: {name}", { name: skill.skillName }), { ...skill, owner: 'npc' })} className={`w-full text-left bg-gray-700/50 p-3 rounded-md border-l-4 ${qualityColorMap[skill.rarity]?.split(' ')[1] || 'border-gray-500'} shadow-sm hover:bg-gray-700/80 hover:border-cyan-400 transition-colors`}>
                                 <div className="flex justify-between items-baseline flex-wrap gap-x-4 gap-y-1">
                                     <span className={`font-semibold ${qualityColorMap[skill.rarity]?.split(' ')[0] || 'text-gray-200'} text-lg`}>
                                         {skill.skillName}
@@ -667,7 +680,7 @@ const NpcDetailsRenderer: React.FC<NpcDetailsProps> = (props) => {
             {npc.passiveSkills && npc.passiveSkills.length > 0 && (
                 <Section title={t("Passive Skills")} icon={SparklesIcon}>
                     {(npc.passiveSkills ?? []).map((skill, index) => (
-                        <button key={index} onClick={() => onOpenDetailModal(t("Passive Skill: {name}", { name: skill.skillName }), skill)} className={`w-full text-left bg-gray-700/50 p-3 rounded-md border-l-4 ${qualityColorMap[skill.rarity] || 'border-gray-500'} shadow-sm hover:bg-gray-700/80 hover:border-cyan-400 transition-colors`}>
+                        <button key={index} onClick={() => onOpenDetailModal(t("Passive Skill: {name}", { name: skill.skillName }), skill)} className={`w-full text-left bg-gray-700/50 p-3 rounded-md border-l-4 ${qualityColorMap[skill.rarity]?.split(' ')[1] || 'border-gray-500'} shadow-sm hover:bg-gray-700/80 hover:border-cyan-400 transition-colors`}>
                              <div className="flex justify-between items-start">
                                 <span className={`font-semibold ${qualityColorMap[skill.rarity]?.split(' ')[0] || 'text-gray-200'}`}>{skill.skillName}</span>
                                 <span className="text-xs font-semibold text-gray-400 whitespace-nowrap pl-2">{t('Mastery Level')}: <span className="text-cyan-300 font-bold">{skill.masteryLevel} / {skill.maxMasteryLevel}</span></span>
@@ -691,7 +704,7 @@ const NpcDetailsRenderer: React.FC<NpcDetailsProps> = (props) => {
                                 <button
                                     key={item.existedId || index}
                                     onClick={() => {
-                                        const detailData = { ...item, ownerType: 'npc', ownerId: npc.NPCId, isEquippedByOwner: isEquipped };
+                                        const detailData = { ...item, ownerType: 'npc', ownerId: 'NPCId' in npc ? npc.NPCId : '', isEquippedByOwner: 'NPCId' in npc ? Object.values(npc.equippedItems || {}).includes(item.existedId) : false };
                                         onOpenDetailModal(t("Item: {name}", { name: itemName }), detailData);
                                     }}
                                     className={`w-full text-left p-3 rounded-md border-l-4 ${qualityColorMap[item.quality] || 'border-gray-500'} bg-gray-700/50 shadow-sm hover:bg-gray-700/80 hover:border-cyan-400 transition-colors`}
@@ -721,15 +734,23 @@ const NpcDetailsRenderer: React.FC<NpcDetailsProps> = (props) => {
             {npc.fateCards && npc.fateCards.length > 0 && (
                 <Section title={t("Fate Cards")} icon={SparklesIcon}>
                     <div className="space-y-3">
-                        {npc.fateCards.map(card => (
-                            <FateCardDetailsRenderer 
-                                key={card.cardId} 
-                                card={card}
-                                onOpenImageModal={onOpenImageModal}
-                                imageCache={imageCache}
-                                onImageGenerated={onImageGenerated}
-                            />
-                        ))}
+                        {npc.fateCards.map(card => {
+                            const openCardImageModal = () => {
+                                if (onOpenImageModal) {
+                                    const prompt = card.image_prompt || `A detailed fantasy art image of a tarot card representing "${card.name}". ${card.description}`;
+                                    onOpenImageModal(prompt, (newPrompt) => handleFateCardImageRegenerated(card.cardId, newPrompt));
+                                }
+                            };
+                            return (
+                                <FateCardDetailsRenderer 
+                                    key={card.cardId} 
+                                    card={card}
+                                    onOpenImageModal={openCardImageModal}
+                                    imageCache={imageCache}
+                                    onImageGenerated={onImageGenerated}
+                                />
+                            );
+                        })}
                     </div>
                 </Section>
             )}

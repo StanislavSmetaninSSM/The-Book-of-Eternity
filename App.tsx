@@ -15,6 +15,11 @@ import MusicPlayer from './components/MusicPlayer';
 import StartScreen from './components/StartScreen';
 import JournalModal from './components/DetailRenderer/Shared/JournalModal';
 
+interface ImageModalInfo {
+  prompt: string;
+  onRegenerate?: (newPrompt: string) => void;
+}
+
 export default function App(): React.ReactNode {
   const { language, setLanguage, t } = useLocalization();
 
@@ -114,7 +119,7 @@ export default function App(): React.ReactNode {
   const [hasStarted, setHasStarted] = useState(false);
   const [isInventoryOpen, setIsInventoryOpen] = useState(false);
   const [messageModalState, setMessageModalState] = useState<{ title: string; content: string } | null>(null);
-  const [imageModalPrompt, setImageModalPrompt] = useState<string | null>(null);
+  const [imageModalInfo, setImageModalInfo] = useState<ImageModalInfo | null>(null);
   const [detailModalStack, setDetailModalStack] = useState<{ title: string; data: any }[]>([]);
   const [editModalData, setEditModalData] = useState<{ index: number, message: ChatMessage } | null>(null);
   const [editContent, setEditContent] = useState('');
@@ -297,10 +302,10 @@ export default function App(): React.ReactNode {
   const handleShowMessageModal = (title: string, content: string) => {
     setMessageModalState({ title, content });
   };
-
-  const handleShowImageModal = (prompt: string | null) => {
+  
+  const handleShowImageModal = (prompt: string, onRegenerate?: (newPrompt: string) => void) => {
     if (prompt) {
-      setImageModalPrompt(prompt);
+        setImageModalInfo({ prompt, onRegenerate });
     }
   };
 
@@ -527,17 +532,24 @@ export default function App(): React.ReactNode {
         </Modal>
       )}
 
-      {imageModalPrompt && (
-        <Modal isOpen={true} onClose={() => setImageModalPrompt(null)} title={t("Scene Image")}>
+      {imageModalInfo && (
+        <Modal isOpen={true} onClose={() => setImageModalInfo(null)} title={t("Scene Image")}>
             <ImageRenderer 
-              prompt={imageModalPrompt} 
+              prompt={imageModalInfo.prompt} 
               className="w-full h-auto rounded-md" 
               alt={t("Enlarged game scene")}
               showRegenerateButton={true}
               width={1024}
               height={1024}
               imageCache={gameState?.imageCache ?? {}}
-              onImageGenerated={onImageGenerated}
+              onImageGenerated={(newPrompt, newBase64) => {
+                onImageGenerated(newPrompt, newBase64); // Update cache
+                if (imageModalInfo.onRegenerate) {
+                  imageModalInfo.onRegenerate(newPrompt); // Update entity state
+                }
+                // Update modal's own prompt to show new image if regenerated again
+                setImageModalInfo(prev => prev ? { ...prev, prompt: newPrompt } : null);
+              }}
             />
         </Modal>
       )}
