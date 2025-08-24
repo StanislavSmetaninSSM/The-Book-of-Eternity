@@ -1,6 +1,6 @@
 
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { Item, GameSettings } from '../../types';
 import { DetailRendererProps } from './types';
 import Section from './Shared/Section';
@@ -13,6 +13,7 @@ import ImageRenderer from '../ImageRenderer';
 import { useLocalization } from '../../context/LocalizationContext';
 import MarkdownRenderer from '../MarkdownRenderer';
 import ConfirmationModal from '../ConfirmationModal';
+import FateCardDetailsRenderer from './Shared/FateCardDetailsRenderer';
 import {
     InformationCircleIcon, TagIcon, PuzzlePieceIcon, CurrencyDollarIcon, HashtagIcon, ScaleIcon, CubeIcon,
     ShieldCheckIcon, CogIcon, FireIcon, PaperClipIcon, HandRaisedIcon, BoltIcon, BeakerIcon, ArchiveBoxIcon,
@@ -49,6 +50,19 @@ const ItemDetailsRenderer: React.FC<ItemDetailsProps> = ({ item, onOpenImageModa
         setIsDisassembleConfirmOpen(false);
         onCloseModal();
     };
+
+    const handleFateCardImageRegenerated = useCallback((cardId: string, newPrompt: string) => {
+        if (!onEditItemData || !item.existedId) return;
+
+        const newFateCards = (item.fateCards || []).map(card => {
+            if (card.cardId === cardId) {
+                return { ...card, image_prompt: newPrompt };
+            }
+            return card;
+        });
+
+        onEditItemData(item.existedId, 'fateCards', newFateCards);
+    }, [item, onEditItemData]);
 
     return (
     <div className="space-y-4">
@@ -235,6 +249,30 @@ const ItemDetailsRenderer: React.FC<ItemDetailsProps> = ({ item, onOpenImageModa
             )}
         </Section>
         
+        {item.fateCards && item.fateCards.length > 0 && (
+            <Section title={t("Fate Cards")} icon={SparklesIcon}>
+                <div className="space-y-3">
+                    {item.fateCards.map(card => {
+                        const openCardImageModal = () => {
+                            if (onOpenImageModal) {
+                                const prompt = card.image_prompt || `A detailed fantasy art image of a tarot card representing "${card.name}". ${card.description}`;
+                                onOpenImageModal(prompt, (newPrompt: string) => handleFateCardImageRegenerated(card.cardId, newPrompt));
+                            }
+                        };
+                        return (
+                            <FateCardDetailsRenderer 
+                                key={card.cardId} 
+                                card={card}
+                                onOpenImageModal={openCardImageModal}
+                                imageCache={imageCache}
+                                onImageGenerated={onImageGenerated}
+                            />
+                        );
+                    })}
+                </div>
+            </Section>
+        )}
+
         {allowHistoryManipulation && onRegenerateId && (
             <Section title={t("System Information")} icon={CogIcon}>
                 <IdDisplay 
