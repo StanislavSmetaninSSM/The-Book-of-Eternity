@@ -87,6 +87,7 @@ export const common = {
     "Raw": "Raw",
     "Minimize": "Minimize",
     "Expand": "Expand",
+    "Collapse": "Collapse",
     "save_file_api_key_warning": "Warning: The save file may contain your API keys. Do not share it with third parties!",
     "No debug data received yet.": "No debug data received yet.",
     "No JSON data available yet.": "No JSON data available yet.",
@@ -124,6 +125,8 @@ export const common = {
     "No factions encountered yet.": "No factions encountered yet.",
     "equipmentBonusTooltip": "Bonus from equipment",
     "EQ": "EQ",
+    "passiveSkillBonusTooltip": "Bonus from passive skills",
+    "SK": "SK",
     "Current AI Step": "Current AI Step",
     "Step": "Step",
     "Model": "Model",
@@ -137,6 +140,8 @@ export const common = {
     "Clear All Healed Wounds": "Clear All Healed Wounds",
     "Are you sure you want to clear all healed wounds? This will remove them permanently.": "Are you sure you want to clear all healed wounds? This will remove them permanently.",
     "System ID": "System ID",
+    "Global Flag": "Global Flag",
+    "Current Value": "Current Value",
     "ID Missing": "ID Missing",
     "Regenerate ID": "Regenerate ID",
     'Are you sure you want to regenerate the ID for "{name}"?': 'Are you sure you want to regenerate the ID for "{name}"?',
@@ -157,6 +162,7 @@ export const common = {
     "Suggested Actions": "Suggested Actions",
     "Collapse Suggestions": "Collapse Suggestions",
     "Expand Suggestions": "Expand Suggestions",
+    "system_flags_hidden": "System flags are hidden from the main view.",
     ...ui_overrides.en
   },
   ru: {
@@ -244,6 +250,7 @@ export const common = {
     "Raw": "Необработанный",
     "Minimize": "Свернуть",
     "Expand": "Развернуть",
+    "Collapse": "Свернуть",
     "save_file_api_key_warning": "Внимание: Файл сохранения может содержать ваши API ключи. Не передавайте его третьим лицам!",
     "No debug data received yet.": "Пока не получено данных для отладки.",
     "No JSON data available yet.": "Пока не получено данных JSON.",
@@ -281,6 +288,8 @@ export const common = {
     "No factions encountered yet.": "Вы еще не сталкивались с фракциями.",
     "equipmentBonusTooltip": "Бонус от снаряжения",
     "EQ": "СН",
+    "passiveSkillBonusTooltip": "Бонус от пассивных навыков",
+    "SK": "НВ",
     "Current AI Step": "Текущий шаг ИИ",
     "Step": "Шаг",
     "Model": "Модель",
@@ -294,6 +303,8 @@ export const common = {
     "Clear All Healed Wounds": "Очистить все зажившие раны",
     "Are you sure you want to clear all healed wounds? This will remove them permanently.": "Вы уверены, что хотите очистить все зажившие раны? Это удалит их навсегда.",
     "System ID": "Системный ID",
+    "Global Flag": "Глобальный флаг",
+    "Current Value": "Текущее значение",
     "ID Missing": "ID отсутствует",
     "Regenerate ID": "Пересоздать ID",
     'Are you sure you want to regenerate the ID for "{name}"?': 'Вы уверены, что хотите пересоздать ID для «{name}»?',
@@ -314,6 +325,7 @@ export const common = {
     "Suggested Actions": "Варианты действий",
     "Collapse Suggestions": "Свернуть варианты",
     "Expand Suggestions": "Развернуть варианты",
+    "system_flags_hidden": "Системные флаги скрыты из основного вида.",
     ...ui_overrides.ru
   }
 };

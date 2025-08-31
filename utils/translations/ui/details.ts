@@ -1,4 +1,7 @@
 
+
+
+
 export const details = {
   en: {
     // Common Detail View Titles
@@ -65,6 +68,8 @@ export const details = {
     "damage": "Damage",
     "resist": "Resist",
     "critDamage": "Crit Dmg",
+    "Edit Value": "Edit Value",
+    "Edit Description": "Edit Description",
 
     // Derived Stats
     "Physical Combat": "Physical Combat",
@@ -137,24 +142,7 @@ export const details = {
     "Current Value": "Current Value",
     "Progression": "Progression",
     "Thresholds": "Thresholds",
-    "Level {level} {race} {charClass}": "Level {level} {race} {charClass}",
-    "Mastery Level": "Mastery Level",
-    "Progress": "Progress",
-    "Reputation": "Reputation",
-
-    // Fallback effect descriptions
-    "deals_damage_effect_template": "Deals {value} {target} damage",
-    "deals_dot_effect_template": "Deals {value} {target} damage per turn for {duration} turns",
-    "heals_effect_template": "Restores {value} health",
-    "heals_hot_effect_template": "Restores {value} health per turn for {duration} turns",
-    "buffs_effect_template": "Increases {target} by {value} for {duration} turns",
-    "buffs_effect_template_permanent": "Increases {target} by {value}",
-    "debuffs_effect_template": "Reduces {target} by {value} for {duration} turns",
-    "debuffs_effect_template_permanent": "Reduces {target} by {value}",
-    "controls_effect_template": "Has a {value} chance to apply {target} for {duration} turns",
-    "controls_effect_template_permanent": "Applies {target} with a {value} chance",
-    "reduces_damage_effect_template": "Reduces damage from {target} by {value} for {duration} turns",
-    "reduces_damage_effect_template_permanent": "Reduces damage from {target} by {value}",
+    "Level {level} {race} {charClass}": "Level {level} {race} {charClass}"
   },
   ru: {
     // Common Detail View Titles
@@ -192,7 +180,7 @@ export const details = {
     "Effects": "Эффекты",
     "Actions": "Действия",
     "Information": "Информация",
-    "No details available for this selection.": "Нет доступных деталей для этого выбора.",
+    "No details available for this selection.": "Нет деталей для этого выбора.",
     "Name": "Имя",
     "Health": "Здоровье",
     "Energy": "Энергия",
@@ -217,20 +205,22 @@ export const details = {
     "health": "Здоровье",
     "{duration} turns": "{duration} ходов",
     "turns": "ходов",
-    "turns left": "ходов осталось",
+    "turns left": "осталось ходов",
     "damage": "Урон",
     "resist": "Сопротивление",
     "critDamage": "Крит. урон",
+    "Edit Value": "Изменить значение",
+    "Edit Description": "Изменить описание",
 
     // Derived Stats
     "Physical Combat": "Физический бой",
     "Magical & Psionic Combat": "Магический и псионический бой",
-    "General Combat": "Общие боевые параметры",
+    "General Combat": "Общий бой",
     "Melee Attack Bonus": "Бонус к атаке в ближнем бою",
     "Precision Attack Bonus": "Бонус к точной атаке",
     "Speed Attack Bonus": "Бонус к скоростной атаке",
     "Arcane Attack Bonus": "Бонус к магической атаке",
-    "Willpower Attack Bonus": "Бонус к псионической атаке",
+    "Willpower Attack Bonus": "Бонус к атаке силой воли",
     "Divine Attack Bonus": "Бонус к божественной атаке",
     "Critical Damage Multiplier": "Множитель критического урона",
     "General Resistance": "Общее сопротивление",
@@ -244,7 +234,7 @@ export const details = {
     "Base Multiplier": "Базовый множитель",
     "Luck Bonus": "Бонус от удачи",
     "Constitution Bonus": "Бонус от телосложения",
-    "Calculation Breakdown": "Расчет",
+    "Calculation Breakdown": "Разбор расчета",
 
     // Faction Details
     "Player Standing": "Положение игрока",
@@ -256,20 +246,20 @@ export const details = {
     "Benefits": "Преимущества",
 
     // Descriptions
-    "primary_stat_description_health": "Определяет ваш максимальный запас здоровья, начиная с базовых 100%. В основном увеличивается за счет вашего стандартного Телосложения, отражающего общую выносливость, со значительным вкладом от стандартной Силы, отражающей мышечную стойкость. При 100 очках в обеих характеристиках значение достигает максимума в 400%. Этот параметр не зависит от предметов или временных эффектов.",
-    "primary_stat_description_energy": "Определяет ваш максимальный запас энергии для использования навыков и выполнения напряженных действий, начиная с базовых 100%. Он в равной и значительной степени увеличивается за счет всех четырех основных жизненных и ментальных характеристик: стандартного Телосложения, Интеллекта, Мудрости и Веры. Это гарантирует, что как физически выносливые, так и умственно одаренные персонажи имеют значительный запас энергии. При 100 очках во всех четырех характеристиках значение достигает максимума в 400%. Этот параметр не зависит от предметов или временных эффектов.",
-    "primary_stat_description_experience": "Очки опыта (XP) вы получаете за успешные действия, выполнение квестов и преодоление трудностей. Накопив достаточно XP, вы повышаете свой уровень.",
-    "primary_stat_description_weight": "Показывает, сколько весит ваше снаряжение. Если общий вес превысит ваш Максимальный вес (рассчитывается из Силы и Телосложения), вы станете перегруженным и будете терять больше энергии.",
+    "primary_stat_description_health": "Определяет ваш максимальный запас здоровья, начиная с базового значения 100%. В основном увеличивается за счет стандартного Телосложения, отражающего общую выносливость, со значительным вкладом от стандартной Силы, отражающей мышечную стойкость. При 100 очках в обеих характеристиках значение достигает максимума в 400%. На этот параметр не влияют предметы или временные эффекты.",
+    "primary_stat_description_energy": "Определяет ваш максимальный запас энергии для использования навыков и выполнения напряженных действий, начиная с базового значения 100%. В равной степени и значительно увеличивается за счет всех четырех основных характеристик жизненной силы и разума: стандартных Телосложения, Интеллекта, Мудрости и Веры. Это гарантирует, что как физически выносливые, так и умственно развитые персонажи имеют значительный запас энергии. При 100 очках во всех четырех характеристиках значение достигает максимума в 400%. На этот параметр не влияют предметы или временные эффекты.",
+    "primary_stat_description_experience": "Очки опыта (XP) начисляются за успешные действия, выполнение квестов и преодоление трудностей. Накопление достаточного количества XP позволяет повысить уровень.",
+    "primary_stat_description_weight": "Показывает, сколько весит ваше снаряжение. Если общий вес превышает ваш Максимальный вес (рассчитывается из Силы и Телосложения), вы становитесь перегруженным и теряете больше энергии.",
     "primary_stat_description_money": "Ваше богатство. Используется для покупки предметов и услуг.",
-    "primary_stat_description_critchance": "Определяет, какой результат на 20-гранной кости (d20) необходим для нанесения критического удара. Базовое значение 20, уменьшается с ростом Удачи.",
-    "derived_stat_description_melee_attack": "Общий процентный бонус к урону, наносимому оружием ближнего боя, таким как мечи и топоры. Складывается из бонусов от Уровня и Силы.",
-    "derived_stat_description_precision_attack": "Общий процентный бонус к урону от атак, требующих точности, таких как выстрелы из лука или удары кинжалом. Складывается из бонусов от Уровня и Ловкости.",
-    "derived_stat_description_speed_attack": "Общий процентный бонус к урону от атак, эффективность которых зависит от скорости, например, шквал ударов легким оружием. Складывается из бонусов от Уровня и Скорости.",
-    "derived_stat_description_arcane_attack": "Общий процентный бонус к урону от тайной магии. Складывается из бонусов от Уровня и Интеллекта.",
-    "derived_stat_description_willpower_attack": "Общий процентный бонус к урону от псионических или волевых атак. Складывается из бонусов от Уровня и Мудрости.",
-    "derived_stat_description_divine_attack": "Общий процентный бонус к урону от божественных сил. Складывается из бонусов от Уровня и Веры.",
-    "derived_stat_description_crit_multiplier": "Определяет, во сколько раз увеличится ваш урон при критическом ударе. Базовое значение 1.5x, увеличивается с ростом Удачи.",
-    "derived_stat_description_general_resistance": "Базовый процент снижения всего входящего урона. Складывается из бонусов от Уровня и Телосложения.",
+    "primary_stat_description_critchance": "Определяет, какой результат на 20-гранной кости (d20) необходим для нанесения критического удара. Базовое значение — 20, оно уменьшается с ростом вашей Удачи.",
+    "derived_stat_description_melee_attack": "Общий процентный бонус к урону, наносимому оружием ближнего боя, таким как мечи и топоры. Складывается из бонусов от вашего Уровня и Силы.",
+    "derived_stat_description_precision_attack": "Общий процентный бонус к урону от атак, требующих точности, таких как выстрелы из лука или удары кинжалом. Складывается из бонусов от вашего Уровня и Ловкости.",
+    "derived_stat_description_speed_attack": "Общий процентный бонус к урону от атак, эффективность которых зависит от скорости, например, шквал ударов легким оружием. Складывается из бонусов от вашего Уровня и Скорости.",
+    "derived_stat_description_arcane_attack": "Общий процентный бонус к урону от тайной магии. Складывается из бонусов от вашего Уровня и Интеллекта.",
+    "derived_stat_description_willpower_attack": "Общий процентный бонус к урону от псионических или основанных на силе воли атак. Складывается из бонусов от вашего Уровня и Мудрости.",
+    "derived_stat_description_divine_attack": "Общий процентный бонус к урону от божественных сил. Складывается из бонусов от вашего Уровня и Веры.",
+    "derived_stat_description_crit_multiplier": "Определяет, насколько умножается ваш урон при критическом ударе. Базовое значение — 1.5x, которое увеличивается с вашей Удачей.",
+    "derived_stat_description_general_resistance": "Базовое процентное снижение всего входящего урона. Складывается из бонусов от вашего Уровня и Телосложения.",
     "Race Description": "Описание расы",
     "Class Description": "Описание класса",
     "Plot Outline": "Набросок сюжета",
@@ -293,23 +283,6 @@ export const details = {
     "Current Value": "Текущее значение",
     "Progression": "Прогрессия",
     "Thresholds": "Пороги",
-    "Level {level} {race} {charClass}": "Уровень {level} {race} {charClass}",
-    "Mastery Level": "Уровень мастерства",
-    "Progress": "Прогресс",
-    "Reputation": "Репутация",
-
-    // Fallback effect descriptions
-    "deals_damage_effect_template": "Урон: {value} ({target})",
-    "deals_dot_effect_template": "Периодический урон: {value} ({target}) / ход, {duration} ходов",
-    "heals_effect_template": "Лечение: {value} здоровья",
-    "heals_hot_effect_template": "Регенерация: {value} здоровья / ход, {duration} ходов",
-    "buffs_effect_template": "Усиление: +{value} к {target} на {duration} ходов",
-    "buffs_effect_template_permanent": "Усиление: +{value} к {target}",
-    "debuffs_effect_template": "Ослабление: {value} к {target} на {duration} ходов",
-    "debuffs_effect_template_permanent": "Ослабление: {value} к {target}",
-    "controls_effect_template": "Контроль: {target} с шансом {value} на {duration} ходов",
-    "controls_effect_template_permanent": "Контроль: {target} с шансом {value}",
-    "reduces_damage_effect_template": "Снижение урона ({target}) на {value} на {duration} ходов",
-    "reduces_damage_effect_template_permanent": "Снижение урона ({target}) на {value}",
+    "Level {level} {race} {charClass}": "Уровень {level} {race} {charClass}"
   }
-};
+}

@@ -1,7 +1,8 @@
+
 import { Item, Quest, NPC, Location, PlayerCharacter, Faction, GameSettings, Wound, UnlockedMemory } from '../../types';
 
 export interface WoundDetailsProps extends Omit<DetailRendererProps, 'data'> {
-    wound: Wound;
+    wound: Wound & { characterType?: 'player' | 'npc', characterId?: string | null };
 }
 
 export interface DetailRendererProps {
@@ -34,6 +35,7 @@ export interface DetailRendererProps {
     imageCache: Record<string, string>;
     onImageGenerated: (prompt: string, base64: string) => void;
     forgetHealedWound: (characterType: 'player' | 'npc', characterId: string | null, woundId: string) => void;
+    forgetActiveWound: (characterType: 'player' | 'npc', characterId: string | null, woundId: string) => void;
     clearAllHealedWounds: (characterType: 'player' | 'npc', characterId: string | null) => void;
     visitedLocations?: Location[];
     deleteNpcCustomState?: (npcId: string, stateId: string) => void;

@@ -29,6 +29,12 @@ export const status = {
     "Application of Splint": "Application of Splint",
     "Use of Bandages": "Use of Bandages",
     "Minor Healing Spell": "Minor Healing Spell",
+    "Forget Wound": "Forget Wound",
+    "Are you sure you want to forget this healed wound?": "Are you sure you want to forget this healed wound?",
+    "Clear All Healed Wounds": "Clear All Healed Wounds",
+    "Are you sure you want to clear all healed wounds? This will remove them permanently.": "Are you sure you want to clear all healed wounds? This will remove them permanently.",
+    "Forget Active Wound": "Forget Active Wound",
+    "forget_active_wound_confirm": "Are you sure you want to forget this active wound? This will remove it and all associated effects permanently.",
 
     // Stealth
     "Enter Stealth Mode": "Enter Stealth Mode",
@@ -86,6 +92,10 @@ export const status = {
     "all_action_checks": "All Action Checks",
     "You have become Fatigued from exhaustion!": "You have become Fatigued from exhaustion!",
     "You are no longer Fatigued.": "You are no longer Fatigued.",
+
+    // New
+    "No active wounds.": "No active wounds.",
+    "wound_default_description": "The wound is fresh and requires attention."
   },
   ru: {
     // Conditions, Effects, Wounds
@@ -116,6 +126,12 @@ export const status = {
     "Application of Splint": "Наложение шины",
     "Use of Bandages": "Использование бинтов",
     "Minor Healing Spell": "Малое исцеляющее заклинание",
+    "Forget Wound": "Забыть рану",
+    "Are you sure you want to forget this healed wound?": "Вы уверены, что хотите забыть эту зажившую рану?",
+    "Clear All Healed Wounds": "Очистить все зажившие раны",
+    "Are you sure you want to clear all healed wounds? This will remove them permanently.": "Вы уверены, что хотите очистить все зажившие раны? Это удалит их навсегда.",
+    "Forget Active Wound": "Забыть активную рану",
+    "forget_active_wound_confirm": "Вы уверены, что хотите забыть эту активную рану? Это навсегда удалит ее и все связанные с ней эффекты.",
 
     // Stealth
     "Enter Stealth Mode": "Войти в режим скрытности",
@@ -173,5 +189,9 @@ export const status = {
     "all_action_checks": "Все проверки действий",
     "You have become Fatigued from exhaustion!": "Вы получили Усталость от истощения!",
     "You are no longer Fatigued.": "Вы больше не чувствуете Усталость.",
+    
+    // New
+    "No active wounds.": "Нет активных ран.",
+    "wound_default_description": "Рана свежая и требует внимания."
   }
 };

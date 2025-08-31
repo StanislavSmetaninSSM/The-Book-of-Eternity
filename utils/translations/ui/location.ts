@@ -41,6 +41,9 @@ export const location = {
     "Reset View": "Reset View",
     "Toggle Labels": "Toggle Labels",
     "Go": "Go",
+    "Expand Map": "Expand Map",
+    "Collapse Map": "Collapse Map",
+    "Center on Player": "Center on Player",
 
     // New for event log
     "Last Event": "Last Event",
@@ -74,7 +77,7 @@ export const location = {
     "Crafting": "Crafting",
     "Trade": "Trade",
     "Estimated Difficulty": "Estimated Difficulty",
-
+    
     // Difficulty Profile
     "Difficulty Profile": "Difficulty Profile",
     "Combat": "Combat",
@@ -92,6 +95,42 @@ export const location = {
     "Hard": "Hard",
     "Very Hard": "Very Hard",
     "Deadly": "Deadly",
+
+    // World Panel
+    "World State": "World State",
+    "Time": "Time",
+    "Weather": "Weather",
+    "Global Flags": "Global Flags",
+    "Edit Time": "Edit Time",
+    "The state of the world is calm and unchanged.": "The state of the world is calm and unchanged.",
+    "system_flags_hidden": "System flags are hidden from the main view.",
+    "World Events Log": "World Events Log",
+    "Filter by Type": "Filter by Type",
+    "Filter by Visibility": "Filter by Visibility",
+    "Filter by Turn": "Filter by Turn",
+    "Enter turn number...": "Enter turn number...",
+    "No major world events have been recorded yet.": "No major world events have been recorded yet.",
+    "Day {day} - Turn {turnNumber}": "Day {day} - Turn {turnNumber}",
+    "Political": "Political",
+    "Military": "Military",
+    "Economic": "Economic",
+    "Mystical": "Mystical",
+    "Disaster": "Disaster",
+    "Personal": "Personal",
+    "Public": "Public",
+    "Regional": "Regional",
+    "Faction-Internal": "Faction-Internal",
+    "Secret": "Secret",
+    "Involved NPCs": "Involved NPCs",
+    "Affected Factions": "Affected Factions",
+    "Affected Locations": "Affected Locations",
+    "Admin Actions": "Admin Actions",
+    "From turn": "From turn",
+    "To turn": "To turn",
+    "Delete Range": "Delete Range",
+    "Delete Event Range": "Delete Event Range",
+    "delete_event_range_confirm": "Are you sure you want to permanently delete all world events from turn {start} to {end}? This action cannot be undone.",
+    "invalid_turn_range": "Invalid turn range. Please ensure 'From' is a number less than or equal to 'To'."
   },
   ru: {
     // Location Details & Map
@@ -134,6 +173,9 @@ export const location = {
     "Reset View": "Сбросить вид",
     "Toggle Labels": "Переключить метки",
     "Go": "Перейти",
+    "Expand Map": "Развернуть карту",
+    "Collapse Map": "Свернуть карту",
+    "Center on Player": "Центрировать на игроке",
 
     // New for event log
     "Last Event": "Последнее событие",
@@ -185,5 +227,41 @@ export const location = {
     "Hard": "Сложно",
     "Very Hard": "Очень сложно",
     "Deadly": "Смертельно",
+
+    // World Panel
+    "World State": "Состояние мира",
+    "Time": "Время",
+    "Weather": "Погода",
+    "Global Flags": "Глобальные флаги",
+    "Edit Time": "Изменить время",
+    "The state of the world is calm and unchanged.": "Состояние мира спокойно и неизменно.",
+    "system_flags_hidden": "Системные флаги скрыты из основного вида.",
+    "World Events Log": "Журнал мировых событий",
+    "Filter by Type": "Фильтр по типу",
+    "Filter by Visibility": "Фильтр по видимости",
+    "Filter by Turn": "Фильтр по ходу",
+    "Enter turn number...": "Введите номер хода...",
+    "No major world events have been recorded yet.": "Пока не было зафиксировано крупных мировых событий.",
+    "Day {day} - Turn {turnNumber}": "День {day} - Ход {turnNumber}",
+    "Political": "Политические",
+    "Military": "Военные",
+    "Economic": "Экономические",
+    "Mystical": "Мистические",
+    "Disaster": "Катастрофы",
+    "Personal": "Личные",
+    "Public": "Публичные",
+    "Regional": "Региональные",
+    "Faction-Internal": "Внутрифракционные",
+    "Secret": "Секретные",
+    "Involved NPCs": "Участвующие NPC",
+    "Affected Factions": "Затронутые фракции",
+    "Affected Locations": "Затронутые локации",
+    "Admin Actions": "Действия администратора",
+    "From turn": "С хода",
+    "To turn": "По ход",
+    "Delete Range": "Удалить диапазон",
+    "Delete Event Range": "Удалить диапазон событий",
+    "delete_event_range_confirm": "Вы уверены, что хотите навсегда удалить все мировые события с хода {start} по ход {end}? Это действие необратимо.",
+    "invalid_turn_range": "Неверный диапазон ходов. Пожалуйста, убедитесь, что начальный ход является числом, меньшим или равным конечному."
   }
 };

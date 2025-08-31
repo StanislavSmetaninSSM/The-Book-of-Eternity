@@ -1,9 +1,9 @@
-
 import React, { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import { useLocalization } from '../context/LocalizationContext';
 import { PlotOutline } from '../types';
 import MarkdownRenderer from './MarkdownRenderer';
 import PrettyJsonViewer from './PrettyJsonViewer';
+import { ArrowsPointingInIcon, ArrowsPointingOutIcon } from '@heroicons/react/24/outline';
 
 interface JsonDebugViewProps {
   jsonString: string | null;
@@ -27,6 +27,7 @@ export default function JsonDebugView({ jsonString, requestJsonString, plotOutli
   const { t } = useLocalization();
   const [jsonViewerHeight, setJsonViewerHeight] = useState(300);
   const [isResizing, setIsResizing] = useState(false);
+  const [isJsonExpanded, setIsJsonExpanded] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
   const parsedResponseData = useMemo(() => {
@@ -72,7 +73,7 @@ export default function JsonDebugView({ jsonString, requestJsonString, plotOutli
   }, []);
 
   const resize = useCallback((mouseMoveEvent: MouseEvent) => {
-    if (isResizing && containerRef.current) {
+    if (isResizing && containerRef.current && !isJsonExpanded) {
       const containerRect = containerRef.current.getBoundingClientRect();
       const newHeight = containerRect.bottom - mouseMoveEvent.clientY;
       
@@ -83,7 +84,7 @@ export default function JsonDebugView({ jsonString, requestJsonString, plotOutli
         setJsonViewerHeight(newHeight);
       }
     }
-  }, [isResizing]);
+  }, [isResizing, isJsonExpanded]);
 
   useEffect(() => {
     window.addEventListener("mousemove", resize);
@@ -101,88 +102,95 @@ export default function JsonDebugView({ jsonString, requestJsonString, plotOutli
 
   return (
     <div className="h-full flex flex-col" ref={containerRef}>
-      <h3 className="text-xl font-bold text-cyan-400 narrative-text mb-4">{t("Debug View")}</h3>
-      
-      <div className="flex-1 overflow-y-auto pr-2 min-h-0">
-        {currentStep && (
-          <Section title={t("Current AI Step")}>
-              <div className="text-sm space-y-1">
-                  <p><span className="font-semibold text-gray-400 w-16 inline-block">{t("Step")}:</span> <span className="font-mono text-cyan-300">{currentStep}</span></p>
-                  <p><span className="font-semibold text-gray-400 w-16 inline-block">{t("Model")}:</span> <span className="font-mono text-cyan-300">{currentModel}</span></p>
-              </div>
-          </Section>
-        )}
-        {turnTime !== null && (
-             <Section title={t("Turn Processing Time")}>
-                 <p className="text-lg font-mono text-cyan-300">{formatTime(turnTime)}</p>
-             </Section>
-        )}
-        {plotOutline && (
-          <Section title={t("Plot Outline")}>
-              <div className="space-y-3 text-sm">
-                  <div>
-                      <h5 className="font-bold text-gray-300">{t("Main Arc")}</h5>
-                      <div className="pl-2 border-l border-gray-600 ml-2 text-gray-400">
-                          <MarkdownRenderer content={`**${t("Summary")}**: ${plotOutline.mainArc.summary}\n\n**${t("Next Step")}**: ${plotOutline.mainArc.nextImmediateStep}\n\n**${t("Climax")}**: ${plotOutline.mainArc.potentialClimax}`} />
+      {!isJsonExpanded && (
+        <>
+          <h3 className="text-xl font-bold text-cyan-400 narrative-text mb-4">{t("Debug View")}</h3>
+          
+          <div className="flex-1 overflow-y-auto pr-2 min-h-0">
+            {currentStep && (
+              <Section title={t("Current AI Step")}>
+                  <div className="text-sm space-y-1">
+                      <p><span className="font-semibold text-gray-400 w-16 inline-block">{t("Step")}:</span> <span className="font-mono text-cyan-300">{currentStep}</span></p>
+                      <p><span className="font-semibold text-gray-400 w-16 inline-block">{t("Model")}:</span> <span className="font-mono text-cyan-300">{currentModel}</span></p>
+                  </div>
+              </Section>
+            )}
+            {turnTime !== null && (
+                 <Section title={t("Turn Processing Time")}>
+                     <p className="text-lg font-mono text-cyan-300">{formatTime(turnTime)}</p>
+                 </Section>
+            )}
+            {plotOutline && (
+              <Section title={t("Plot Outline")}>
+                  <div className="space-y-3 text-sm">
+                      <div>
+                          <h5 className="font-bold text-gray-300">{t("Main Arc")}</h5>
+                          <div className="pl-2 border-l border-gray-600 ml-2 text-gray-400">
+                              <MarkdownRenderer content={`**${t("Summary")}**: ${plotOutline.mainArc.summary}\n\n**${t("Next Step")}**: ${plotOutline.mainArc.nextImmediateStep}\n\n**${t("Climax")}**: ${plotOutline.mainArc.potentialClimax}`} />
+                          </div>
+                      </div>
+                      <div>
+                          <h5 className="font-bold text-gray-300">{t("Character Subplots")}</h5>
+                          {plotOutline.characterSubplots.map((subplot, i) => (
+                              <div key={i} className="pl-2 border-l border-gray-600 ml-2 mt-2">
+                                   <h6 className="font-semibold text-cyan-300/80">{subplot.characterName}</h6>
+                                   <div className="pl-2 border-l border-gray-700 ml-2 text-gray-400">
+                                      <MarkdownRenderer content={`**${t("Arc Summary")}**: ${subplot.arcSummary}\n\n**${t("Next Step")}**: ${subplot.nextStep}\n\n**${t("Conflict/Resolution")}**: ${subplot.potentialConflictOrResolution}`} />
+                                   </div>
+                              </div>
+                          ))}
+                      </div>
+                       <div>
+                          <h5 className="font-bold text-gray-300">{t("Looming Threats")}</h5>
+                           <ul className="list-disc list-inside pl-2 text-gray-400">
+                              {plotOutline.loomingThreatsOrOpportunities.map((threat, i) => <li key={i}>{threat}</li>)}
+                          </ul>
                       </div>
                   </div>
-                  <div>
-                      <h5 className="font-bold text-gray-300">{t("Character Subplots")}</h5>
-                      {plotOutline.characterSubplots.map((subplot, i) => (
-                          <div key={i} className="pl-2 border-l border-gray-600 ml-2 mt-2">
-                               <h6 className="font-semibold text-cyan-300/80">{subplot.characterName}</h6>
-                               <div className="pl-2 border-l border-gray-700 ml-2 text-gray-400">
-                                  <MarkdownRenderer content={`**${t("Arc Summary")}**: ${subplot.arcSummary}\n\n**${t("Next Step")}**: ${subplot.nextStep}\n\n**${t("Conflict/Resolution")}**: ${subplot.potentialConflictOrResolution}`} />
-                               </div>
+              </Section>
+            )}
+
+            {multipliers && (
+              <Section title={t("System Multipliers")}>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
+                      {multipliers.map((m: number, i: number) => (
+                          <div key={i} className="bg-gray-900/40 p-2 rounded flex justify-between">
+                              <span className="text-gray-400">{multiplierLabels[i] || `Multiplier ${i + 1}`}:</span>
+                              <span className="font-mono text-cyan-300">{m.toFixed(2)}</span>
                           </div>
                       ))}
                   </div>
-                   <div>
-                      <h5 className="font-bold text-gray-300">{t("Looming Threats")}</h5>
-                       <ul className="list-disc list-inside pl-2 text-gray-400">
-                          {plotOutline.loomingThreatsOrOpportunities.map((threat, i) => <li key={i}>{threat}</li>)}
-                      </ul>
+              </Section>
+            )}
+
+            {assessment && (
+              <Section title={t("Player Behavior Assessment")}>
+                  <div className="bg-gray-900/40 p-2 rounded flex justify-between text-sm">
+                      <span className="text-gray-400">{t("History Manipulation Coefficient")}:</span>
+                      <span className="font-mono text-cyan-300">{assessment.historyManipulationCoefficient.toFixed(2)}</span>
                   </div>
+              </Section>
+            )}
+          
+            {!plotOutline && !multipliers && !assessment && !jsonString && !currentStep && turnTime === null && (
+              <div className="text-center text-gray-500 p-6 flex flex-col items-center justify-center h-full">
+                  <p>{t("No debug data received yet.")}</p>
               </div>
-          </Section>
-        )}
-
-        {multipliers && (
-          <Section title={t("System Multipliers")}>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
-                  {multipliers.map((m: number, i: number) => (
-                      <div key={i} className="bg-gray-900/40 p-2 rounded flex justify-between">
-                          <span className="text-gray-400">{multiplierLabels[i] || `Multiplier ${i + 1}`}:</span>
-                          <span className="font-mono text-cyan-300">{m.toFixed(2)}</span>
-                      </div>
-                  ))}
-              </div>
-          </Section>
-        )}
-
-        {assessment && (
-          <Section title={t("Player Behavior Assessment")}>
-              <div className="bg-gray-900/40 p-2 rounded flex justify-between text-sm">
-                  <span className="text-gray-400">{t("History Manipulation Coefficient")}:</span>
-                  <span className="font-mono text-cyan-300">{assessment.historyManipulationCoefficient.toFixed(2)}</span>
-              </div>
-          </Section>
-        )}
-      
-        {!plotOutline && !multipliers && !assessment && !jsonString && !currentStep && turnTime === null && (
-          <div className="text-center text-gray-500 p-6 flex flex-col items-center justify-center h-full">
-              <p>{t("No debug data received yet.")}</p>
+            )}
           </div>
-        )}
-      </div>
+          
+          <div
+            onMouseDown={startResizing}
+            className="w-full h-1.5 cursor-row-resize bg-gray-700/40 hover:bg-cyan-500/60 transition-colors duration-200 flex-shrink-0"
+            aria-hidden="true"
+          />
+        </>
+      )}
       
-      <div
-        onMouseDown={startResizing}
-        className="w-full h-1.5 cursor-row-resize bg-gray-700/40 hover:bg-cyan-500/60 transition-colors duration-200 flex-shrink-0"
-        aria-hidden="true"
-      />
-      
-      <div style={{ height: `${jsonViewerHeight}px` }} className="flex-shrink-0 flex flex-col pt-2">
+      <div 
+        style={!isJsonExpanded ? { height: `${jsonViewerHeight}px` } : {}}
+        className={`flex-shrink-0 flex flex-col pt-2 ${isJsonExpanded ? 'flex-1 min-h-0' : ''}`}
+      >
         <div className="flex justify-between items-center mb-2">
             <div className="flex items-center gap-1 bg-gray-900/50 p-1 rounded-md">
                 <button
@@ -198,7 +206,18 @@ export default function JsonDebugView({ jsonString, requestJsonString, plotOutli
                     {t('Response')}
                 </button>
             </div>
-            <span className="font-semibold text-gray-300">{jsonTitle}</span>
+            
+            <div className="flex items-center gap-2">
+              <span className="font-semibold text-gray-300">{jsonTitle}</span>
+              <button
+                  onClick={() => setIsJsonExpanded(!isJsonExpanded)}
+                  title={isJsonExpanded ? t('Collapse') : t('Expand')}
+                  className="p-1 rounded-full text-gray-400 hover:bg-gray-700 hover:text-white"
+              >
+                  {isJsonExpanded ? <ArrowsPointingInIcon className="w-4 h-4" /> : <ArrowsPointingOutIcon className="w-4 h-4" />}
+              </button>
+            </div>
+
             <div className="flex items-center gap-1 bg-gray-900/50 p-1 rounded-md">
                 <button 
                     onClick={() => setView('formatted')}

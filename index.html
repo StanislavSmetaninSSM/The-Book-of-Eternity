@@ -385,6 +385,164 @@
       .music-player-resizer:hover::after {
         opacity: 1;
       }
+
+      /* World Events Timeline */
+      .timeline-container {
+        position: relative;
+        padding-left: 30px; /* Space for the timeline line and markers */
+      }
+      .timeline-line {
+        position: absolute;
+        left: 12px;
+        top: 0;
+        bottom: 0;
+        width: 4px;
+        background-image: linear-gradient(to bottom, rgba(16, 185, 129, 0), rgba(16, 185, 129, 0.4), rgba(16, 185, 129, 0));
+        border-radius: 2px;
+      }
+      .timeline-turn-marker {
+        position: sticky;
+        top: 10px;
+        left: 14px;
+        transform: translateX(-50%);
+        width: 32px;
+        height: 36px;
+        background: linear-gradient(145deg, #1f2937, #374151); /* slate-800 to slate-700 */
+        clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+        z-index: 10;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 0 12px rgba(16, 185, 129, 0.5), inset 0 0 4px rgba(16, 185, 129, 0.3);
+        border: 1px solid rgba(16, 185, 129, 0.4);
+        transition: transform 0.2s ease-in-out;
+        font-family: 'Inter', sans-serif;
+      }
+      .timeline-turn-marker:hover {
+        transform: translateX(-50%) scale(1.1);
+      }
+      .timeline-turn-marker span {
+        font-weight: 700;
+        color: #6ee7b7; /* emerald-300 */
+        font-size: 10px;
+        text-shadow: 0 0 5px #6ee7b7;
+      }
+      .timeline-event-card {
+        position: relative;
+        background: rgba(15, 23, 42, 0.6); /* slate-900/60 */
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+        border: 1px solid rgba(51, 65, 85, 0.5); /* slate-700/50 */
+        border-radius: 8px;
+        margin-bottom: 1rem;
+        overflow: hidden;
+        transition: all 0.3s ease;
+      }
+      .timeline-event-card::before {
+        content: '';
+        position: absolute;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        width: 4px;
+      }
+      /* Event type colors */
+      .event-type-Political::before { background-color: #60a5fa; box-shadow: 0 0 8px #60a5fa; } /* blue-400 */
+      .event-type-Military::before { background-color: #f87171; box-shadow: 0 0 8px #f87171; } /* red-400 */
+      .event-type-Economic::before { background-color: #fbbf24; box-shadow: 0 0 8px #fbbf24; } /* amber-400 */
+      .event-type-Social::before { background-color: #4ade80; box-shadow: 0 0 8px #4ade80; } /* green-400 */
+      .event-type-Mystical::before { background-color: #a78bfa; box-shadow: 0 0 8px #a78bfa; } /* violet-400 */
+      .event-type-Disaster::before { background-color: #f472b6; box-shadow: 0 0 8px #f472b6; } /* pink-400 */
+      .event-type-Personal::before { background-color: #9ca3af; box-shadow: 0 0 8px #9ca3af; } /* gray-400 */
+
+      .event-content {
+        max-height: 0;
+        opacity: 0;
+        overflow: hidden;
+        transition: max-height 0.5s ease-in-out, opacity 0.5s ease-in-out, padding 0.5s ease-in-out;
+        padding: 0 1rem;
+      }
+      .event-content.expanded {
+        max-height: 1000px; /* Large enough for content */
+        opacity: 1;
+        padding: 0.75rem 1rem 1rem 1rem;
+      }
+      .event-tag {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.3rem;
+        background-color: rgba(51, 65, 85, 0.7); /* slate-700/70 */
+        color: #cbd5e1; /* slate-300 */
+        font-size: 0.75rem;
+        padding: 0.25rem 0.6rem;
+        border-radius: 9999px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        border: 1px solid transparent;
+      }
+      .event-tag:hover {
+        background-color: rgba(71, 85, 105, 0.9); /* slate-600/90 */
+        color: white;
+        border-color: #0891b2; /* cyan-600 */
+      }
+
+      /* Filter buttons */
+      .filter-button {
+        padding: 0.25rem 0.75rem;
+        border-radius: 9999px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        transition: all 0.2s ease;
+        border: 1px solid transparent;
+        background-color: rgba(51, 65, 85, 0.5);
+        color: #9ca3af;
+      }
+      .filter-button:hover {
+        background-color: rgba(71, 85, 105, 0.7);
+        color: #e5e7eb;
+      }
+      .filter-button.active {
+        color: white;
+        border-color: currentColor;
+      }
+      .filter-button.active.event-type-Political { border-color: #60a5fa; color: #60a5fa; }
+      .filter-button.active.event-type-Military { border-color: #f87171; color: #f87171; }
+      .filter-button.active.event-type-Economic { border-color: #fbbf24; color: #fbbf24; }
+      .filter-button.active.event-type-Social { border-color: #4ade80; color: #4ade80; }
+      .filter-button.active.event-type-Mystical { border-color: #a78bfa; color: #a78bfa; }
+      .filter-button.active.event-type-Disaster { border-color: #f472b6; color: #f472b6; }
+      .filter-button.active.event-type-Personal { border-color: #9ca3af; color: #9ca3af; }
+      .filter-button.active.visibility-Public { border-color: #4ade80; color: #4ade80; }
+      .filter-button.active.visibility-Regional { border-color: #60a5fa; color: #60a5fa; }
+      .filter-button.active.visibility-Faction-Internal { border-color: #fbbf24; color: #fbbf24; }
+      .filter-button.active.visibility-Secret { border-color: #f472b6; color: #f472b6; }
+
+      /* Dark theme select dropdown */
+      .dark-select {
+        background-color: #1f2937; /* slate-800 */
+        color: #d1d5db; /* gray-300 */
+        border: 1px solid #4b5563; /* gray-600 */
+        border-radius: 0.375rem; /* rounded-md */
+        padding: 0.25rem 2.5rem 0.25rem 0.75rem;
+        appearance: none;
+        background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%239ca3af' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+        background-position: right 0.5rem center;
+        background-repeat: no-repeat;
+        background-size: 1.5em 1.5em;
+        -webkit-appearance: none;
+        -moz-appearance: none;
+      }
+
+      .dark-select:focus {
+        outline: none;
+        border-color: #2dd4bf; /* cyan-400 */
+        box-shadow: 0 0 0 2px rgba(45, 212, 191, 0.5);
+      }
+
+      .dark-select option {
+        background-color: #374151; /* slate-700 */
+        color: #e5e7eb; /* gray-200 */
+      }
     </style>
   <script type="importmap">
 {

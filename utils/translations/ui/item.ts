@@ -1,6 +1,5 @@
 
 
-
 export const item = {
   en: {
     // Item Details
@@ -57,6 +56,10 @@ export const item = {
     "Action Check Bonus": "Action Check Bonus",
     "Utility Effect": "Utility Effect",
     "Other Bonus": "Other Bonus",
+    "Text Content": "Text Content",
+    "Read Full Text": "Read Full Text",
+    "Edit Text Content": "Edit Text Content",
+    "Bonuses & Effects": "Bonuses & Effects",
 
     // Inventory Screen
     "Inventory & Equipment": "Inventory & Equipment",
@@ -92,6 +95,8 @@ export const item = {
     "No carried items.": "No carried items.",
     "Take Item": "Take Item",
     "Drop": "Drop",
+    "Threshold": "Threshold",
+    "thresholdTooltip": "The maximum amount of post-resistance damage that is completely absorbed by the armor, damaging its durability instead of your health.",
   },
   ru: {
     // Item Details
@@ -148,6 +153,10 @@ export const item = {
     "Action Check Bonus": "Бонус к проверке действия",
     "Utility Effect": "Утилитарный эффект",
     "Other Bonus": "Прочий бонус",
+    "Text Content": "Содержимое",
+    "Read Full Text": "Читать полностью",
+    "Edit Text Content": "Редактировать содержимое",
+    "Bonuses & Effects": "Бонусы и эффекты",
 
     // Inventory Screen
     "Inventory & Equipment": "Инвентарь и снаряжение",
@@ -183,5 +192,7 @@ export const item = {
     "No carried items.": "Нет предметов.",
     "Take Item": "Взять предмет",
     "Drop": "Выбросить",
+    "Threshold": "Порог",
+    "thresholdTooltip": "Максимальное количество урона после всех сопротивлений, которое полностью поглощается броней, повреждая ее прочность вместо вашего здоровья.",
   }
 };

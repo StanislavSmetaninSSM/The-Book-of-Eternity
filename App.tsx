@@ -1,3 +1,6 @@
+
+
+
 import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import ChatWindow from './components/ChatWindow';
 import InputBar from './components/InputBar';
@@ -14,6 +17,7 @@ import { useLocalization } from './context/LocalizationContext';
 import MusicPlayer from './components/MusicPlayer';
 import StartScreen from './components/StartScreen';
 import JournalModal from './components/DetailRenderer/Shared/JournalModal';
+import LocationViewer from './components/LocationViewer';
 
 interface ImageModalInfo {
   prompt: string;
@@ -81,6 +85,7 @@ export default function App(): React.ReactNode {
     editPlayerData,
     editWorldState,
     editWeather,
+    editWorldStateFlagData,
     saveGameToSlot,
     loadGameFromSlot,
     deleteGameSlot,
@@ -97,11 +102,14 @@ export default function App(): React.ReactNode {
     turnTime,
     onImageGenerated,
     forgetHealedWound,
+    forgetActiveWound,
     clearAllHealedWounds,
     onRegenerateId,
     deleteCustomState,
     deleteNpcCustomState,
     deleteWorldStateFlag,
+    deleteWorldEvent,
+    deleteWorldEventsByTurnRange,
     updateNpcSortOrder,
     updateItemSortOrder,
     updateItemSortSettings,
@@ -124,6 +132,7 @@ export default function App(): React.ReactNode {
   const [editModalData, setEditModalData] = useState<{ index: number, message: ChatMessage } | null>(null);
   const [editContent, setEditContent] = useState('');
   const [journalModalNpc, setJournalModalNpc] = useState<NPC | null>(null);
+  const [isMapFullScreen, setIsMapFullScreen] = useState(false);
 
 
   // Resizable sidebar state and logic
@@ -175,7 +184,7 @@ export default function App(): React.ReactNode {
             // CRITICAL FIX: The `foundWound` from the game state does not have the `type` property.
             // We must create a new object that combines the fresh data from the state
             // with the essential `type: 'wound'` property from the original modal data.
-            updatedData = { ...foundWound, type: 'wound' };
+            updatedData = { ...foundWound, type: 'wound', characterType: data.characterType, characterId: data.characterId };
         } else {
             // If no fresh data was found (e.g., wound was just removed), stick with the original data.
             updatedData = data;
@@ -445,8 +454,10 @@ export default function App(): React.ReactNode {
               onOpenDetailModal={handleOpenDetailModal}
               onOpenJournalModal={handleOpenJournalModal}
               onOpenImageModal={handleShowImageModal}
+              onShowMessageModal={handleShowMessageModal}
               onSpendAttributePoint={spendAttributePoint} 
               onToggleSidebar={toggleSidebar}
+              onExpandMap={() => setIsMapFullScreen(true)}
               gameSettings={gameSettings}
               updateGameSettings={updateGameSettings}
               superInstructions={superInstructions}
@@ -459,7 +470,16 @@ export default function App(): React.ReactNode {
               moveFromStashToInventory={moveFromStashToInventory}
               dropItemFromStash={dropItemFromStash}
               turnNumber={turnNumber}
+              editChatMessage={editChatMessage}
+              editNpcData={editNpcData}
+              editQuestData={editQuestData}
+              editItemData={editItemData}
+              editFactionData={editFactionData}
               editLocationData={editLocationData}
+              editPlayerData={editPlayerData}
+              editWorldState={editWorldState}
+              editWeather={editWeather}
+              editWorldStateFlagData={editWorldStateFlagData}
               saveGameToSlot={saveGameToSlot}
               loadGameFromSlot={handleLoadGameFromSlot}
               deleteGameSlot={deleteGameSlot}
@@ -471,13 +491,14 @@ export default function App(): React.ReactNode {
               imageCache={gameState?.imageCache ?? {}}
               onImageGenerated={onImageGenerated}
               forgetHealedWound={forgetHealedWound}
+              forgetActiveWound={forgetActiveWound}
               clearAllHealedWounds={clearAllHealedWounds}
               onRegenerateId={onRegenerateId}
               deleteCustomState={deleteCustomState}
               deleteNpcCustomState={deleteNpcCustomState}
               deleteWorldStateFlag={deleteWorldStateFlag}
-              editWorldState={editWorldState}
-              editWeather={editWeather}
+              deleteWorldEvent={deleteWorldEvent}
+              deleteWorldEventsByTurnRange={deleteWorldEventsByTurnRange}
               updateNpcSortOrder={updateNpcSortOrder}
               updateItemSortOrder={updateItemSortOrder}
               updateItemSortSettings={updateItemSortSettings}
@@ -584,6 +605,7 @@ export default function App(): React.ReactNode {
             imageCache={gameState?.imageCache ?? {}}
             onImageGenerated={onImageGenerated}
             forgetHealedWound={forgetHealedWound}
+            forgetActiveWound={forgetActiveWound}
             clearAllHealedWounds={clearAllHealedWounds}
             visitedLocations={visitedLocations}
             handleTransferItem={handleTransferItem}
@@ -593,12 +615,33 @@ export default function App(): React.ReactNode {
             handleMergeItemsForNpc={handleMergeItemsForNpc}
             updateNpcItemSortOrder={updateNpcItemSortOrder}
             updateNpcItemSortSettings={updateNpcItemSortSettings}
-            deleteNpcCustomState={deleteCustomState}
+            deleteNpcCustomState={deleteNpcCustomState}
+            deleteCustomState={deleteCustomState}
             deleteWorldStateFlag={deleteWorldStateFlag}
             onEditNpcMemory={onEditNpcMemory}
             onDeleteNpcMemory={onDeleteNpcMemory}
             />}
       </Modal>
+      {isMapFullScreen && gameState && (
+        <Modal
+            isOpen={isMapFullScreen}
+            onClose={() => setIsMapFullScreen(false)}
+            title={t('World Map')}
+            size="fullscreen"
+        >
+            <div className="flex-1 flex flex-col h-full bg-gray-900 -m-6">
+                <LocationViewer
+                    visitedLocations={visitedLocations}
+                    currentLocation={gameState.currentLocationData}
+                    onOpenModal={handleOpenDetailModal}
+                    imageCache={gameState?.imageCache ?? {}}
+                    onImageGenerated={onImageGenerated}
+                    isFullScreen={true}
+                    onCollapse={() => setIsMapFullScreen(false)}
+                />
+            </div>
+        </Modal>
+      )}
 
       {editModalData && (
         <Modal isOpen={true} onClose={() => setEditModalData(null)} title={t("Edit Message")}>
@@ -643,6 +686,7 @@ export default function App(): React.ReactNode {
                   setJournalModalNpc(prev => prev ? { ...prev, journalEntries: newEntries } : null);
               }
           }}
+          // FIX: Corrected typo from onDeleteOldestNpcJournalEntries to deleteOldestNpcJournalEntries
           onDeleteOldest={deleteOldestNpcJournalEntries && journalModalNpc.NPCId ? (count) => {
               deleteOldestNpcJournalEntries(journalModalNpc.NPCId!, count);
               setJournalModalNpc(prev => {

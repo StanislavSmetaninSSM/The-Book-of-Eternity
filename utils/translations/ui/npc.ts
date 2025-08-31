@@ -1,3 +1,4 @@
+
 export const npc = {
   en: {
     // NPC Details
@@ -59,6 +60,7 @@ export const npc = {
     "Encountered NPCs": "Encountered NPCs",
     "No NPCs encountered yet.": "No NPCs encountered yet.",
     "Relationship": "Relationship",
+    "Reputation": "Reputation",
 
     // Attitudes
     "Hateful": "Hateful",
@@ -147,6 +149,7 @@ export const npc = {
     "Encountered NPCs": "Встреченные NPC",
     "No NPCs encountered yet.": "Пока не встречено ни одного NPC.",
     "Relationship": "Уровень отношений",
+    "Reputation": "Репутация",
 
     // Attitudes
     "Hateful": "Ненавистное",

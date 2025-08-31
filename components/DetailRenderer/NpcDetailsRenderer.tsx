@@ -1,6 +1,7 @@
 
+
 import React, { useState, useMemo, useRef, useEffect, useCallback } from 'react';
-import { NPC, FateCard, Faction, Wound, Item, PlayerCharacter, Location, ActiveSkill, PassiveSkill, CustomState, UnlockedMemory } from '../../types';
+import { NPC, FateCard, Faction, Wound, Item, PlayerCharacter, Location, ActiveSkill, PassiveSkill, CustomState, UnlockedMemory, StructuredBonus } from '../../types';
 import { DetailRendererProps } from './types';
 import Section from './Shared/Section';
 import EditableField from './Shared/EditableField';
@@ -104,7 +105,7 @@ const NpcDetailsRenderer: React.FC<NpcDetailsProps> = (props) => {
         handleTransferItem, handleEquipItemForNpc, handleUnequipItemForNpc, handleSplitItemForNpc, handleMergeItemsForNpc,
         updateNpcItemSortOrder, updateNpcItemSortSettings, playerCharacter, visitedLocations,
         onShowMessageModal, deleteNpcCustomState, onEditNpcMemory, onDeleteNpcMemory, onCloseModal,
-        onDeleteNpcJournalEntry
+        onDeleteNpcJournalEntry, forgetActiveWound
     } = props;
     const { t } = useLocalization();
     const [isJournalOpen, setIsJournalOpen] = useState(false);
@@ -115,6 +116,76 @@ const NpcDetailsRenderer: React.FC<NpcDetailsProps> = (props) => {
     const [editingMemory, setEditingMemory] = useState<UnlockedMemory | null>(null);
     const [editedContent, setEditedContent] = useState('');
     const [deletingMemory, setDeletingMemory] = useState<UnlockedMemory | null>(null);
+
+    const equipmentBonuses = useMemo(() => {
+        if (!npc) return {};
+        const bonuses: Record<string, number> = {};
+        CHARACTERISTICS_LIST.forEach(char => bonuses[char] = 0);
+
+        const equippedItemIds = new Set(Object.values(npc.equippedItems || {}));
+
+        (npc.inventory || []).forEach((item: Item) => {
+            if (!item || !item.existedId || !equippedItemIds.has(item.existedId)) return;
+
+            if (item.structuredBonuses && item.structuredBonuses.length > 0) {
+                item.structuredBonuses.forEach((bonus: StructuredBonus) => {
+                    if (
+                        bonus.bonusType === 'Characteristic' &&
+                        bonus.application === 'Permanent' &&
+                        bonus.valueType === 'Flat' &&
+                        typeof bonus.value === 'number' &&
+                        CHARACTERISTICS_LIST.includes(bonus.target.toLowerCase())
+                    ) {
+                        bonuses[bonus.target.toLowerCase()] += bonus.value;
+                    }
+                });
+            } else if (item.bonuses) {
+                item.bonuses.forEach((bonus: string) => {
+                    const match = bonus.match(/^([+-]?\d+)\s+(.+)$/);
+                    const charName = match?.[2]?.toLowerCase();
+                    if (match && charName && CHARACTERISTICS_LIST.includes(charName)) {
+                        bonuses[charName] += parseInt(match[1]);
+                    }
+                });
+            }
+        });
+
+        return bonuses;
+    }, [npc.equippedItems, npc.inventory]);
+
+    const passiveSkillBonuses = useMemo(() => {
+        if (!npc) return {};
+        const bonuses: Record<string, number> = {};
+        CHARACTERISTICS_LIST.forEach(char => bonuses[char] = 0);
+
+        (npc.passiveSkills || []).forEach(skill => {
+            let bonusApplied = false;
+            if (skill.structuredBonuses && skill.structuredBonuses.length > 0) {
+                skill.structuredBonuses.forEach(bonus => {
+                    if (
+                        bonus.bonusType === 'Characteristic' &&
+                        bonus.application === 'Permanent' &&
+                        bonus.valueType === 'Flat' &&
+                        typeof bonus.value === 'number' &&
+                        CHARACTERISTICS_LIST.includes(bonus.target.toLowerCase())
+                    ) {
+                        bonuses[bonus.target.toLowerCase()] += bonus.value;
+                        bonusApplied = true;
+                    }
+                });
+            }
+            
+            if (!bonusApplied && skill.playerStatBonus) {
+                const match = skill.playerStatBonus.match(/^([+-]?\d+)\s+(.+)$/);
+                const charName = match?.[2]?.toLowerCase();
+                if (match && charName && CHARACTERISTICS_LIST.includes(charName)) {
+                    bonuses[charName] += parseInt(match[1]);
+                }
+            }
+        });
+
+        return bonuses;
+    }, [npc.passiveSkills]);
 
     const handleJournalClose = () => {
         setIsJournalOpen(false);
@@ -155,6 +226,7 @@ const NpcDetailsRenderer: React.FC<NpcDetailsProps> = (props) => {
     const [healedWoundsCollapsed, setHealedWoundsCollapsed] = useState(true);
     const [confirmClear, setConfirmClear] = useState(false);
     const [confirmForget, setConfirmForget] = useState<Wound | null>(null);
+    const [confirmForgetActive, setConfirmForgetActive] = useState<Wound | null>(null);
 
     const handleClearAllHealedWounds = () => {
         if (npc.NPCId) {
@@ -168,6 +240,13 @@ const NpcDetailsRenderer: React.FC<NpcDetailsProps> = (props) => {
             forgetHealedWound('npc', npc.NPCId, confirmForget.woundId);
         }
         setConfirmForget(null);
+    };
+
+    const handleForgetActiveWound = () => {
+        if (confirmForgetActive && confirmForgetActive.woundId && npc.NPCId && forgetActiveWound) {
+            forgetActiveWound('npc', npc.NPCId, confirmForgetActive.woundId);
+        }
+        setConfirmForgetActive(null);
     };
 
     const imagePrompt = npc.custom_image_prompt || npc.image_prompt;
@@ -518,11 +597,31 @@ const NpcDetailsRenderer: React.FC<NpcDetailsProps> = (props) => {
                             const modifiedKey = `modified${charNameRaw}` as keyof typeof npc.characteristics;
                             const baseValue = npc.characteristics![standardKey];
                             const modifiedValue = npc.characteristics![modifiedKey];
+                            const equipmentBonus = equipmentBonuses[charName] || 0;
+                            const skillBonus = passiveSkillBonuses[charName] || 0;
 
                             return (
                                 <div key={charName} className="bg-gray-700/40 p-3 rounded-lg flex items-center justify-between shadow-inner">
                                     <span className="text-gray-300 capitalize text-sm font-semibold">{t(charName)}</span>
                                     <div className="flex flex-col items-end">
+                                        <div className="flex items-center gap-1 mb-1 h-5">
+                                            {equipmentBonus !== 0 && (
+                                                <span 
+                                                className={`text-xs font-mono px-1.5 py-0.5 rounded-full ${equipmentBonus > 0 ? 'bg-green-500/20 text-green-300' : 'bg-red-500/20 text-red-300'}`}
+                                                title={t('equipmentBonusTooltip')}
+                                                >
+                                                    {equipmentBonus > 0 ? '+' : ''}{equipmentBonus} {t('EQ')}
+                                                </span>
+                                            )}
+                                            {skillBonus !== 0 && (
+                                                <span 
+                                                    className={`text-xs font-mono px-1.5 py-0.5 rounded-full ${skillBonus > 0 ? 'bg-purple-500/20 text-purple-300' : 'bg-red-500/20 text-red-300'}`}
+                                                    title={t('passiveSkillBonusTooltip')}
+                                                >
+                                                    {skillBonus > 0 ? '+' : ''}{skillBonus} {t('SK')}
+                                                </span>
+                                            )}
+                                        </div>
                                         <span className="font-bold text-2xl text-cyan-400 font-mono">{modifiedValue}</span>
                                         <span className="text-xs font-mono text-gray-400">({t('Base')}: {baseValue})</span>
                                     </div>
@@ -535,35 +634,40 @@ const NpcDetailsRenderer: React.FC<NpcDetailsProps> = (props) => {
 
             <Section title={t('Wounds')} icon={ShieldExclamationIcon}>
                 {(activeWounds.length > 0) ? (activeWounds.map((wound, index) => (
-                    <button 
-                        key={wound.woundId || index} 
-                        onClick={() => {
-                            const cleanWound = {
-                                type: 'wound',
-                                woundId: wound.woundId,
-                                woundName: wound.woundName,
-                                severity: wound.severity,
-                                descriptionOfEffects: wound.descriptionOfEffects,
-                                generatedEffects: wound.generatedEffects,
-                                healingState: wound.healingState,
-                            };
-                            onOpenDetailModal(t("Wound: {name}", { name: wound.woundName }), cleanWound);
-                        }} 
-                        className="w-full text-left bg-gray-900/60 p-3 rounded-md border border-red-800/50 flex items-start gap-3 hover:border-red-600 transition-colors"
-                    >
-                        <ShieldExclamationIcon className="w-5 h-5 mt-0.5 text-red-500 flex-shrink-0" />
-                        <div className="flex-1">
-                            <div className="flex justify-between items-baseline">
-                                 <span className="font-semibold text-red-400">{wound.woundName}</span>
-                                 <span className="text-xs text-red-500 bg-red-900/50 px-2 py-0.5 rounded-full">{t(wound.severity as any)}</span>
+                    <div key={wound.woundId || index} className="w-full bg-gray-900/60 rounded-md border border-red-800/50 flex items-center justify-between gap-3 group">
+                        <button 
+                            onClick={() => {
+                                const cleanWound = {
+                                    type: 'wound', characterType: 'npc', characterId: npc.NPCId,
+                                    ...wound,
+                                };
+                                onOpenDetailModal(t("Wound: {name}", { name: wound.woundName }), cleanWound);
+                            }} 
+                            className="flex-1 text-left p-3 flex items-start gap-3"
+                        >
+                            <ShieldExclamationIcon className="w-5 h-5 mt-0.5 text-red-500 flex-shrink-0" />
+                            <div className="flex-1">
+                                <div className="flex justify-between items-baseline">
+                                    <span className="font-semibold text-red-400">{wound.woundName}</span>
+                                    <span className="text-xs text-red-500 bg-red-900/50 px-2 py-0.5 rounded-full">{t(wound.severity as any)}</span>
+                                </div>
+                                <p className="text-sm text-gray-400 italic mt-1 line-clamp-2">{wound.descriptionOfEffects}</p>
                             </div>
-                            <p className="text-sm text-gray-400 italic mt-1 line-clamp-2">{wound.descriptionOfEffects}</p>
-                        </div>
-                    </button>
-                ))) : <p className="text-sm text-gray-500 text-center p-2">{t('You are unwounded.')}</p>}
+                        </button>
+                        {allowHistoryManipulation && forgetActiveWound && (
+                            <button
+                                onClick={(e) => { e.stopPropagation(); setConfirmForgetActive(wound); }}
+                                className="p-1 mr-2 text-gray-400 rounded-full hover:bg-red-900/50 hover:text-red-300 transition-colors flex-shrink-0 opacity-0 group-hover:opacity-100"
+                                title={t('Forget Active Wound')}
+                            >
+                                <TrashIcon className="w-4 h-4" />
+                            </button>
+                        )}
+                    </div>
+                ))) : <p className="text-sm text-gray-500 text-center p-2">{t('No active wounds.')}</p>}
             </Section>
             
-             {healedWounds.length > 0 && (
+             {allowHistoryManipulation && healedWounds.length > 0 && (
                 <div className="mt-4">
                     <div className="border-b border-cyan-500/20 mb-3">
                         <button onClick={() => setHealedWoundsCollapsed(prev => !prev)} className="w-full flex justify-between items-center text-left pb-1 group">
@@ -615,7 +719,7 @@ const NpcDetailsRenderer: React.FC<NpcDetailsProps> = (props) => {
             {npc.customStates && npc.customStates.length > 0 && (
                 <Section title={t("States")} icon={ExclamationTriangleIcon}>
                     {npc.customStates.map((state, index) => (
-                        <div key={state.stateId || index} className="flex items-center gap-2 group">
+                        <div key={state.stateId || state.stateName} className="flex items-center gap-2 group">
                             <div className="flex-1">
                                 <StatBar
                                     value={state.currentValue}
@@ -815,6 +919,14 @@ const NpcDetailsRenderer: React.FC<NpcDetailsProps> = (props) => {
             <p>{t('Are you sure you want to forget this healed wound?')}</p>
         </ConfirmationModal>
         <ConfirmationModal
+            isOpen={!!confirmForgetActive}
+            onClose={() => setConfirmForgetActive(null)}
+            onConfirm={handleForgetActiveWound}
+            title={t('Forget Active Wound')}
+        >
+            <p>{t('forget_active_wound_confirm')}</p>
+        </ConfirmationModal>
+        <ConfirmationModal
             isOpen={!!confirmDeleteState}
             onClose={() => setConfirmDeleteState(null)}
             onConfirm={handleDeleteCustomState}
@@ -856,7 +968,7 @@ const NpcDetailsRenderer: React.FC<NpcDetailsProps> = (props) => {
                       onChange={(e) => setEditedContent(e.target.value)}
                       className="w-full bg-gray-700/50 border border-gray-600 rounded-md p-3 text-gray-200 focus:ring-2 focus:ring-cyan-500 transition min-h-[300px]"
                     />
-                    <div className="flex justify-end gap-2">
+                    <div className="flex justify-end gap-2 mt-2">
                       <button onClick={() => setEditingMemory(null)} className="px-4 py-2 rounded-md bg-gray-600 hover:bg-gray-500 text-white font-semibold transition flex items-center gap-2">
                         <XMarkIcon className="w-5 h-5" />
                         {t('Cancel')}

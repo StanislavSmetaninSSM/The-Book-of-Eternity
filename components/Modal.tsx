@@ -10,6 +10,7 @@ interface ModalProps {
   title: string;
   children: React.ReactNode;
   showFontSizeControls?: boolean;
+  size?: 'default' | 'fullscreen';
 }
 
 const FONT_SIZES = [12, 14, 16, 18, 20, 24];
@@ -17,7 +18,7 @@ const FONT_SIZE_CLASSES = ['text-xs', 'text-sm', 'text-base', 'text-lg', 'text-x
 const MIN_WIDTH = 400;
 const MIN_HEIGHT = 300;
 
-const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, showFontSizeControls = false }) => {
+const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, showFontSizeControls = false, size = 'default' }) => {
   const modalRef = useRef<HTMLDivElement>(null);
   const [dimensions, setDimensions] = useState({ width: 672, height: 'auto' as number | 'auto' }); // 672px is max-w-2xl
   const [isResizing, setIsResizing] = useState(false);
@@ -104,6 +105,11 @@ const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, showFon
           : child
       )
     : children;
+    
+  const sizeClasses = {
+    default: 'max-w-2xl max-h-[90vh] rounded-lg',
+    fullscreen: 'w-screen h-screen max-w-full max-h-full rounded-none border-0'
+  };
 
   return createPortal(
     <div
@@ -142,11 +148,11 @@ const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, showFon
       `}</style>
       <div
         ref={modalRef}
-        className="bg-gray-800/90 rounded-lg shadow-2xl max-h-[90vh] flex flex-col border border-cyan-500/30 ring-1 ring-cyan-500/20 relative"
-        style={{
+        className={`bg-gray-800/90 shadow-2xl flex flex-col border border-cyan-500/30 ring-1 ring-cyan-500/20 relative ${sizeClasses[size]}`}
+        style={size === 'default' ? {
           width: `${dimensions.width}px`,
           height: dimensions.height === 'auto' ? 'auto' : `${dimensions.height}px`,
-        }}
+        } : {}}
         onClick={(e) => e.stopPropagation()}
       >
         <header className="flex justify-between items-center p-4 border-b border-gray-700/60 sticky top-0 bg-gray-800/90 rounded-t-lg z-10 flex-shrink-0">
@@ -180,13 +186,15 @@ const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, showFon
             </button>
           </div>
         </header>
-        <main className="p-6 overflow-y-auto">
+        <main className={`p-6 overflow-y-auto ${size === 'fullscreen' ? 'flex-1 flex flex-col' : ''}`}>
           {childrenWithFontSize}
         </main>
-        <div
-          className="resizer"
-          onMouseDown={startResizing}
-        />
+        {size === 'default' && (
+          <div
+            className="resizer"
+            onMouseDown={startResizing}
+          />
+        )}
       </div>
     </div>,
     modalRoot

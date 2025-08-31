@@ -1,5 +1,7 @@
+
+
 import React, { useState, useMemo } from 'react';
-import { EnemyCombatObject, AllyCombatObject, NPC, Item, ActiveSkill, PassiveSkill, CombatAction, PlayerCharacter, Wound, CombatActionEffect } from '../types';
+import { EnemyCombatObject, AllyCombatObject, NPC, Item, ActiveSkill, PassiveSkill, CombatAction, PlayerCharacter, Wound, CombatActionEffect, GameSettings } from '../types';
 import { ShieldExclamationIcon, BoltIcon, ShieldCheckIcon, SunIcon, CloudIcon, DocumentTextIcon, SparklesIcon, ArchiveBoxIcon, Cog6ToothIcon, InformationCircleIcon } from '@heroicons/react/24/outline';
 import { FireIcon } from '@heroicons/react/24/solid';
 import ImageRenderer from './ImageRenderer';
@@ -61,10 +63,11 @@ interface CombatantCardProps {
     imageCache: Record<string, string>;
     onImageGenerated: (prompt: string, base64: string) => void;
     onOpenImageModal: (prompt: string) => void;
+    gameSettings: GameSettings | null;
 }
 
 
-const CombatantCard: React.FC<CombatantCardProps> = ({ combatant, fullNpcData, onOpenDetailModal, imageCache, onImageGenerated, onOpenImageModal }) => {
+const CombatantCard: React.FC<CombatantCardProps> = ({ combatant, fullNpcData, onOpenDetailModal, imageCache, onImageGenerated, onOpenImageModal, gameSettings }) => {
     const isGroup = combatant.isGroup;
     const isDefeated = isGroup ? (combatant.count ?? 0) <= 0 : parseInt(combatant.currentHealth ?? '0') <= 0;
     
@@ -85,8 +88,15 @@ const CombatantCard: React.FC<CombatantCardProps> = ({ combatant, fullNpcData, o
             return fullNpcData.level;
         }
     
-        const maxHealth = parseInt(combatant.maxHealth ?? '0');
+        let maxHealth = parseInt(combatant.maxHealth ?? '0');
         if (isNaN(maxHealth) || maxHealth === 0) return null;
+        
+        const isHardMode = gameSettings?.hardMode ?? false;
+        if (isHardMode) {
+            const isNpc = !!fullNpcData;
+            const multiplier = isNpc ? 1.5 : 1.75;
+            maxHealth = maxHealth / multiplier;
+        }
     
         let el: number | null = null;
         // This is the correct reverse-engineered formula for Effective Level (EL)
@@ -116,7 +126,7 @@ const CombatantCard: React.FC<CombatantCardProps> = ({ combatant, fullNpcData, o
 
         // The final level is rounded to the nearest whole number and cannot be less than 1.
         return Math.max(1, Math.round(el));
-    }, [combatant, fullNpcData]);
+    }, [combatant, fullNpcData, gameSettings]);
     
     const { passiveSkills, hasPassiveSkills, inventory, hasInventory, actions, hasActions } = useMemo(() => {
         const combatActions = combatant.actions || [];
@@ -134,7 +144,8 @@ const CombatantCard: React.FC<CombatantCardProps> = ({ combatant, fullNpcData, o
     }, [combatant, fullNpcData]);
     
     const woundsToDisplay = useMemo(() => {
-        return fullNpcData?.wounds || combatant.wounds || [];
+        const allWounds = fullNpcData?.wounds || combatant.wounds || [];
+        return allWounds.filter(w => !w.healingState || w.healingState.currentState !== 'Healed');
     }, [fullNpcData, combatant.wounds]);
     const hasWounds = woundsToDisplay.length > 0;
 
@@ -342,9 +353,10 @@ interface CombatTrackerProps {
     imageCache: Record<string, string>;
     onImageGenerated: (prompt: string, base64: string) => void;
     onOpenImageModal: (prompt: string) => void;
+    gameSettings: GameSettings | null;
 }
 
-export default function CombatTracker({ enemies, allies, combatLog, allNpcs, playerCharacter, setAutoCombatSkill, onOpenDetailModal, onSendMessage, isLoading, imageCache, onImageGenerated, onOpenImageModal }: CombatTrackerProps): React.ReactNode {
+export default function CombatTracker({ enemies, allies, combatLog, allNpcs, playerCharacter, setAutoCombatSkill, onOpenDetailModal, onSendMessage, isLoading, imageCache, onImageGenerated, onOpenImageModal, gameSettings }: CombatTrackerProps): React.ReactNode {
     const { t } = useLocalization();
     const hasCombatants = (enemies && enemies.length > 0) || (allies && allies.length > 0);
     const hasLog = combatLog && combatLog.length > 0;
@@ -419,7 +431,7 @@ export default function CombatTracker({ enemies, allies, combatLog, allNpcs, pla
                             return (
                                 <div key={enemy.NPCId || `enemy-${index}`} className="flex items-start gap-2 group">
                                     <div className="flex-1">
-                                        <CombatantCard combatant={enemy} fullNpcData={fullNpcData} onOpenDetailModal={onOpenDetailModal} imageCache={imageCache} onImageGenerated={onImageGenerated} onOpenImageModal={onOpenImageModal} />
+                                        <CombatantCard combatant={enemy} fullNpcData={fullNpcData} onOpenDetailModal={onOpenDetailModal} imageCache={imageCache} onImageGenerated={onImageGenerated} onOpenImageModal={onOpenImageModal} gameSettings={gameSettings} />
                                     </div>
                                     {!isDefeated && (
                                         <button
@@ -450,7 +462,7 @@ export default function CombatTracker({ enemies, allies, combatLog, allNpcs, pla
                              if (!fullNpcData && ally.name) {
                                  fullNpcData = allNpcs.find(npc => npc.name === ally.name) || null;
                              }
-                            return <CombatantCard key={ally.NPCId || `ally-${index}`} combatant={ally} fullNpcData={fullNpcData} onOpenDetailModal={onOpenDetailModal} imageCache={imageCache} onImageGenerated={onImageGenerated} onOpenImageModal={onOpenImageModal} />
+                            return <CombatantCard key={ally.NPCId || `ally-${index}`} combatant={ally} fullNpcData={fullNpcData} onOpenDetailModal={onOpenDetailModal} imageCache={imageCache} onImageGenerated={onImageGenerated} onOpenImageModal={onOpenImageModal} gameSettings={gameSettings} />
                         })}
                     </div>
                 </div>

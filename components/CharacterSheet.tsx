@@ -1,3 +1,5 @@
+
+
 import React, { useState, useMemo } from 'react';
 import { PlayerCharacter, Item, ActiveSkill, PassiveSkill, Effect, Wound, GameSettings, StructuredBonus, CustomState } from '../types';
 import {
@@ -40,6 +42,7 @@ interface CharacterSheetProps {
   onOpenInventory: () => void;
   onSpendAttributePoint: (characteristic: string) => void;
   forgetHealedWound: (characterType: 'player' | 'npc', characterId: string | null, woundId: string) => void;
+  forgetActiveWound: (characterType: 'player' | 'npc', characterId: string | null, woundId: string) => void;
   clearAllHealedWounds: (characterType: 'player' | 'npc', characterId: string | null) => void;
   onDeleteCustomState: (stateId: string) => void;
 }
@@ -94,11 +97,12 @@ const TABS = [
     { name: 'Conditions', icon: ExclamationTriangleIcon },
 ];
 
-export default function CharacterSheet({ character, gameSettings, onOpenModal, onOpenInventory, onSpendAttributePoint, forgetHealedWound, clearAllHealedWounds, onDeleteCustomState }: CharacterSheetProps): React.ReactNode {
+export default function CharacterSheet({ character, gameSettings, onOpenModal, onOpenInventory, onSpendAttributePoint, forgetHealedWound, forgetActiveWound, clearAllHealedWounds, onDeleteCustomState }: CharacterSheetProps): React.ReactNode {
   const [activeTab, setActiveTab] = useState(TABS[0].name);
   const { t } = useLocalization();
   const [confirmClear, setConfirmClear] = useState(false);
   const [confirmForget, setConfirmForget] = useState<Wound | null>(null);
+  const [confirmForgetActive, setConfirmForgetActive] = useState<Wound | null>(null);
   const [healedWoundsCollapsed, setHealedWoundsCollapsed] = useState(true);
   const [confirmDeleteState, setConfirmDeleteState] = useState<CustomState | null>(null);
 
@@ -116,9 +120,16 @@ export default function CharacterSheet({ character, gameSettings, onOpenModal, o
     setConfirmForget(null);
   };
   
+  const handleForgetActiveWound = () => {
+    if (confirmForgetActive && confirmForgetActive.woundId) {
+      forgetActiveWound('player', null, confirmForgetActive.woundId);
+    }
+    setConfirmForgetActive(null);
+  };
+
   const handleDeleteCustomState = () => {
-    if (confirmDeleteState && confirmDeleteState.stateId) {
-        onDeleteCustomState(confirmDeleteState.stateId);
+    if (confirmDeleteState && (confirmDeleteState.stateId || confirmDeleteState.stateName)) {
+        onDeleteCustomState(confirmDeleteState.stateId || confirmDeleteState.stateName);
     }
     setConfirmDeleteState(null);
   };
@@ -159,6 +170,40 @@ export default function CharacterSheet({ character, gameSettings, onOpenModal, o
 
     return bonuses;
   }, [character.equippedItems, character.inventory]);
+  
+  const passiveSkillBonuses = useMemo(() => {
+    if (!character) return {};
+    const bonuses: Record<string, number> = {};
+    CHARACTERISTICS_LIST.forEach(char => bonuses[char] = 0);
+
+    (character.passiveSkills || []).forEach(skill => {
+        let bonusApplied = false;
+        if (skill.structuredBonuses && skill.structuredBonuses.length > 0) {
+            skill.structuredBonuses.forEach(bonus => {
+                if (
+                    bonus.bonusType === 'Characteristic' &&
+                    bonus.application === 'Permanent' &&
+                    bonus.valueType === 'Flat' &&
+                    typeof bonus.value === 'number' &&
+                    CHARACTERISTICS_LIST.includes(bonus.target.toLowerCase())
+                ) {
+                    bonuses[bonus.target.toLowerCase()] += bonus.value;
+                    bonusApplied = true;
+                }
+            });
+        }
+        
+        if (!bonusApplied && skill.playerStatBonus) {
+            const match = skill.playerStatBonus.match(/^([+-]?\d+)\s+(.+)$/);
+            const charName = match?.[2]?.toLowerCase();
+            if (match && charName && CHARACTERISTICS_LIST.includes(charName)) {
+                 bonuses[charName] += parseInt(match[1]);
+            }
+        }
+    });
+
+    return bonuses;
+  }, [character.passiveSkills]);
 
   const derivedStats = useMemo(() => {
     if (!character) return null;
@@ -219,7 +264,7 @@ export default function CharacterSheet({ character, gameSettings, onOpenModal, o
   
   const situationalBonuses = useMemo(() => {
     if (!character) return [];
-    const equippedItemIds = new Set(Object.values(character.equippedItems));
+    const equippedItemIds = new Set(Object.values(character.equippedItems).filter(id => id !== null));
     const itemsWithBonuses = character.inventory
         .filter(item => item && item.existedId && equippedItemIds.has(item.existedId) && item.structuredBonuses && item.structuredBonuses.length > 0)
         .map(item => {
@@ -343,6 +388,7 @@ export default function CharacterSheet({ character, gameSettings, onOpenModal, o
                 const baseValue = character.characteristics[standardKey];
                 const modifiedValue = character.characteristics[modifiedKey];
                 const equipmentBonus = equipmentBonuses[charName] || 0;
+                const skillBonus = passiveSkillBonuses[charName] || 0;
                 const canUpgrade = character.attributePoints > 0;
                 const isCapped = baseValue >= 100;
 
@@ -351,14 +397,24 @@ export default function CharacterSheet({ character, gameSettings, onOpenModal, o
                         <button onClick={() => onOpenModal(t("Characteristic: {name}", { name: t(charName) }), {type: 'characteristic', name: charName, value: modifiedValue})} className="w-full text-left flex items-center justify-between group-hover:bg-gray-700/50 -m-3 p-3 rounded-lg transition-colors">
                             <span className="text-gray-300 capitalize text-sm font-semibold">{t(charName)}</span>
                             <div className="flex flex-col items-end">
-                                {equipmentBonus !== 0 && (
-                                    <span 
-                                      className={`text-xs font-mono px-1.5 py-0.5 rounded-full mb-1 ${equipmentBonus > 0 ? 'bg-green-500/20 text-green-300' : 'bg-red-500/20 text-red-300'}`}
-                                      title={t('equipmentBonusTooltip')}
-                                    >
-                                        {equipmentBonus > 0 ? '+' : ''}{equipmentBonus} {t('EQ')}
-                                    </span>
-                                )}
+                                <div className="flex items-center gap-1 mb-1 h-5">
+                                    {equipmentBonus !== 0 && (
+                                        <span 
+                                          className={`text-xs font-mono px-1.5 py-0.5 rounded-full ${equipmentBonus > 0 ? 'bg-green-500/20 text-green-300' : 'bg-red-500/20 text-red-300'}`}
+                                          title={t('equipmentBonusTooltip')}
+                                        >
+                                            {equipmentBonus > 0 ? '+' : ''}{equipmentBonus} {t('EQ')}
+                                        </span>
+                                    )}
+                                    {skillBonus !== 0 && (
+                                        <span 
+                                            className={`text-xs font-mono px-1.5 py-0.5 rounded-full ${skillBonus > 0 ? 'bg-purple-500/20 text-purple-300' : 'bg-red-500/20 text-red-300'}`}
+                                            title={t('passiveSkillBonusTooltip')}
+                                        >
+                                            {skillBonus > 0 ? '+' : ''}{skillBonus} {t('SK')}
+                                        </span>
+                                    )}
+                                </div>
                                 <span className="font-bold text-2xl text-cyan-400 font-mono">{modifiedValue}</span>
                                 <span className="text-xs font-mono text-gray-400">({t('Base')}: {baseValue})</span>
                             </div>
@@ -504,6 +560,8 @@ export default function CharacterSheet({ character, gameSettings, onOpenModal, o
                 if (linkedWound) {
                     const cleanWound = {
                         type: 'wound',
+                        characterType: 'player',
+                        characterId: null,
                         woundId: linkedWound.woundId,
                         woundName: linkedWound.woundName,
                         severity: linkedWound.severity,
@@ -542,30 +600,39 @@ export default function CharacterSheet({ character, gameSettings, onOpenModal, o
       </Section>
       <Section title={t('Wounds')}>
         {(activeWounds.length > 0) ? (activeWounds.map((wound, index) => (
-            <button key={wound.woundId || index} onClick={() => {
-                const cleanWound = {
-                    type: 'wound',
-                    woundId: wound.woundId,
-                    woundName: wound.woundName,
-                    severity: wound.severity,
-                    descriptionOfEffects: wound.descriptionOfEffects,
-                    generatedEffects: wound.generatedEffects,
-                    healingState: wound.healingState,
-                };
-                onOpenModal(t("Wound: {name}", { name: wound.woundName }), cleanWound)
-            }} className="w-full text-left bg-gray-900/60 p-3 rounded-md border border-red-800/50 flex items-start gap-3 hover:border-red-600 transition-colors">
-                <ShieldExclamationIcon className="w-5 h-5 mt-0.5 text-red-500 flex-shrink-0" />
-                <div className="flex-1">
-                    <div className="flex justify-between items-baseline">
-                         <span className="font-semibold text-red-400">{wound.woundName}</span>
-                         <span className="text-xs text-red-500 bg-red-900/50 px-2 py-0.5 rounded-full">{t(wound.severity as any)}</span>
+             <div key={wound.woundId || index} className="w-full bg-gray-900/60 rounded-md border border-red-800/50 flex items-center justify-between gap-3 group">
+                <button 
+                    onClick={() => {
+                        const cleanWound = {
+                            type: 'wound', characterType: 'player', characterId: null,
+                            ...wound,
+                        };
+                        onOpenModal(t("Wound: {name}", { name: wound.woundName }), cleanWound)
+                    }}
+                    className="flex-1 text-left p-3 flex items-start gap-3"
+                >
+                    <ShieldExclamationIcon className="w-5 h-5 mt-0.5 text-red-500 flex-shrink-0" />
+                    <div className="flex-1">
+                        <div className="flex justify-between items-baseline">
+                            <span className="font-semibold text-red-400">{wound.woundName}</span>
+                            <span className="text-xs text-red-500 bg-red-900/50 px-2 py-0.5 rounded-full">{t(wound.severity as any)}</span>
+                        </div>
+                        <p className="text-sm text-gray-400 italic mt-1 line-clamp-2">{wound.descriptionOfEffects}</p>
                     </div>
-                     <p className="text-sm text-gray-400 italic mt-1 line-clamp-2">{wound.descriptionOfEffects}</p>
-                </div>
-            </button>
+                </button>
+                {gameSettings?.allowHistoryManipulation && (
+                    <button
+                        onClick={(e) => { e.stopPropagation(); setConfirmForgetActive(wound); }}
+                        className="p-1 mr-2 text-gray-400 rounded-full hover:bg-red-900/50 hover:text-red-300 transition-colors flex-shrink-0 opacity-0 group-hover:opacity-100"
+                        title={t('Forget Active Wound')}
+                    >
+                        <TrashIcon className="w-4 h-4" />
+                    </button>
+                )}
+            </div>
         ))) : <p className="text-sm text-gray-500 text-center p-2">{t('You are unwounded.')}</p>}
       </Section>
-        {healedWounds.length > 0 && (
+        {gameSettings?.allowHistoryManipulation && healedWounds.length > 0 && (
             <div className="mt-4">
                 <div className="border-b border-cyan-500/20 mb-3">
                     <button onClick={() => setHealedWoundsCollapsed(prev => !prev)} className="w-full flex justify-between items-center text-left pb-1 group">
@@ -615,7 +682,7 @@ export default function CharacterSheet({ character, gameSettings, onOpenModal, o
         )}
       <Section title={t('States')}>
         {(customStates ?? []).length > 0 ? (customStates ?? []).map((state, index) => (
-            <div key={state.stateId || index} className="flex items-center gap-2 group">
+            <div key={state.stateId || state.stateName} className="flex items-center gap-2 group">
                 <div className="flex-1">
                     <StatBar 
                         value={state.currentValue}
@@ -626,20 +693,22 @@ export default function CharacterSheet({ character, gameSettings, onOpenModal, o
                         onClick={() => onOpenModal(t("CustomState: {name}", { name: state.stateName }), { ...state, type: 'customState' })}
                     />
                 </div>
-                <button
-                    onClick={() => setConfirmDeleteState(state)}
-                    className="p-1 text-gray-500 rounded-full hover:bg-red-900/50 hover:text-red-300 transition-colors flex-shrink-0 opacity-0 group-hover:opacity-100"
-                    title={t('Delete State')}
-                >
-                    <TrashIcon className="w-4 h-4" />
-                </button>
+                {gameSettings?.allowHistoryManipulation && (
+                    <button
+                        onClick={() => setConfirmDeleteState(state)}
+                        className="p-1 text-gray-500 rounded-full hover:bg-red-900/50 hover:text-red-300 transition-colors flex-shrink-0 opacity-0 group-hover:opacity-100"
+                        title={t('Delete State')}
+                    >
+                        <TrashIcon className="w-4 h-4" />
+                    </button>
+                )}
             </div>
         )) : <p className="text-sm text-gray-500 text-center p-2">{t('No custom states are active.')}</p>}
       </Section>
     </div>
     )
   };
-
+  
   const renderCombat = () => {
     if (!derivedStats) return null;
     const Section = ({ title, children }: { title: string, children: React.ReactNode }) => (
@@ -793,6 +862,14 @@ export default function CharacterSheet({ character, gameSettings, onOpenModal, o
       >
           <p>{t('Are you sure you want to forget this healed wound?')}</p>
       </ConfirmationModal>
+       <ConfirmationModal
+          isOpen={!!confirmForgetActive}
+          onClose={() => setConfirmForgetActive(null)}
+          onConfirm={handleForgetActiveWound}
+          title={t('Forget Active Wound')}
+        >
+          <p>{t('forget_active_wound_confirm')}</p>
+        </ConfirmationModal>
       <ConfirmationModal
         isOpen={!!confirmDeleteState}
         onClose={() => setConfirmDeleteState(null)}

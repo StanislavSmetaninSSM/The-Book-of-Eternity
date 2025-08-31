@@ -5,7 +5,7 @@ import { Location, LocationData } from '../types';
 import { 
     MapPinIcon, QuestionMarkCircleIcon, HomeModernIcon, BuildingStorefrontIcon, 
     FireIcon, GlobeAltIcon, SunIcon, PlusIcon, MinusIcon, ArrowPathIcon, UserGroupIcon,
-    DocumentTextIcon, ArrowRightIcon
+    DocumentTextIcon, ArrowRightIcon, ArrowsPointingOutIcon, ArrowsPointingInIcon
 } from '@heroicons/react/24/outline';
 import { useLocalization } from '../context/LocalizationContext';
 import ImageRenderer from './ImageRenderer';
@@ -149,9 +149,12 @@ interface LocationViewerProps {
   onOpenModal: (title: string, data: any) => void;
   imageCache: Record<string, string>;
   onImageGenerated: (prompt: string, base64: string) => void;
+  isFullScreen?: boolean;
+  onExpand?: () => void;
+  onCollapse?: () => void;
 }
 
-export default function LocationViewer({ visitedLocations, currentLocation, onOpenModal, imageCache, onImageGenerated }: LocationViewerProps): React.ReactNode {
+export default function LocationViewer({ visitedLocations, currentLocation, onOpenModal, imageCache, onImageGenerated, isFullScreen, onExpand, onCollapse }: LocationViewerProps): React.ReactNode {
     const [hoveredLocation, setHoveredLocation] = useState<Location | null>(null);
     const [tooltipPosition, setTooltipPosition] = useState({ top: 0, left: 0 });
     const [zoom, setZoom] = useState(1);
@@ -165,18 +168,120 @@ export default function LocationViewer({ visitedLocations, currentLocation, onOp
     const [showAllLabels, setShowAllLabels] = useState(true);
     const [goToCoords, setGoToCoords] = useState({ x: '', y: '' });
 
-    // Guard clause to prevent rendering if essential data is missing
-    if (!currentLocation) {
-        return (
-            <div>
-                <h3 className="text-xl font-bold text-cyan-400 mb-3 narrative-text">{t('World Map')}</h3>
-                <div className="text-center text-gray-500 p-6 bg-gray-900/20 rounded-lg">
-                    <MapPinIcon className="w-8 h-8 mx-auto mb-2 text-gray-600" />
-                    <p>{t('No current location data available to display the map.')}</p>
-                </div>
-            </div>
-        );
-    }
+    // State to trigger recentering effect
+    const [recenterRequest, setRecenterRequest] = useState(0);
+
+
+    const { mapDimensions, locations, connections, mapMetrics } = useMemo(() => {
+        const allLocations = new Map<string, Location & { isVisited: boolean }>();
+
+        visitedLocations.forEach(loc => {
+            if (loc.coordinates) {
+                const key = `${loc.coordinates.x},${loc.coordinates.y}`;
+                allLocations.set(key, { ...loc, isVisited: true });
+            }
+        });
+
+        if (currentLocation && currentLocation.coordinates) {
+            const key = `${currentLocation.coordinates.x},${currentLocation.coordinates.y}`;
+            allLocations.set(key, { ...currentLocation, isVisited: true });
+        }
+
+        const processedLocations = Array.from(allLocations.values());
+        processedLocations.forEach(loc => {
+            if (loc.isVisited && loc.adjacencyMap) {
+                loc.adjacencyMap.forEach(link => {
+                    const key = `${link.targetCoordinates.x},${link.targetCoordinates.y}`;
+                    if (!allLocations.has(key)) {
+                        const unvisitedLoc: Location & { isVisited: boolean } = {
+                            name: link.name,
+                            description: link.shortDescription,
+                            difficultyProfile: link.estimatedDifficultyProfile,
+                            coordinates: link.targetCoordinates,
+                            isVisited: false,
+                            locationId: `undiscovered-${key}`,
+                            lastEventsDescription: '',
+                            image_prompt: '',
+                            locationType: 'outdoor',
+                        };
+                        allLocations.set(key, unvisitedLoc);
+                    }
+                });
+            }
+        });
+        
+        const locationsWithCoords = Array.from(allLocations.values()).filter(l => l.coordinates);
+        if (locationsWithCoords.length === 0) {
+            return { mapDimensions: { width: 600, height: 500 }, locations: [], connections: [], mapMetrics: { minX:0, minY:0, totalWidthUnits:1, totalHeightUnits:1} };
+        }
+
+        let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+        locationsWithCoords.forEach(loc => {
+            minX = Math.min(minX, loc.coordinates!.x);
+            maxX = Math.max(maxX, loc.coordinates!.x);
+            minY = Math.min(minY, loc.coordinates!.y);
+            maxY = Math.max(maxY, loc.coordinates!.y);
+        });
+
+        const mapPadding = 1;
+        const widthUnits = (maxX - minX) || 1;
+        const heightUnits = (maxY - minY) || 1;
+        
+        const totalWidthInUnits = widthUnits + 2 * mapPadding;
+        const totalHeightInUnits = heightUnits + 2 * mapPadding;
+        
+        const calculatedWidth = totalWidthInUnits * 50;
+        const calculatedHeight = totalHeightInUnits * 50;
+        
+        const MIN_CSS_WIDTH = 600;
+        const MIN_CSS_HEIGHT = 500;
+        
+        const finalMapWidth = Math.max(calculatedWidth, MIN_CSS_WIDTH);
+        const finalMapHeight = Math.max(calculatedHeight, MIN_CSS_HEIGHT);
+        
+        const effectiveTotalWidthUnits = finalMapWidth / 50;
+        const effectiveTotalHeightUnits = finalMapHeight / 50;
+        const offsetX = (effectiveTotalWidthUnits - totalWidthInUnits) / 2;
+        const offsetY = (effectiveTotalHeightUnits - totalHeightInUnits) / 2;
+        
+        const locationsWithPositions = locationsWithCoords.map(loc => ({
+            ...loc,
+            x: (((loc.coordinates!.x - minX + mapPadding) + offsetX) / effectiveTotalWidthUnits) * 100,
+            y: (((loc.coordinates!.y - minY + mapPadding) + offsetY) / effectiveTotalHeightUnits) * 100
+        }));
+
+
+        const locationMap = new Map(locationsWithPositions.map(l => [`${l.coordinates.x},${l.coordinates.y}`, l]));
+        const drawnConnections = new Set<string>();
+        const connections = [];
+
+        for (const loc of locationsWithPositions) {
+            if (loc.isVisited && loc.adjacencyMap) {
+                for (const link of loc.adjacencyMap) {
+                    const targetKey = `${link.targetCoordinates.x},${link.targetCoordinates.y}`;
+                    const targetLoc = locationMap.get(targetKey);
+                    if (targetLoc) {
+                        const connectionKey = [loc.locationId, targetLoc.locationId].sort().join('-');
+                        if (!drawnConnections.has(connectionKey)) {
+                            drawnConnections.add(connectionKey);
+                            connections.push({
+                                key: connectionKey,
+                                x1: loc.x, y1: loc.y,
+                                x2: targetLoc.x, y2: targetLoc.y,
+                                isDiscovered: targetLoc.isVisited
+                            });
+                        }
+                    }
+                }
+            }
+        }
+        return {
+            mapDimensions: { width: finalMapWidth, height: finalMapHeight },
+            locations: locationsWithPositions,
+            connections,
+            mapMetrics: { minX, minY, totalWidthUnits: effectiveTotalWidthUnits, totalHeightUnits: effectiveTotalHeightUnits }
+        };
+    }, [visitedLocations, currentLocation]);
 
     const handleMouseEnter = useCallback((location: Location, event: React.MouseEvent) => {
         setHoveredLocation(location);
@@ -231,6 +336,30 @@ export default function LocationViewer({ visitedLocations, currentLocation, onOp
         setPan({ x: 0, y: 0 });
     }, []);
 
+    // Effect for the "Center on Player" button
+    useEffect(() => {
+        if (recenterRequest === 0) return; // Don't run on initial render
+
+        if (viewportRef.current?.clientWidth) {
+            const playerLoc = locations.find(loc => loc.locationId === currentLocation.locationId);
+            if (!playerLoc || typeof playerLoc.x !== 'number' || typeof playerLoc.y !== 'number') return;
+
+            const { width: mapWidth, height: mapHeight } = mapDimensions;
+            const { clientWidth: viewportWidth, clientHeight: viewportHeight } = viewportRef.current;
+
+            if (viewportWidth === 0 || viewportHeight === 0) return;
+
+            const targetXPixel = (playerLoc.x / 100) * mapWidth;
+            const targetYPixel = (playerLoc.y / 100) * mapHeight;
+            
+            // Use the CURRENT zoom, do not reset it.
+            setPan({
+                x: (viewportWidth / 2) - (targetXPixel * zoom),
+                y: (viewportHeight / 2) - (targetYPixel * zoom),
+            });
+        }
+    }, [recenterRequest, locations, currentLocation.locationId, mapDimensions, zoom]);
+
     useEffect(() => {
         if (isPanning) {
             window.addEventListener('mousemove', onMouseMove);
@@ -242,114 +371,59 @@ export default function LocationViewer({ visitedLocations, currentLocation, onOp
         };
     }, [isPanning, onMouseMove, onMouseUp]);
 
-    const { mapDimensions, locations, connections, mapMetrics } = useMemo(() => {
-        const allLocations = new Map<string, Location & { isVisited: boolean }>();
-        
-        visitedLocations.forEach(loc => {
-            if (loc.coordinates) {
-                const key = `${loc.coordinates.x},${loc.coordinates.y}`;
-                allLocations.set(key, { ...loc, isVisited: true });
-            }
-        });
-        
-        visitedLocations.forEach(loc => {
-            if (loc.coordinates && loc.adjacencyMap) {
-                loc.adjacencyMap.forEach(link => {
-                    const key = `${link.targetCoordinates.x},${link.targetCoordinates.y}`;
-                    if (!allLocations.has(key)) {
-                        const unvisitedLoc: Location & { isVisited: boolean } = {
-                            name: link.name,
-                            description: link.shortDescription,
-                            difficultyProfile: link.estimatedDifficultyProfile,
-                            coordinates: link.targetCoordinates,
-                            isVisited: false,
-                            locationId: `undiscovered-${key}`,
-                            lastEventsDescription: '',
-                            image_prompt: '',
-                            locationType: 'outdoor',
-                        };
-                        allLocations.set(key, unvisitedLoc);
-                    }
+    useEffect(() => {
+        // Effect for initial centering and recentering on fullscreen toggle or map data change.
+        const timer = setTimeout(() => {
+            if (viewportRef.current?.clientWidth) {
+                const playerLoc = locations.find(loc => loc.locationId === currentLocation.locationId);
+                if (!playerLoc || typeof playerLoc.x !== 'number' || typeof playerLoc.y !== 'number') return;
+                
+                const { width: mapWidth, height: mapHeight } = mapDimensions;
+                const { clientWidth: viewportWidth, clientHeight: viewportHeight } = viewportRef.current;
+
+                if (viewportWidth === 0 || viewportHeight === 0) return;
+
+                const targetXPixel = (playerLoc.x / 100) * mapWidth;
+                const targetYPixel = (playerLoc.y / 100) * mapHeight;
+
+                const initialZoom = 1;
+                setZoom(initialZoom);
+                setPan({
+                    x: (viewportWidth / 2) - (targetXPixel * initialZoom),
+                    y: (viewportHeight / 2) - (targetYPixel * initialZoom),
                 });
             }
-        });
-        
-        const locationsWithCoords = Array.from(allLocations.values());
-        if (locationsWithCoords.length === 0) {
-            return { mapDimensions: { width: 100, height: 100 }, locations: [], connections: [], mapMetrics: { minX:0, minY:0, totalWidthUnits:1, totalHeightUnits:1} };
-        }
+        }, 150);
 
-        let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
-        locationsWithCoords.forEach(loc => {
-            minX = Math.min(minX, loc.coordinates!.x);
-            maxX = Math.max(maxX, loc.coordinates!.x);
-            minY = Math.min(minY, loc.coordinates!.y);
-            maxY = Math.max(maxY, loc.coordinates!.y);
-        });
-
-        const mapPadding = 1;
-        const widthUnits = (maxX - minX) || 1;
-        const heightUnits = (maxY - minY) || 1;
-        
-        const totalWidth = widthUnits + 2 * mapPadding;
-        const totalHeight = heightUnits + 2 * mapPadding;
-
-        const locationsWithPositions = locationsWithCoords.map(loc => ({
-            ...loc,
-            x: (((loc.coordinates!.x - minX + mapPadding) / totalWidth) * 100),
-            y: (((loc.coordinates!.y - minY + mapPadding) / totalHeight) * 100)
-        }));
-
-        const locationMap = new Map(locationsWithPositions.map(l => [`${l.coordinates.x},${l.coordinates.y}`, l]));
-        const drawnConnections = new Set<string>();
-        const connections = [];
-
-        for (const loc of locationsWithPositions) {
-            if (loc.isVisited && loc.adjacencyMap) {
-                for (const link of loc.adjacencyMap) {
-                    const targetKey = `${link.targetCoordinates.x},${link.targetCoordinates.y}`;
-                    const targetLoc = locationMap.get(targetKey);
-                    if (targetLoc) {
-                        const connectionKey = [loc.locationId, targetLoc.locationId].sort().join('-');
-                        if (!drawnConnections.has(connectionKey)) {
-                            drawnConnections.add(connectionKey);
-                            connections.push({
-                                key: connectionKey,
-                                x1: loc.x, y1: loc.y,
-                                x2: targetLoc.x, y2: targetLoc.y,
-                                isDiscovered: targetLoc.isVisited
-                            });
-                        }
-                    }
-                }
-            }
-        }
-        return {
-            mapDimensions: { width: totalWidth * 50, height: totalHeight * 50 },
-            locations: locationsWithPositions,
-            connections,
-            mapMetrics: { minX, minY, totalWidthUnits: totalWidth, totalHeightUnits: totalHeight }
-        };
-    }, [visitedLocations]);
+        return () => clearTimeout(timer);
+    }, [locations, currentLocation.locationId, mapDimensions, isFullScreen]);
     
-    const handleGoToCoords = useCallback((e: React.FormEvent) => {
+    const handleGoToCoords = (e: React.FormEvent) => {
         e.preventDefault();
         const x = parseInt(goToCoords.x, 10);
         const y = parseInt(goToCoords.y, 10);
 
         if (isNaN(x) || isNaN(y) || !viewportRef.current) return;
         
-        const { minX, minY, totalWidthUnits, totalHeightUnits } = mapMetrics;
-        const mapPadding = 1;
+        const { minX, minY } = mapMetrics;
+        
+        const effectiveTotalWidthUnits = mapDimensions.width / 50;
+        const effectiveTotalHeightUnits = mapDimensions.height / 50;
+        
+        const totalWidthInUnits = (mapMetrics as any).totalWidthUnits;
+        const totalHeightInUnits = (mapMetrics as any).totalHeightUnits;
 
-        const targetXPercent = ((x - minX + mapPadding) / totalWidthUnits) * 100;
-        const targetYPercent = ((y - minY + mapPadding) / totalHeightUnits) * 100;
+        const offsetX = (effectiveTotalWidthUnits - totalWidthInUnits) / 2;
+        const offsetY = (effectiveTotalHeightUnits - totalHeightInUnits) / 2;
+
+        const mapPadding = 1;
+        const targetXPercent = (((x - minX + mapPadding) + offsetX) / effectiveTotalWidthUnits) * 100;
+        const targetYPercent = (((y - minY + mapPadding) + offsetY) / effectiveTotalHeightUnits) * 100;
 
         const targetXPixel = (targetXPercent / 100) * mapDimensions.width;
         const targetYPixel = (targetYPercent / 100) * mapDimensions.height;
 
-        const viewportWidth = viewportRef.current.clientWidth;
-        const viewportHeight = viewportRef.current.clientHeight;
+        const { clientWidth: viewportWidth, clientHeight: viewportHeight } = viewportRef.current;
 
         const newZoom = 1.2;
         setZoom(newZoom);
@@ -358,28 +432,26 @@ export default function LocationViewer({ visitedLocations, currentLocation, onOp
             x: (viewportWidth / 2) - (targetXPixel * newZoom),
             y: (viewportHeight / 2) - (targetYPixel * newZoom),
         });
+    };
 
-    }, [goToCoords, mapMetrics, mapDimensions]);
-
-
-    if (locations.length === 0) {
+    if (!currentLocation || locations.length === 0) {
         return (
             <div>
                 <h3 className="text-xl font-bold text-cyan-400 mb-3 narrative-text">{t('World Map')}</h3>
                 <div className="text-center text-gray-500 p-6 bg-gray-900/20 rounded-lg">
                     <MapPinIcon className="w-8 h-8 mx-auto mb-2 text-gray-600" />
-                    <p>{t('No map data available.')}</p>
+                    <p>{!currentLocation ? t('No current location data available to display the map.') : t('No map data available.')}</p>
                 </div>
             </div>
         );
     }
 
     return (
-        <div onMouseMove={handleMouseMoveTooltip}>
-            <h3 className="text-xl font-bold text-cyan-400 mb-3 narrative-text">{t('World Map')}</h3>
+        <div onMouseMove={handleMouseMoveTooltip} className="flex flex-col h-full">
+            <h3 className="text-xl font-bold text-cyan-400 mb-3 narrative-text flex-shrink-0">{t('World Map')}</h3>
             <div
                 ref={viewportRef}
-                className="map-viewport"
+                className="map-viewport flex-1"
                 onMouseDown={onMouseDown}
                 onMouseUp={onMouseUp}
                 onMouseLeave={onMouseUp}
@@ -395,6 +467,9 @@ export default function LocationViewer({ visitedLocations, currentLocation, onOp
                     <button className="map-control-button" onClick={handleReset} title={t("Reset View")}>
                         <ArrowPathIcon className="w-4 h-4" />
                     </button>
+                    <button className="map-control-button" onClick={() => setRecenterRequest(prev => prev + 1)} title={t("Center on Player")}>
+                        <MapPinIcon className="w-4 h-4" />
+                    </button>
                      <button 
                         className={`map-control-button ${showAllLabels ? 'map-control-button--active' : ''}`} 
                         onClick={() => setShowAllLabels(!showAllLabels)}
@@ -402,6 +477,19 @@ export default function LocationViewer({ visitedLocations, currentLocation, onOp
                     >
                         <DocumentTextIcon className="w-4 h-4" />
                     </button>
+                    {isFullScreen ? (
+                        onCollapse && (
+                            <button className="map-control-button" onClick={onCollapse} title={t("Collapse Map")}>
+                                <ArrowsPointingInIcon className="w-4 h-4" />
+                            </button>
+                        )
+                    ) : (
+                        onExpand && (
+                            <button className="map-control-button" onClick={onExpand} title={t("Expand Map")}>
+                                <ArrowsPointingOutIcon className="w-4 h-4" />
+                            </button>
+                        )
+                    )}
                 </div>
                  <form className="map-goto-controls" onSubmit={handleGoToCoords} onMouseDown={(e) => e.stopPropagation()}>
                     <input 

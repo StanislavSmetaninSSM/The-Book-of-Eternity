@@ -17,6 +17,7 @@ interface InternalFlags {
     historyManipulationCoefficient: number;
     needsSelfCorrection: boolean;
     isSimpleTurn: boolean;
+    needsWorldProgression: boolean;
 }
 
 interface PartialResponseWithFlags extends Partial<GameResponse> {
@@ -62,6 +63,13 @@ function recursivelyUnmaskText(obj: any): any {
     return obj;
 }
 
+const asArray = <T>(value: T | T[] | null | undefined): T[] => {
+    if (value === null || value === undefined) {
+        return [];
+    }
+    return Array.isArray(value) ? value : [value];
+};
+
 export const getModelForStep = (stepName: string, context: GameContext): string => {
     // Hybrid mode is only for the Gemini provider with the specific hybrid model name.
     if (context.gameSettings.aiProvider !== 'gemini' || context.gameSettings.modelName !== 'gemini-hybrid-pro-flash') {
@@ -75,7 +83,8 @@ export const getModelForStep = (stepName: string, context: GameContext): string 
         'Step0_5_Verification',
         'Step1_NarrativeGeneration',
         'StepSimpleFullResponse',
-        'StepQuestion_CorrectionAndClarification'
+        'StepQuestion_CorrectionAndClarification',
+        'Step_WorldProgression'
     ];
 
     if (proSteps.includes(stepName)) {
@@ -189,6 +198,23 @@ export async function executeTurn(
         onPartialResponse(partialResponse, step05Name, model05);
     }
 
+    if (partialResponse._internal_flags_?.needsWorldProgression) {
+        const stepWpName = 'Step_WorldProgression';
+        const modelWp = getModelForStep(stepWpName, context);
+        onStepStart(stepWpName, modelWp);
+        const worldProgressionResponse = await executeApiStep(
+            stepWpName,
+            mainPromptModule.getStepWorldProgression,
+            worldLogic,
+            context,
+            partialResponse,
+            abortSignal,
+            onStreamingChunk
+        );
+        partialResponse = { ...partialResponse, ...worldProgressionResponse };
+        onPartialResponse(partialResponse, stepWpName, modelWp);
+    }
+
     let finalResponse: GameResponse;
     const flags = partialResponse._internal_flags_;
     
@@ -272,6 +298,38 @@ export async function askGmQuestion(
     }
 
     return response;
+}
+
+export async function executeWorldProgression(
+    context: GameContext,
+    abortSignal: AbortSignal,
+    onStreamingChunk: (text: string) => void,
+    onPartialResponse: (response: any, stepName: string, modelName: string) => void,
+    onStepStart: (stepName: string, modelName: string) => void
+): Promise<Partial<GameResponse>> {
+    const stepWpName = 'Step_WorldProgression';
+    const modelWp = getModelForStep(stepWpName, context);
+    onStepStart(stepWpName, modelWp);
+
+    const worldProgressionResponse = await executeApiStep(
+        stepWpName,
+        mainPromptModule.getStepWorldProgression,
+        worldLogic,
+        context,
+        null, 
+        abortSignal,
+        onStreamingChunk
+    );
+
+    onPartialResponse(worldProgressionResponse, stepWpName, modelWp);
+    
+    let finalResponse: Partial<GameResponse> = worldProgressionResponse;
+    
+    if (context.gameSettings.adultMode) {
+        finalResponse = recursivelyUnmaskText(finalResponse);
+    }
+
+    return finalResponse;
 }
 
 export async function getMusicSuggestionFromAi(

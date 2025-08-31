@@ -1,4 +1,5 @@
 
+
 // Represents the entire state of the game world passed between turns
 
 export interface WorldStateFlag {
@@ -13,6 +14,19 @@ export interface UnlockedMemory {
   title: string;
   unlockedAtRelationshipLevel: number;
   content: string;
+}
+
+export interface WorldEvent {
+  eventId: string | null;
+  turnNumber: number;
+  worldTime: { day: number; minutesIntoDay: number };
+  headline: string;
+  summary: string;
+  eventType: 'Political' | 'Military' | 'Economic' | 'Social' | 'Mystical' | 'Disaster' | 'Personal';
+  visibility: 'Public' | 'Regional' | 'Faction-Internal' | 'Secret';
+  affectedFactions?: { factionId: string; factionName: string; impactDescription: string; }[];
+  affectedLocations?: { locationId: string; locationName: string; impactDescription: string; }[];
+  involvedNPCs?: { NPCId: string; NPCName: string; roleInEvent: string; }[];
 }
 
 export interface LootTemplate {
@@ -36,7 +50,7 @@ export interface GameContext {
   lootForCurrentTurn: LootTemplate[]; // Define more specifically if needed
   preGeneratedDices1d20: number[];
   worldState: WorldState;
-  worldStateFlags: Record<string, WorldStateFlag>;
+  worldStateFlags: WorldStateFlag[];
   previousTurnResponse: GameResponse | null;
   encounteredFactions: Faction[];
   plotOutline: PlotOutline | null;
@@ -47,6 +61,7 @@ export interface GameContext {
   enemiesDataForCurrentTurn: EnemyCombatObject[] | null;
   alliesDataForCurrentTurn: AllyCombatObject[] | null;
   playerCustomStates: CustomState[] | null;
+  worldEventsLog: WorldEvent[];
 }
 
 // Represents a single chat message
@@ -68,7 +83,8 @@ export interface GameState {
   lastUpdatedQuestId?: string | null;
   plotOutline: PlotOutline | null;
   temporaryStash?: Item[];
-  worldStateFlags: Record<string, WorldStateFlag>;
+  worldStateFlags: WorldStateFlag[];
+  worldEventsLog?: WorldEvent[];
   playerStatus?: PlayerStatus;
   npcSortOrder?: string[];
   imageCache: Record<string, string>;
@@ -209,9 +225,13 @@ export interface PassiveSkill extends Skill {
   group: string;
   combatEffect: CombatAction | null;
   playerStatBonus?: string;
+  structuredBonuses?: StructuredBonus[];
   effectDetails?: string;
   masteryLevel: number;
   maxMasteryLevel: number;
+  knowledgeDomain?: string;
+  unlockedActiveSkillsCount?: number;
+  maxUnlockableActiveSkills?: number;
 }
 
 export interface SkillMastery {
@@ -245,6 +265,7 @@ export interface Item {
   count: number;
   weight: number;
   volume: number;
+  textContent?: string | null;
   bonuses: string[];
   structuredBonuses?: StructuredBonus[];
   customProperties?: CustomProperty[];
@@ -445,6 +466,7 @@ export interface WorldState {
   timeOfDay: 'Morning' | 'Afternoon' | 'Evening' | 'Night';
   weather: string;
   currentTimeInMinutes: number;
+  lastWorldProgressionTimeInMinutes?: number;
 }
 
 export interface PlotOutline {
@@ -489,6 +511,7 @@ export interface CombatActionEffect {
   targetType: string;
   targetTypeDisplayName?: string;
   duration?: number;
+  damageThreshold?: number;
   effectDescription: string;
   targetsCount?: number;
 }
@@ -565,6 +588,7 @@ export interface GameResponse {
   response: string;
   items_and_stat_calculations: string[];
   inventoryItemsData: Partial<Item>[] | null;
+  updateItemTextContents?: { itemId: string; itemName: string; textToAppend: string; separator?: string; }[] | null;
   inventoryItemsResources: any[] | null;
   moveInventoryItems: any[] | null;
   removeInventoryItems: any[] | null;
@@ -590,6 +614,7 @@ export interface GameResponse {
   playerStatus: PlayerStatus;
   questUpdates: Quest[] | null;
   plotOutline: PlotOutline | null;
+  worldEventsLog: WorldEvent[] | null;
   worldMapUpdates: any | null;
   worldStateFlags: Partial<WorldStateFlag>[] | null;
   dialogueOptions: string[] | null;
@@ -612,6 +637,7 @@ export interface GameResponse {
   timeChange: number | null;
   weatherChange: { tendency: string; description: string; } | null;
   setWorldTime?: { day: number; minutesIntoDay: number } | null;
+  updateWorldProgressionTracker: { newLastWorldProgressionTimeInMinutes: number } | null;
   image_prompt: string;
   playerNameChange: string | null;
   playerAppearanceChange: string | null;
@@ -638,6 +664,7 @@ export interface GameResponse {
   playerBehaviorAssessment: {
     historyManipulationCoefficient: number;
   };
+  generateWorldProgression?: boolean;
 }
 
 export interface LocationData extends Location {

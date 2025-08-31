@@ -1,5 +1,4 @@
 
-
 import React, { useState, useMemo, useCallback } from 'react';
 import { Item, GameSettings } from '../../types';
 import { DetailRendererProps } from './types';
@@ -20,14 +19,17 @@ import {
     CheckCircleIcon, MinusCircleIcon, MapPinIcon, SparklesIcon, StarIcon, Cog6ToothIcon, BookOpenIcon, UserPlusIcon, WrenchIcon,
     Squares2X2Icon, WrenchScrewdriverIcon, TrashIcon, AcademicCapIcon, PhotoIcon
 } from '@heroicons/react/24/outline';
+import { PencilSquareIcon, CheckIcon, XMarkIcon } from '@heroicons/react/24/solid';
 
 interface ItemDetailsProps extends Omit<DetailRendererProps, 'data'> {
   item: Item & { ownerType?: 'player' | 'npc', ownerId?: string, isEquippedByOwner?: boolean };
 }
 
-const ItemDetailsRenderer: React.FC<ItemDetailsProps> = ({ item, onOpenImageModal, allowHistoryManipulation, onEditItemData, playerCharacter, disassembleItem, disassembleNpcItem, onCloseModal, gameSettings, imageCache, onImageGenerated, onRegenerateId }) => {
+const ItemDetailsRenderer: React.FC<ItemDetailsProps> = ({ item, onOpenImageModal, allowHistoryManipulation, onEditItemData, playerCharacter, disassembleItem, disassembleNpcItem, onCloseModal, gameSettings, imageCache, onImageGenerated, onRegenerateId, onShowMessageModal }) => {
     const { t } = useLocalization();
     const [isDisassembleConfirmOpen, setIsDisassembleConfirmOpen] = useState(false);
+    const [isEditingTextContent, setIsEditingTextContent] = useState(false);
+    const [editedText, setEditedText] = useState(item.textContent || '');
     const canHaveBond = ['Rare', 'Epic', 'Legendary', 'Unique'].includes(item.quality);
     const imagePrompt = item.custom_image_prompt || item.image_prompt || `A detailed, photorealistic fantasy art image of a single ${item.quality} ${item.name}. ${item.description.split('. ')[0]}`;
     const currencyName = gameSettings?.gameWorldInformation?.currencyName || 'Gold';
@@ -117,6 +119,65 @@ const ItemDetailsRenderer: React.FC<ItemDetailsProps> = ({ item, onOpenImageModa
             <DetailRow label={t("Durability")} value={item.durability} icon={ShieldCheckIcon} />
         </Section>
         
+        {item.textContent && (
+            <Section title={t("Text Content")} icon={BookOpenIcon}>
+                {!isEditingTextContent ? (
+                    <>
+                        <div className="bg-gray-900/30 p-3 rounded-md text-sm italic text-gray-400">
+                            <div className="line-clamp-4 whitespace-pre-wrap">
+                                <MarkdownRenderer content={item.textContent} />
+                            </div>
+                        </div>
+                        <div className="pt-2 flex gap-2">
+                            <button
+                                onClick={() => onShowMessageModal && onShowMessageModal(item.name, item.textContent || '')}
+                                className="flex-1 flex items-center justify-center gap-2 px-3 py-1.5 text-xs font-semibold text-cyan-300 bg-cyan-500/10 rounded-md hover:bg-cyan-500/20 transition-colors"
+                            >
+                                <BookOpenIcon className="w-4 h-4" />
+                                {t('Read Full Text')}
+                            </button>
+                            {allowHistoryManipulation && item.existedId && onEditItemData && (
+                                <button
+                                    onClick={() => {
+                                        setEditedText(item.textContent || '');
+                                        setIsEditingTextContent(true);
+                                    }}
+                                    className="flex-shrink-0 flex items-center justify-center gap-2 px-3 py-1.5 text-xs font-semibold text-yellow-300 bg-yellow-500/10 rounded-md hover:bg-yellow-500/20 transition-colors"
+                                >
+                                    <PencilSquareIcon className="w-4 h-4" />
+                                    {t('Edit')}
+                                </button>
+                            )}
+                        </div>
+                    </>
+                ) : (
+                    <div className="pt-2">
+                        <textarea
+                            value={editedText}
+                            onChange={(e) => setEditedText(e.target.value)}
+                            className="w-full bg-gray-700/50 border border-gray-600 rounded-md p-3 text-gray-200 focus:ring-2 focus:ring-cyan-500 transition min-h-[150px] whitespace-pre-wrap"
+                            autoFocus
+                        />
+                        <div className="flex justify-end gap-2 mt-2">
+                            <button 
+                                onClick={() => setIsEditingTextContent(false)} 
+                                className="px-3 py-1 text-xs rounded-md bg-gray-600 hover:bg-gray-500 text-white font-semibold transition flex items-center gap-1">
+                                <XMarkIcon className="w-4 h-4"/>{t('Cancel')}
+                            </button>
+                            <button 
+                                onClick={() => {
+                                    if (item.existedId) onEditItemData(item.existedId, 'textContent', editedText);
+                                    setIsEditingTextContent(false);
+                                }} 
+                                className="px-3 py-1 text-xs rounded-md bg-cyan-600 hover:bg-cyan-500 text-white font-semibold transition flex items-center gap-1">
+                                <CheckIcon className="w-4 h-4"/>{t('Save')}
+                            </button>
+                        </div>
+                    </div>
+                )}
+            </Section>
+        )}
+
         {(item.equipmentSlot || item.isConsumption) && (
             <Section title={t("Usage & Equipment")} icon={CogIcon}>
                 <DetailRow label={t("Consumable")} value={item.isConsumption ? t('Yes') : t('No')} icon={FireIcon} />

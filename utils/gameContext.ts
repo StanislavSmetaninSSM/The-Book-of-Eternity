@@ -1,5 +1,6 @@
 
-import { GameState, GameContext, ChatMessage, GameResponse, PlayerCharacter, LocationData, Characteristics, Location, Faction, Language, LootTemplate, UnlockedMemory, Recipe, Item, WorldStateFlag, SkillMastery, GameSettings, WorldState, NPC, Effect } from '../types';
+
+import { GameState, GameContext, ChatMessage, GameResponse, PlayerCharacter, LocationData, Characteristics, Location, Faction, Language, LootTemplate, UnlockedMemory, Recipe, Item, WorldStateFlag, SkillMastery, GameSettings, WorldState, NPC, Effect, WorldEvent, PassiveSkill } from '../types';
 import { gameData } from './localizationGameData';
 import { generateLootTemplates } from './lootGenerator';
 
@@ -82,10 +83,30 @@ export function recalculateDerivedStats<T extends PlayerCharacter | NPC>(pc: T):
     });
 
     // 2. Bonuses from passive skills (flat)
-    (newPc.passiveSkills || []).forEach((skill: any) => {
-        if (skill.playerStatBonus) {
+    (newPc.passiveSkills || []).forEach((skill: PassiveSkill) => {
+        let bonusApplied = false;
+        if (skill.structuredBonuses && skill.structuredBonuses.length > 0) {
+            skill.structuredBonuses.forEach(bonus => {
+                if (
+                    bonus.bonusType === 'Characteristic' &&
+                    bonus.target.toLowerCase() === char.toLowerCase() &&
+                    bonus.application === 'Permanent' &&
+                    bonus.valueType === 'Flat' &&
+                    typeof bonus.value === 'number'
+                ) {
+                    flatBonusTotal += bonus.value;
+                    bonusApplied = true;
+                }
+            });
+        }
+        
+        // Legacy Fallback for old save data without structuredBonuses
+        if (!bonusApplied && skill.playerStatBonus) {
             const match = skill.playerStatBonus.match(/^([+-]?\d+)\s+(.+)$/);
-            if (match && match[2].toLowerCase() === char) {
+            const charName = match?.[2]?.toLowerCase();
+            // This is a brittle check assuming English characteristic names in the bonus string,
+            // but it's necessary for backward compatibility.
+            if (match && charName && CHARACTERISTICS_LIST.includes(charName) && charName === char) {
                 flatBonusTotal += parseInt(match[1]);
             }
         }
@@ -368,6 +389,7 @@ export const createInitialContext = (creationData: any, language: Language): Gam
       timeOfDay: 'Morning',
       weather: initialWeather,
       currentTimeInMinutes: parseInt(startTime.split(':')[0]) * 60 + parseInt(startTime.split(':')[1]),
+      lastWorldProgressionTimeInMinutes: 0,
   };
 
   const initialContext: GameContext = {
@@ -385,7 +407,7 @@ export const createInitialContext = (creationData: any, language: Language): Gam
     lootForCurrentTurn: generateLootTemplates([0.1, 1.1, 1.1, 1.1, 0.1], playerCharacter, 5),
     preGeneratedDices1d20: Array.from({ length: 50 }, () => Math.floor(Math.random() * 20) + 1),
     worldState: initialWorldState,
-    worldStateFlags: {},
+    worldStateFlags: [],
     previousTurnResponse: null,
     encounteredFactions: [],
     plotOutline: null,
@@ -396,6 +418,7 @@ export const createInitialContext = (creationData: any, language: Language): Gam
     enemiesDataForCurrentTurn: [],
     alliesDataForCurrentTurn: [],
     playerCustomStates: [],
+    worldEventsLog: [],
   };
 
   return initialContext;
@@ -432,6 +455,10 @@ export function buildNextContext(
         else if (minutesIntoDay >= 12 * 60 && minutesIntoDay < 18 * 60) newWorldState.timeOfDay = 'Afternoon';
         else if (minutesIntoDay >= 18 * 60 && minutesIntoDay < 22 * 60) newWorldState.timeOfDay = 'Evening';
         else newWorldState.timeOfDay = 'Night';
+    }
+
+    if (response.updateWorldProgressionTracker) {
+        newWorldState.lastWorldProgressionTimeInMinutes = response.updateWorldProgressionTracker.newLastWorldProgressionTimeInMinutes;
     }
 
     if (response.weatherChange && response.weatherChange.tendency !== 'NO_CHANGE') {
@@ -505,6 +532,7 @@ export function buildNextContext(
         encounteredFactions: newState.encounteredFactions,
         worldState: newWorldState,
         worldStateFlags: newState.worldStateFlags,
+        worldEventsLog: newState.worldEventsLog || [],
         previousTurnResponse: response,
         plotOutline: newState.plotOutline,
         worldMap: newWorldMap,

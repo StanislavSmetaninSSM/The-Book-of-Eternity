@@ -1,5 +1,5 @@
 
-import { GameState, GameResponse, PlayerCharacter, Item, ActiveSkill, PassiveSkill, NPC, LocationData, Quest, EnemyCombatObject, AllyCombatObject, CustomState, Wound, Faction, SkillMastery, Effect, Recipe, UnlockedMemory, WorldStateFlag, NPCCustomStateChange, GameSettings } from '../types';
+import { GameState, GameResponse, PlayerCharacter, Item, ActiveSkill, PassiveSkill, NPC, LocationData, Quest, EnemyCombatObject, AllyCombatObject, CustomState, Wound, Faction, SkillMastery, Effect, Recipe, UnlockedMemory, WorldStateFlag, NPCCustomStateChange, GameSettings, WorldEvent } from '../types';
 import { recalculateDerivedStats } from './gameContext';
 import { recalculateAllWeights } from './inventoryManager';
 import { characteristics as charTranslations } from './translations/characteristics';
@@ -233,7 +233,7 @@ const getEffectKey = (effect: Effect): string => {
         return effect.sourceSkill;
     }
     // Fallback to description, but remove the duration part to allow matching
-    return effect.description.replace(/\s*\([^)]*\)$/, '').trim();
+    return effect.description?.replace(/\s*\([^)]*\)$/, '')?.trim() ?? "";
 };
 
 export function checkAndApplyLevelUp(pc: PlayerCharacter, t: TFunction): { pc: PlayerCharacter, logs: string[] } {
@@ -399,8 +399,9 @@ export const processAndApplyResponse = (response: GameResponse, baseState: GameS
                 if (pc.characteristics[standardKey] < effectiveCap) {
                     pc.characteristics[standardKey] += 1;
                 } else {
-                    pc.experience += 25;
-                    logsToAdd.push(t("stat_at_training_cap", { statName: t(englishKey), cap: effectiveCap }));
+                    const compensation = Math.max(25, Math.round(pc.experienceForNextLevel * 0.05));
+                    pc.experience += compensation;
+                    logsToAdd.push(t("stat_at_training_cap", { statName: t(englishKey), cap: effectiveCap, xp: compensation }));
                 }
             }
         } else {
@@ -653,6 +654,18 @@ export const processAndApplyResponse = (response: GameResponse, baseState: GameS
         }
     });
 
+    // --- Text Content Append ---
+    asArray(response.updateItemTextContents).forEach(update => {
+        const itemToUpdate = pc.inventory.find(i => i.existedId === update.itemId);
+        if (itemToUpdate) {
+            const separator = update.separator ?? '\n\n';
+            const currentText = itemToUpdate.textContent || '';
+            itemToUpdate.textContent = currentText ? (currentText + separator + update.textToAppend) : update.textToAppend;
+        } else {
+            logsToAdd.push(`[System Warning] Could not find item with ID ${update.itemId} to append text to.`);
+        }
+    });
+
     // --- Recipes ---
     pc.knownRecipes = upsertEntities(pc.knownRecipes, asArray(response.addOrUpdateRecipes), 'recipeName', 'recipeName');
     const recipesToRemove = new Set(asArray(response.removeRecipes));
@@ -738,18 +751,19 @@ export const processAndApplyResponse = (response: GameResponse, baseState: GameS
     });
     
     const playerWoundChangesCleaned = asArray(response.playerWoundChanges).map(change => {
+        const woundUpdate = (change as any).wound || change; // Robustly handle nested or flat structure
         const woundData: Partial<Wound> = {
-            woundId: change.woundId,
-            woundName: change.woundName,
-            severity: change.severity,
-            descriptionOfEffects: change.descriptionOfEffects,
-            generatedEffects: change.generatedEffects,
-            healingState: change.healingState,
+            woundId: woundUpdate.woundId,
+            woundName: woundUpdate.woundName,
+            severity: woundUpdate.severity,
+            descriptionOfEffects: woundUpdate.descriptionOfEffects,
+            generatedEffects: woundUpdate.generatedEffects,
+            healingState: woundUpdate.healingState,
         };
         if (!woundData.healingState) {
             woundData.healingState = {
                 currentState: 'Untreated',
-                description: 'The wound is fresh and requires attention.',
+                description: t('wound_default_description'),
                 treatmentProgress: 0,
                 progressNeeded: 20, // A reasonable default
                 nextState: 'Stabilized',
@@ -949,21 +963,23 @@ export const processAndApplyResponse = (response: GameResponse, baseState: GameS
             if (!npc.wounds) {
                 npc.wounds = [];
             }
+            // FIX: The change object itself is the wound data, not nested.
+            const woundUpdate = (change as any).wound || change;
+
             const woundData: Partial<Wound> = {
-                woundId: change.woundId,
-                woundName: change.woundName,
-                severity: change.severity,
-                descriptionOfEffects: change.descriptionOfEffects,
-                generatedEffects: change.generatedEffects,
-                healingState: change.healingState,
+                woundId: woundUpdate.woundId,
+                woundName: woundUpdate.woundName,
+                severity: woundUpdate.severity,
+                descriptionOfEffects: woundUpdate.descriptionOfEffects,
+                generatedEffects: woundUpdate.generatedEffects,
+                healingState: woundUpdate.healingState,
             };
-            // If healingState is missing, create a default one. This makes the system more robust against AI errors.
             if (!woundData.healingState) {
                 woundData.healingState = {
                     currentState: 'Untreated',
-                    description: 'The wound is fresh and requires attention.',
+                    description: t('wound_default_description'),
                     treatmentProgress: 0,
-                    progressNeeded: 20, // A reasonable default
+                    progressNeeded: 20,
                     nextState: 'Stabilized',
                     canBeImprovedBy: ['First Aid check']
                 };
@@ -1192,14 +1208,21 @@ export const processAndApplyResponse = (response: GameResponse, baseState: GameS
         newState.playerStatus = response.playerStatus;
     }
 
-    const flagUpdates = asArray(response.worldStateFlags).reduce((acc, flag) => {
-        if (flag && flag.flagId) {
-            acc[flag.flagId] = flag as WorldStateFlag;
-        }
-        return acc;
-    }, {} as Record<string, WorldStateFlag>);
-    newState.worldStateFlags = { ...newState.worldStateFlags, ...flagUpdates };
+    newState.worldStateFlags = upsertEntities(
+        newState.worldStateFlags || [],
+        asArray(response.worldStateFlags),
+        'flagId',
+        'displayName'
+    );
 
+    if (response.worldEventsLog) {
+        newState.worldEventsLog = upsertEntities(
+            newState.worldEventsLog || [],
+            asArray(response.worldEventsLog),
+            'eventId',
+            'headline'
+        );
+    }
 
     const finalWeight = newState.playerCharacter.totalWeight;
     const maxWeight = newState.playerCharacter.maxWeight + newState.playerCharacter.criticalExcessWeight;

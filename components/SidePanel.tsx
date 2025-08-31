@@ -1,7 +1,14 @@
+
+
+
+
+
+
 import React, { useState } from 'react';
 import CharacterSheet from './CharacterSheet';
 import QuestLog from './QuestLog';
-import { GameState, Location, WorldState, GameSettings, PlayerCharacter, Faction, PlotOutline, Item, DBSaveSlotInfo, WorldStateFlag, Wound, CustomState, UnlockedMemory, NPC } from '../types';
+// FIX: Import Quest type
+import { GameState, Location, WorldState, GameSettings, PlayerCharacter, Faction, PlotOutline, Item, DBSaveSlotInfo, WorldStateFlag, Wound, CustomState, UnlockedMemory, NPC, WorldEvent, Quest } from '../types';
 import { UserCircleIcon, BookOpenIcon, CodeBracketIcon, DocumentTextIcon, UsersIcon, ShieldExclamationIcon, Cog6ToothIcon, MapIcon, MapPinIcon, QuestionMarkCircleIcon, UserGroupIcon, GlobeAltIcon, ArchiveBoxXMarkIcon, BeakerIcon, TrashIcon } from '@heroicons/react/24/outline';
 import { ChevronDoubleRightIcon } from '@heroicons/react/24/solid';
 import JsonDebugView from './JsonDebugView';
@@ -23,7 +30,7 @@ import ImageRenderer from './ImageRenderer';
 interface SidePanelProps {
   gameState: GameState | null;
   worldState: WorldState | null;
-  worldStateFlags: Record<string, WorldStateFlag> | null;
+  worldStateFlags: WorldStateFlag[] | null;
   onOpenInventory: () => void;
   lastJsonResponse: string | null;
   lastRequestJsonForDebug: string | null;
@@ -38,8 +45,10 @@ interface SidePanelProps {
   onOpenDetailModal: (title: string, data: any) => void;
   onOpenJournalModal: (npc: NPC) => void;
   onOpenImageModal: (prompt: string) => void;
+  onShowMessageModal: (title: string, content: string) => void;
   onSpendAttributePoint: (characteristic: string) => void;
   onToggleSidebar: () => void;
+  onExpandMap: () => void;
   gameSettings: GameSettings | null;
   updateGameSettings: (newSettings: Partial<GameSettings>) => void;
   superInstructions: string;
@@ -52,9 +61,17 @@ interface SidePanelProps {
   moveFromStashToInventory: (item: Item, quantity: number) => void;
   dropItemFromStash: (item: Item) => void;
   turnNumber: number | null;
+  // FIX: Added missing props for editing game state.
+  editChatMessage: (index: number, newContent: string) => void;
+  editNpcData: (npcId: string, field: keyof NPC, value: any) => void;
+  editQuestData: (questId: string, field: keyof Quest, value: any) => void;
+  editItemData: (itemId: string, field: keyof Item, value: any) => void;
+  editFactionData: (factionId: string, field: keyof Faction, value: any) => void;
+  editPlayerData: (field: keyof PlayerCharacter, value: any) => void;
   editLocationData: (locationId: string, field: keyof Location, value: any) => void;
   editWorldState: (day: number, time: string) => void;
   editWeather: (newWeather: string) => void;
+  editWorldStateFlagData: (flagId: string, field: keyof WorldStateFlag, value: any) => void;
   saveGameToSlot: (slotId: number) => Promise<void>;
   loadGameFromSlot: (slotId: number) => Promise<void>;
   deleteGameSlot: (slotId: number) => Promise<void>;
@@ -71,6 +88,8 @@ interface SidePanelProps {
   deleteCustomState: (stateId: string) => void;
   deleteNpcCustomState: (npcId: string, stateId: string) => void;
   deleteWorldStateFlag: (flagId: string) => void;
+  deleteWorldEvent: (eventId: string) => void;
+  deleteWorldEventsByTurnRange: (startTurn: number, endTurn: number) => void;
   updateNpcSortOrder: (newOrder: string[]) => void;
   updateItemSortOrder: (newOrder: string[]) => void;
   updateItemSortSettings: (criteria: PlayerCharacter['itemSortCriteria'], direction: PlayerCharacter['itemSortDirection']) => void;
@@ -88,9 +107,10 @@ interface SidePanelProps {
   onEditNpcMemory: (npcId: string, memory: UnlockedMemory) => void;
   onDeleteNpcMemory: (npcId: string, memoryId: string) => void;
   clearNpcJournalsNow: () => void;
+  forgetActiveWound: (characterType: 'player' | 'npc', characterId: string | null, woundId: string) => void;
 }
 
-type Tab = 'Character' | 'Quests' | 'Factions' | 'NPCs' | 'Locations' | 'Map' | 'Combat' | 'Log' | 'Guide' | 'Debug' | 'Game' | 'Stash' | 'Crafting' | 'World';
+type Tab = 'Character' | 'Quests' | 'Factions' | 'NPCs' | 'Locations' | 'Map' | 'Combat' | 'Log' | 'Guide' | 'Debug' | 'Game' | 'Stash' | 'World' | 'Crafting';
 
 const TABS: { name: Tab; icon: React.FC<React.SVGProps<SVGSVGElement>> }[] = [
     { name: 'Character', icon: UserCircleIcon },
@@ -208,8 +228,10 @@ export default function SidePanel(props: SidePanelProps): React.ReactNode {
     onOpenDetailModal,
     onOpenJournalModal,
     onOpenImageModal,
+    onShowMessageModal,
     onSpendAttributePoint, 
     onToggleSidebar,
+    onExpandMap,
     gameSettings,
     updateGameSettings,
     superInstructions,
@@ -222,9 +244,16 @@ export default function SidePanel(props: SidePanelProps): React.ReactNode {
     moveFromStashToInventory,
     dropItemFromStash,
     turnNumber,
+    editChatMessage,
+    editNpcData,
+    editQuestData,
+    editItemData,
+    editFactionData,
     editLocationData,
+    editPlayerData,
     editWorldState,
     editWeather,
+    editWorldStateFlagData,
     saveGameToSlot,
     loadGameFromSlot,
     deleteGameSlot,
@@ -241,6 +270,8 @@ export default function SidePanel(props: SidePanelProps): React.ReactNode {
     deleteCustomState,
     deleteNpcCustomState,
     deleteWorldStateFlag,
+    deleteWorldEvent,
+    deleteWorldEventsByTurnRange,
     updateNpcSortOrder,
     updateItemSortOrder,
     updateItemSortSettings,
@@ -258,6 +289,7 @@ export default function SidePanel(props: SidePanelProps): React.ReactNode {
     onEditNpcMemory,
     onDeleteNpcMemory,
     clearNpcJournalsNow,
+    forgetActiveWound,
   } = props;
   const [activeTab, setActiveTab] = useState<Tab>('Character');
   const { language, t } = useLocalization();
@@ -270,7 +302,6 @@ export default function SidePanel(props: SidePanelProps): React.ReactNode {
   const temporaryStash = gameState?.temporaryStash || [];
   const showStash = temporaryStash.length > 0;
   
-  // If the stash appears, switch to it automatically
   React.useEffect(() => {
     if (showStash) {
         setActiveTab('Stash');
@@ -344,13 +375,13 @@ export default function SidePanel(props: SidePanelProps): React.ReactNode {
           })}
         </div>
         <div className="flex-1 overflow-y-auto p-4">
-          {activeTab === 'Character' && gameState && <CharacterSheet character={gameState.playerCharacter} gameSettings={gameSettings} onOpenModal={onOpenDetailModal} onOpenInventory={onOpenInventory} onSpendAttributePoint={onSpendAttributePoint} forgetHealedWound={forgetHealedWound} clearAllHealedWounds={clearAllHealedWounds} onDeleteCustomState={deleteCustomState} />}
+          {activeTab === 'Character' && gameState && <CharacterSheet character={gameState.playerCharacter} gameSettings={gameSettings} onOpenModal={onOpenDetailModal} onOpenInventory={onOpenInventory} onSpendAttributePoint={onSpendAttributePoint} forgetHealedWound={forgetHealedWound} forgetActiveWound={forgetActiveWound} clearAllHealedWounds={clearAllHealedWounds} onDeleteCustomState={deleteCustomState} />}
           {activeTab === 'Quests' && gameState && <QuestLog activeQuests={gameState.activeQuests} completedQuests={gameState.completedQuests} onOpenModal={onOpenDetailModal} lastUpdatedQuestId={lastUpdatedQuestId} allowHistoryManipulation={gameSettings?.allowHistoryManipulation ?? false} forgetQuest={forgetQuest} />}
-          {activeTab === 'World' && <WorldPanel worldState={worldState} worldStateFlags={gameState?.worldStateFlags} turnNumber={turnNumber} allowHistoryManipulation={gameSettings?.allowHistoryManipulation ?? false} onDeleteFlag={deleteWorldStateFlag} onEditWorldState={editWorldState} onEditWeather={editWeather} biome={biome} />}
+          {activeTab === 'World' && <WorldPanel worldState={worldState} worldStateFlags={gameState?.worldStateFlags || null} worldEventsLog={gameState?.worldEventsLog || null} turnNumber={turnNumber} allowHistoryManipulation={gameSettings?.allowHistoryManipulation ?? false} onDeleteFlag={deleteWorldStateFlag} onEditWorldState={editWorldState} onEditWeather={editWeather} onEditFlagData={editWorldStateFlagData} biome={biome} allNpcs={gameState?.encounteredNPCs || []} allFactions={gameState?.encounteredFactions || []} allLocations={visitedLocations} onOpenDetailModal={onOpenDetailModal} onDeleteEvent={deleteWorldEvent} deleteWorldEventsByTurnRange={deleteWorldEventsByTurnRange} onShowMessageModal={onShowMessageModal} />}
           {activeTab === 'Factions' && gameState && <FactionLog factions={gameState.encounteredFactions} onOpenModal={onOpenDetailModal} allowHistoryManipulation={gameSettings?.allowHistoryManipulation ?? false} forgetFaction={forgetFaction} imageCache={gameState.imageCache} onImageGenerated={onImageGenerated} />}
           {activeTab === 'NPCs' && gameState && <NpcLog gameState={gameState} npcs={gameState.encounteredNPCs} encounteredFactions={gameState.encounteredFactions} onOpenModal={onOpenDetailModal} onOpenJournalModal={onOpenJournalModal} imageCache={gameState?.imageCache ?? {}} onImageGenerated={onImageGenerated} updateNpcSortOrder={updateNpcSortOrder} forgetNpc={forgetNpc} allowHistoryManipulation={gameSettings?.allowHistoryManipulation ?? false} />}
           {activeTab === 'Locations' && gameState && <LocationLog locations={visitedLocations} currentLocation={gameState.currentLocationData} onOpenModal={onOpenDetailModal} allowHistoryManipulation={gameSettings?.allowHistoryManipulation ?? false} onEditLocationData={editLocationData} imageCache={gameState.imageCache} onImageGenerated={onImageGenerated} forgetLocation={forgetLocation} />}
-          {activeTab === 'Map' && gameState && <LocationViewer visitedLocations={visitedLocations} currentLocation={gameState.currentLocationData} onOpenModal={onOpenDetailModal} imageCache={gameState.imageCache} onImageGenerated={onImageGenerated} />}
+          {activeTab === 'Map' && gameState && <LocationViewer visitedLocations={visitedLocations} currentLocation={gameState.currentLocationData} onOpenModal={onOpenDetailModal} imageCache={gameState.imageCache} onImageGenerated={onImageGenerated} onExpand={onExpandMap} />}
           {activeTab === 'Combat' && gameState && <CombatTracker 
             enemies={gameState.enemiesData} 
             allies={gameState.alliesData} 
@@ -364,6 +395,7 @@ export default function SidePanel(props: SidePanelProps): React.ReactNode {
             imageCache={imageCache}
             onImageGenerated={onImageGenerated}
             onOpenImageModal={onOpenImageModal}
+            gameSettings={gameSettings}
           />}
           {activeTab === 'Stash' && showStash && gameState && <StashView stash={temporaryStash} onTake={moveFromStashToInventory} onDrop={dropItemFromStash} playerCharacter={gameState.playerCharacter} imageCache={imageCache} onImageGenerated={onImageGenerated} />}
           {activeTab === 'Crafting' && gameState && <CraftingScreen playerCharacter={gameState.playerCharacter} craftItem={craftItem} />}

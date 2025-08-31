@@ -603,92 +603,49 @@ const worldLogicGuide = {
         </Rule>
 
         <Rule id="32.A">
-            <Title>The Law of Inherent Beliefs: Influence vs. Compulsion in Social Interactions</Title>
-            <Content type="rule_text">
-                <![CDATA[
+            <Title>Distinction: Influence vs. Compulsion</Title>
+            <Description>
+                This law defines the fundamental difference between social interaction and direct mental/physical control.
+                It clarifies which actions are subject to the social response protocols.
+            </Description>
+            <Content type="ruleset">
+                <Rule id="32.A.1">
+                    <Title>Actions of Influence (Влияние)</Title>
+                    <Content type="rule_text">
+                        <![CDATA[
 
-                This law governs the outcome of social action checks against an NPC.
-                A "social action check" is any attempt to change an NPC's mind, mood, or decision through interaction.
-                The result depends entirely on the nature of the action: whether it is an act of Influence or an act of Compulsion.
+                        Definition:
+                        An attempt to change an NPC's mind by working with their free will. The NPC makes the final decision.
 
-                1. Actions of Influence (Working WITH Free Will):
-                These are attempts to change an NPC's mind through dialogue, presence, or non-destructive pressure.
-                This includes, but is not limited to, actions that would be checked against characteristics like Persuasion, Attractiveness, Faith (for inspiring), or even Strength (for an intimidation attempt).
+                        Scope:
+                        Includes any action resolved with a social characteristic check (Persuasion, Attractiveness, etc.).
 
-                -   This protocol applies fully to all Actions of Influence.
-                -   A successful check, even a Critical Success, makes the target as receptive as is PLAUSIBLY POSSIBLE within their established character. It does NOT grant direct control.
-                -   The NPC retains their core identity and will not perform actions that are self-destructive, suicidal, or fundamentally violate their lifelong beliefs, no matter how persuasive, charming, or terrifying the attempt.
-                -   Example:
-                    A Critical Success on persuading a king to abdicate will result in the king being deeply impressed and perhaps offering a high position, but he will not surrender his crown.
+                        Governing Law:
+                        The consequences of these actions are governed by the "Law of Strategic NPC Response" and its detailed protocol in the <GameMasterGuide_JSONFormattingRules>.
 
-                2. Actions of Compulsion (Bypassing Free Will):
-                These actions are direct attacks on the mind or nervous system, designed to subjugate the target's will to the user's.
+                        ]]>
+                    </Content>
+                </Rule>
 
-                -   This protocol does NOT apply to Actions of Compulsion.
-                -   Sources of Compulsion are diverse and depend on the game world. They can include:
-                    -   Magical Spells: ('Charm Person', 'Dominate Mind')
-                    -   Advanced Technology: (Neural control implants, hypnotic light projectors, mind-altering nanites)
-                    -   Psionic Powers: (Telepathic command, psychic puppetry)
-                    -   Supernatural Abilities: (Vampiric thrall, otherworldly whispers that shatter sanity)
-                    -   Divine Power: (A direct command from a deity that a follower cannot refuse)
-                -   The success of a Compulsion action is determined by a contest of power vs. resistance (e.g., magical potency vs. willpower save, technological hacking skill vs. cybernetic firewall).
-                -   A Critical Success on a Compulsion action means the target's will is completely subjugated for the duration of the effect.
-                    The outcome is dictated by the power's description, not the NPC's personality.
-                    If the effect allows the user to give direct commands, the NPC will obey them, even if they are self-destructive (within the limits of the effect).
+                <Rule id="32.A.2">
+                    <Title>Actions of Compulsion (Принуждение)</Title>
+                    <Content type="rule_text">
+                        <![CDATA[
 
-                ]]>
+                        Definition:
+                        An attack on an NPC's mind or body that bypasses or overwrites their free will.
+
+                        Scope:
+                        Includes effects from specific, powerful sources like Arcane Magic (e.g., 'Dominate Mind'), Divine Power, Psionics, Advanced Technology, Supernatural Abilities, or other similar entities.
+
+                        Governing Law:
+                        The consequences of these actions are determined by the specific power's description.
+                        The NPC's personality is irrelevant for the duration of the effect. They are simply controlled.
+
+                        ]]>
+                    </Content>
+                </Rule>
             </Content>
-            <Examples>
-                <Example type="good" contentType="text" name="InfluenceExamplePersuasion">
-                    <Title>Influence (Persuasion Check - Critical Success)</Title>
-                    <ScenarioContext>Player uses their Persuasion characteristic on a guard to abandon his post.</ScenarioContext>
-                    <Content>
-                        <![CDATA[
-
-                        Guard (impressed):
-                        «Your words... they make sense. But I cannot. My family depends on this post. I will, however, 'forget' to patrol the western wall for the next ten minutes. Use that time wisely. Don't make me regret this.»
-
-                        ]]>
-                    </Content>
-                </Example>
-                <Example type="good" contentType="text" name="InfluenceExampleIntimidation">
-                    <Title>Influence (Intimidation via Strength Check - Critical Success)</Title>
-                    <ScenarioContext>A high-Strength player tries to intimidate a merchant into giving them goods for free.</ScenarioContext>
-                    <Content>
-                        <![CDATA[
-
-                        The merchant turns pale as you loom over him, your hand gripping the counter until the wood creaks. He is clearly terrified.
-                        «Please... take this healing potion! A gift! Just... don't hurt me,» he stammers, pushing a small vial across the counter. «But I can't give you everything, the Guild would ruin me! Please, just take the potion and go!»
-
-                        ]]>
-                    </Content>
-                </Example>
-                <Example type="good" contentType="text" name="InfluenceExampleSeduction">
-                    <Title>Influence (Attractiveness Check - Critical Success)</Title>
-                    <ScenarioContext>Player uses their attractiveness to try and seduce a devout, chaste paladin into giving them a holy artifact.</ScenarioContext>
-                    <Content>
-                        <![CDATA[
-
-                        The paladin, despite his vows, is clearly flustered by your advance.
-                        He looks away, a faint blush on his cheeks.
-                        «Your... words are flattering,» he says, his voice losing some of its stoic composure. «But this relic is sacred. I cannot betray my oath.» He seems conflicted, however. «Perhaps... there is another way I can aid you, one that does not ask me to forsake my duty?»
-
-                        ]]>
-                    </Content>
-                </Example>
-                <Example type="good" contentType="text" name="CompulsionExample">
-                    <Title>Compulsion (Successful Spell Effect)</Title>
-                    <ScenarioContext>Player uses a "Dominate Mind" spell on a guard to abandon his post.</ScenarioContext>
-                    <Content>
-                        <![CDATA[
-
-                        The guard's eyes glaze over, his posture slackens.
-                        He turns, drops his spear with a clatter, and begins walking stiffly towards the barracks, his duty completely forgotten, his mind now subject to your magical command.
-
-                        ]]>
-                    </Content>
-                </Example>
-            </Examples>
         </Rule>
 
     </RuleSet>

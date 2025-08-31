@@ -1,5 +1,6 @@
 
 
+
 export const help = {
   en: {
     // Help Guide
@@ -62,7 +63,7 @@ export const help = {
     "KeyFormulasDesc": "Understanding these formulas will help you make more informed decisions in character development and combat.",
     "KeyFormulasPrimaryStatsTitle": "Primary Parameters",
     "KeyFormulasPrimaryStatsDesc": "These parameters are calculated based on your **standard** (base) characteristics and determine your survivability and stamina. Bonuses from gear do not affect them.",
-    "KeyFormulasPrimaryStatsContent": "**Max Health (%)**\n```\n100 + floor(Std. Constitution * 1.5) + floor(Std. Strength * 0.5)\n```\n\n**Max Energy (%)**\n```\n100 + floor(Std. Intelligence * 0.6) + floor(Std. Wisdom * 0.6) + floor(Std. Faith * 0.6) + floor(Std. Constitution * 0.2)\n```",
+    "KeyFormulasPrimaryStatsContent": "**Max Health (%)**\n```\n100 + floor(Std. Constitution * 2.0) + floor(Std. Strength * 1.0)\n```\n\n**Max Energy (%)**\n```\n100 + floor(Std. Constitution * 0.75) + floor(Std. Intelligence * 0.75) + floor(Std. Wisdom * 0.75) + floor(Std. Faith * 0.75)\n```",
 
     "KeyFormulasCombatStatsTitle": "Combat Bonuses",
     "KeyFormulasCombatStatsDesc": "These bonuses are calculated based on your **modified** (including gear and effects) characteristics and directly impact your combat effectiveness.",
@@ -140,7 +141,7 @@ export const help = {
     "KeyFormulasDesc": "Понимание этих формул поможет вам принимать более взвешенные решения при развитии персонажа и в бою.",
     "KeyFormulasPrimaryStatsTitle": "Основные параметры",
     "KeyFormulasPrimaryStatsDesc": "Эти параметры рассчитываются на основе ваших **стандартных** (базовых) характеристик и определяют вашу выживаемость и запас сил. Бонусы от снаряжения на них не влияют.",
-    "KeyFormulasPrimaryStatsContent": "**Макс. Здоровье (%)**\n```\n100 + floor(Станд. Телосложение * 1.5) + floor(Станд. Сила * 0.5)\n```\n\n**Макс. Энергия (%)**\n```\n100 + floor(Станд. Интеллект * 0.6) + floor(Станд. Мудрость * 0.6) + floor(Станд. Вера * 0.6) + floor(Станд. Телосложение * 0.2)\n```",
+    "KeyFormulasPrimaryStatsContent": "**Макс. Здоровье (%)**\n```\n100 + floor(Станд. Телосложение * 2.0) + floor(Станд. Сила * 1.0)\n```\n\n**Макс. Энергия (%)**\n```\n100 + floor(Станд. Телосложение * 0.75) + floor(Станд. Интеллект * 0.75) + floor(Станд. Мудрость * 0.75) + floor(Станд. Вера * 0.75)\n```",
 
     "KeyFormulasCombatStatsTitle": "Боевые бонусы",
     "KeyFormulasCombatStatsDesc": "Эти бонусы рассчитываются на основе ваших **модифицированных** (с учетом снаряжения и эффектов) характеристик и напрямую влияют на вашу эффективность в бою.",

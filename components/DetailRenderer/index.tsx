@@ -1,3 +1,5 @@
+
+
 import React, { useState } from 'react';
 import { Item, Quest, NPC, Location, PlayerCharacter, CombatAction, Faction, CustomState, PassiveSkill, ActiveSkill, Effect, Wound, UnlockedMemory } from '../../types';
 import { DetailRendererProps } from './types';
@@ -75,7 +77,7 @@ const isCustomState = (data: any): data is CustomState & { type: 'customState' }
 
 
 export default function DetailRenderer(props: DetailRendererProps) {
-    const { onForgetNpc, onClearNpcJournal, onCloseModal, onForgetQuest, onForgetLocation, currentLocationId, onRegenerateId, deleteNpcCustomState, onEditNpcMemory, onDeleteNpcMemory, onDeleteNpcJournalEntry } = props;
+    const { onForgetNpc, onClearNpcJournal, onCloseModal, onForgetQuest, onForgetLocation, currentLocationId, onRegenerateId, deleteNpcCustomState, onEditNpcMemory, onDeleteNpcMemory, onDeleteNpcJournalEntry, forgetHealedWound, forgetActiveWound, clearAllHealedWounds } = props;
     const [confirmation, setConfirmation] = useState<{ type: string | null; data: any }>({ type: null, data: null });
     const { t } = useLocalization();
 
@@ -169,8 +171,8 @@ export default function DetailRenderer(props: DetailRendererProps) {
     else if (isActiveSkill(data)) content = <ActiveSkillDetailsRenderer skill={data} {...rest} />;
     else if (isPassiveSkill(data)) content = <PassiveSkillDetailsRenderer skill={data} {...rest} />;
     else if (isEffect(data)) content = <EffectDetailsRenderer effect={data} />;
-    else if (isWound(data)) content = <WoundDetailsRenderer wound={data} {...rest} />;
-    else if (isNpc(data)) content = <NpcDetailsRenderer npc={data} onOpenForgetConfirm={() => setConfirmation({ type: 'forgetNpc', data })} onOpenClearJournalConfirm={() => setConfirmation({ type: 'clearJournal', data })} deleteNpcCustomState={deleteNpcCustomState} onEditNpcMemory={onEditNpcMemory} onDeleteNpcMemory={onDeleteNpcMemory} onDeleteNpcJournalEntry={onDeleteNpcJournalEntry} {...rest} />;
+    else if (isWound(data)) content = <WoundDetailsRenderer wound={data} forgetHealedWound={forgetHealedWound} forgetActiveWound={forgetActiveWound} clearAllHealedWounds={clearAllHealedWounds} {...rest} />;
+    else if (isNpc(data)) content = <NpcDetailsRenderer npc={data} onOpenForgetConfirm={() => setConfirmation({ type: 'forgetNpc', data })} onOpenClearJournalConfirm={() => setConfirmation({ type: 'clearJournal', data })} deleteNpcCustomState={deleteNpcCustomState} onEditNpcMemory={onEditNpcMemory} onDeleteNpcMemory={onDeleteNpcMemory} onDeleteNpcJournalEntry={onDeleteNpcJournalEntry} forgetHealedWound={forgetHealedWound} forgetActiveWound={forgetActiveWound} clearAllHealedWounds={clearAllHealedWounds} {...rest} />;
     else if (isCharacteristic(data)) content = <CharacteristicDetailsRenderer data={data} />;
     else if (isPrimaryStat(data)) content = <PrimaryStatDetailsRenderer data={data} />;
     else if (isDerivedStat(data)) content = <DerivedStatDetailsRenderer data={data} />;
