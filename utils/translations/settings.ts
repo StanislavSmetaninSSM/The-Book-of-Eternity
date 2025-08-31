@@ -90,7 +90,13 @@ export const settings = {
     "Clear now": "Clear now",
     "Confirm Journal Clearing": "Confirm Journal Clearing",
     "confirm_journal_clearing_p1": "This will permanently delete older journal entries for all NPCs, keeping only the most recent {count} for each.",
-    "confirm_journal_clearing_p2": "This action cannot be undone. Are you sure you want to proceed?"
+    "confirm_journal_clearing_p2": "This action cannot be undone. Are you sure you want to proceed?",
+    "Image Generation Settings": "Image Generation Settings",
+    "Image Generation Model (Pollinations.ai)": "Image Generation Model (Pollinations.ai)",
+    "Flux (Default)": "Flux (Default)",
+    "Kontext": "Kontext",
+    "Turbo": "Turbo",
+    "pollinations_model_desc": "Select the model used to generate images. 'Flux' is the newest and highest quality. 'Kontext' is for image-to-image. 'Turbo' is faster."
   },
   ru: {
     "Non-Magic Mode": "Мир без магии",
@@ -183,6 +189,12 @@ export const settings = {
     "Clear now": "Очистить сейчас",
     "Confirm Journal Clearing": "Подтвердите очистку журналов",
     "confirm_journal_clearing_p1": "Это действие навсегда удалит старые записи в журналах всех NPC, оставив только последние {count} для каждого.",
-    "confirm_journal_clearing_p2": "Это действие нельзя отменить. Вы уверены, что хотите продолжить?"
+    "confirm_journal_clearing_p2": "Это действие нельзя отменить. Вы уверены, что хотите продолжить?",
+    "Image Generation Settings": "Настройки генерации изображений",
+    "Image Generation Model (Pollinations.ai)": "Модель генерации изображений (Pollinations.ai)",
+    "Flux (Default)": "Flux (по умолчанию)",
+    "Kontext": "Kontext",
+    "Turbo": "Turbo",
+    "pollinations_model_desc": "Выберите модель для генерации изображений. 'Flux' — самая новая и качественная. 'Kontext' — для генерации из изображения. 'Turbo' — более быстрая."
   }
 };

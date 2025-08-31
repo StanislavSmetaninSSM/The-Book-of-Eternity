@@ -1,3 +1,4 @@
+
 import { CombatActionEffect } from '../../types';
 
 type TFunction = (key: string, replacements?: Record<string, string | number>) => string;
@@ -24,12 +25,6 @@ export const parseAndTranslateTargetType = (targetType: string, t: TFunction): s
 };
 
 export const generateEffectDescription = (effect: CombatActionEffect, t: TFunction): string => {
-    if (effect.effectDescription) return effect.effectDescription;
-    
-    const target = effect.targetTypeDisplayName || parseAndTranslateTargetType(effect.targetType, t);
-    const value = effect.value;
-    const duration = effect.duration;
-
     const templates: Record<string, { timed: string; permanent: string }> = {
         'Damage': { timed: 'deals_dot_effect_template', permanent: 'deals_damage_effect_template' },
         'DamageOverTime': { timed: 'deals_dot_effect_template', permanent: 'deals_dot_effect_template' },
@@ -40,10 +35,23 @@ export const generateEffectDescription = (effect: CombatActionEffect, t: TFuncti
         'Control': { timed: 'controls_effect_template', permanent: 'controls_effect_template_permanent' },
         'DamageReduction': { timed: 'reduces_damage_effect_template', permanent: 'reduces_damage_effect_template_permanent' },
     };
+    const allTemplateKeys = new Set(Object.values(templates).flatMap(v => [v.timed, v.permanent]));
+
+    if (effect.effectDescription && !allTemplateKeys.has(effect.effectDescription)) {
+        return effect.effectDescription;
+    }
+    
+    const target = effect.targetTypeDisplayName || parseAndTranslateTargetType(effect.targetType, t);
+    const value = effect.value;
+    const duration = effect.duration;
 
     const templateKeys = templates[effect.effectType];
     if (templateKeys) {
-        const key = duration ? templateKeys.timed : templateKeys.permanent;
+        // If the description IS a template key, use it. Otherwise, determine from type/duration.
+        const key = allTemplateKeys.has(effect.effectDescription || '') 
+            ? effect.effectDescription!
+            : (duration ? templateKeys.timed : templateKeys.permanent);
+
         const replacements: Record<string, string | number> = { value, target };
         if (duration) {
             replacements.duration = duration;

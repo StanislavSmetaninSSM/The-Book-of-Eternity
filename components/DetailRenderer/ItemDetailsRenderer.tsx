@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo, useCallback } from 'react';
 import { Item, GameSettings } from '../../types';
 import { DetailRendererProps } from './types';
@@ -69,7 +68,7 @@ const ItemDetailsRenderer: React.FC<ItemDetailsProps> = ({ item, onOpenImageModa
     return (
     <div className="space-y-4">
         <div className="w-full h-48 rounded-lg overflow-hidden mb-4 bg-gray-900 group relative cursor-pointer" onClick={() => onOpenImageModal?.(imagePrompt)}>
-            <ImageRenderer prompt={imagePrompt} alt={item.name} width={1024} height={1024} imageCache={imageCache} onImageGenerated={onImageGenerated} />
+            <ImageRenderer prompt={imagePrompt} alt={item.name} width={1024} height={1024} imageCache={imageCache} onImageGenerated={onImageGenerated} model={gameSettings?.pollinationsImageModel} />
              <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                 <p className="text-white font-bold text-lg">{t('Enlarge')}</p>
             </div>
@@ -327,6 +326,7 @@ const ItemDetailsRenderer: React.FC<ItemDetailsProps> = ({ item, onOpenImageModa
                                 onOpenImageModal={openCardImageModal}
                                 imageCache={imageCache}
                                 onImageGenerated={onImageGenerated}
+                                model={gameSettings?.pollinationsImageModel}
                             />
                         );
                     })}

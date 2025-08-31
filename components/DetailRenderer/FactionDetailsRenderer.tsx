@@ -1,5 +1,3 @@
-
-
 import React from 'react';
 import { Faction, FactionRank } from '../../types';
 import { DetailRendererProps } from './types';
@@ -16,7 +14,7 @@ interface FactionDetailsProps extends Omit<DetailRendererProps, 'data'> {
   perspectiveFor?: { name: string; rank: string };
 }
 
-const FactionDetailsRenderer: React.FC<FactionDetailsProps> = ({ faction, perspectiveFor, onOpenImageModal, imageCache, onImageGenerated, allowHistoryManipulation, onEditFactionData }) => {
+const FactionDetailsRenderer: React.FC<FactionDetailsProps> = ({ faction, perspectiveFor, onOpenImageModal, imageCache, onImageGenerated, allowHistoryManipulation, onEditFactionData, gameSettings }) => {
     const { t } = useLocalization();
 
     const imagePrompt = faction.custom_image_prompt || faction.image_prompt;
@@ -101,6 +99,7 @@ const FactionDetailsRenderer: React.FC<FactionDetailsProps> = ({ faction, perspe
                         width={1024} 
                         height={1024}
                         showRegenerateButton={allowHistoryManipulation}
+                        model={gameSettings?.pollinationsImageModel}
                     />
                     <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                         <p className="text-white font-bold text-lg">{t('Enlarge')}</p>

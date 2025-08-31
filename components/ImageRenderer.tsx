@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { ArrowPathIcon, ArrowUpTrayIcon } from '@heroicons/react/24/solid';
 import { useLocalization } from '../context/LocalizationContext';
@@ -12,9 +11,10 @@ interface ImageRendererProps {
   height?: number;
   imageCache: Record<string, string>;
   onImageGenerated: (prompt: string, base64: string) => void;
+  model?: 'flux' | 'kontext' | 'turbo';
 }
 
-const ImageRenderer: React.FC<ImageRendererProps> = ({ prompt, className = '', alt, showRegenerateButton = false, width = 512, height = 512, imageCache, onImageGenerated }) => {
+const ImageRenderer: React.FC<ImageRendererProps> = ({ prompt, className = '', alt, showRegenerateButton = false, width = 512, height = 512, imageCache, onImageGenerated, model = 'flux' }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(false);
   const { t } = useLocalization();
@@ -33,7 +33,7 @@ const ImageRenderer: React.FC<ImageRendererProps> = ({ prompt, className = '', a
     try {
       const encodedPrompt = encodeURIComponent(currentPrompt);
       const seed = Date.now() + Math.random();
-      const url = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=${width}&height=${height}&seed=${seed}`;
+      const url = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=${width}&height=${height}&seed=${seed}&model=${model}`;
       
       const response = await fetch(url);
       if (!response.ok) throw new Error('Image fetch failed');
@@ -54,7 +54,7 @@ const ImageRenderer: React.FC<ImageRendererProps> = ({ prompt, className = '', a
       setError(true);
       setIsLoading(false);
     }
-  }, [width, height, onImageGenerated, imageUrl]); // imageUrl is a dependency now
+  }, [width, height, onImageGenerated, imageUrl, model]); // imageUrl is a dependency now
 
   useEffect(() => {
     if (!prompt) {

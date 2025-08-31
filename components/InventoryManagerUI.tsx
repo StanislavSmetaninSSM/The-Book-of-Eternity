@@ -1,7 +1,5 @@
-
-
 import React, { useState, useMemo, useRef, useEffect, useCallback } from 'react';
-import { Item, PlayerCharacter, NPC } from '../types';
+import { Item, PlayerCharacter, NPC, GameSettings } from '../types';
 import Modal from './Modal';
 import {
     AcademicCapIcon, 
@@ -56,6 +54,7 @@ interface InventoryManagerUIProps {
     onImageGenerated: (prompt: string, base64: string) => void;
     updateItemSortOrder: (newOrder: string[]) => void;
     updateItemSortSettings: (criteria: PlayerCharacter['itemSortCriteria'], direction: PlayerCharacter['itemSortDirection']) => void;
+    gameSettings: GameSettings | null;
 }
 
 const qualityOrder: Record<string, number> = {
@@ -79,7 +78,8 @@ export default function InventoryManagerUI({
     imageCache, 
     onImageGenerated, 
     updateItemSortOrder,
-    updateItemSortSettings 
+    updateItemSortSettings,
+    gameSettings
 }: InventoryManagerUIProps) {
     const [viewingContainer, setViewingContainer] = useState<Item | null>(null);
     const [splitItem, setSplitItem] = useState<Item | null>(null);
@@ -166,7 +166,7 @@ export default function InventoryManagerUI({
                 className={`w-20 h-20 bg-gray-900/50 rounded-md flex flex-col justify-center items-center border-2 ${qualityColorMap[item.quality] || 'border-gray-600'} shadow-lg transition-all relative group overflow-hidden ${isBroken ? '' : 'hover:shadow-cyan-500/20 hover:scale-105'}`}
                 title={isBroken ? t("This item is broken and cannot be equipped.") : (typeof item.name === 'string' ? item.name : '')}
             >
-                <ImageRenderer prompt={imagePrompt} alt={item.name} className={`absolute inset-0 w-full h-full object-cover ${isBroken ? 'filter grayscale brightness-50' : ''}`} imageCache={imageCache} onImageGenerated={onImageGenerated} />
+                <ImageRenderer prompt={imagePrompt} alt={item.name} className={`absolute inset-0 w-full h-full object-cover ${isBroken ? 'filter grayscale brightness-50' : ''}`} imageCache={imageCache} onImageGenerated={onImageGenerated} model={gameSettings?.pollinationsImageModel} />
                  {isBroken && (
                     <div className="absolute inset-0 bg-red-900/50 flex items-center justify-center pointer-events-none">
                         <ExclamationTriangleIcon className="w-8 h-8 text-red-400" />

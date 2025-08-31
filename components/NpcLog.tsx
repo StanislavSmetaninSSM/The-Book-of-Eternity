@@ -1,7 +1,7 @@
 
 
 import React, { useState, useMemo, useEffect, useRef } from 'react';
-import { NPC, Faction, GameState } from '../types';
+import { NPC, Faction, GameState, GameSettings } from '../types';
 import { UserGroupIcon, UserIcon, UserPlusIcon, ArrowsUpDownIcon, TrashIcon } from '@heroicons/react/24/outline';
 import { CheckIcon, Bars3Icon } from '@heroicons/react/24/solid';
 import { useLocalization } from '../context/LocalizationContext';
@@ -19,6 +19,7 @@ interface NpcLogProps {
   updateNpcSortOrder: (newOrder: string[]) => void;
   forgetNpc: (npcId: string) => void;
   allowHistoryManipulation: boolean;
+  gameSettings: GameSettings | null;
 }
 
 const NpcItem: React.FC<{ 
@@ -31,8 +32,9 @@ const NpcItem: React.FC<{
     onImageGenerated: (prompt: string, base64: string) => void,
     isSorting: boolean,
     onDelete: () => void,
-    allowHistoryManipulation: boolean
-}> = ({ npc, faction, factionName, onOpenModal, onOpenJournalModal, imageCache, onImageGenerated, isSorting, onDelete, allowHistoryManipulation }) => {
+    allowHistoryManipulation: boolean,
+    gameSettings: GameSettings | null
+}> = ({ npc, faction, factionName, onOpenModal, onOpenJournalModal, imageCache, onImageGenerated, isSorting, onDelete, allowHistoryManipulation, gameSettings }) => {
     const { t } = useLocalization();
     const primaryAffiliation = npc.factionAffiliations?.[0];
     const displayFactionName = faction ? faction.name : (factionName || t('Unknown Faction'));
@@ -85,7 +87,7 @@ const NpcItem: React.FC<{
                 )}
                 <div className="w-12 h-12 rounded-md overflow-hidden flex-shrink-0 bg-gray-800 flex items-center justify-center">
                     {imagePrompt ? (
-                        <ImageRenderer prompt={imagePrompt} alt={npc.name} className="w-full h-full object-cover" imageCache={imageCache} onImageGenerated={onImageGenerated} />
+                        <ImageRenderer prompt={imagePrompt} alt={npc.name} className="w-full h-full object-cover" imageCache={imageCache} onImageGenerated={onImageGenerated} model={gameSettings?.pollinationsImageModel} />
                     ) : (
                         <UserIcon className="w-8 h-8 text-cyan-400" />
                     )}
@@ -139,7 +141,7 @@ const attitudeColorMap: Record<string, string> = {
 };
 
 
-export default function NpcLog({ gameState, npcs, encounteredFactions, onOpenModal, onOpenJournalModal, imageCache, onImageGenerated, updateNpcSortOrder, forgetNpc, allowHistoryManipulation }: NpcLogProps): React.ReactNode {
+export default function NpcLog({ gameState, npcs, encounteredFactions, onOpenModal, onOpenJournalModal, imageCache, onImageGenerated, updateNpcSortOrder, forgetNpc, allowHistoryManipulation, gameSettings }: NpcLogProps): React.ReactNode {
   const { t } = useLocalization();
   const factionMapById = new Map((encounteredFactions || []).filter(f => f.factionId).map(f => [f.factionId, f]));
   const factionMapByName = new Map((encounteredFactions || []).map(f => [f.name.toLowerCase(), f]));
@@ -232,6 +234,7 @@ export default function NpcLog({ gameState, npcs, encounteredFactions, onOpenMod
                     isSorting={isSorting}
                     onDelete={() => setNpcToDelete(npc)}
                     allowHistoryManipulation={allowHistoryManipulation}
+                    gameSettings={gameSettings}
                 />
               </div>
             )

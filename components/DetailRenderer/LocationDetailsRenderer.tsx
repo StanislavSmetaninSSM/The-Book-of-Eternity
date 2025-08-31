@@ -1,5 +1,3 @@
-
-
 import React, { useMemo, useState } from 'react';
 import { Location, LocationData, PlayerCharacter, AdjacencyMapEntry } from '../../types';
 import { DetailRendererProps } from './types';
@@ -94,7 +92,7 @@ const ChallengeAssessment: React.FC<{
     );
 };
 
-const LocationDetailsRenderer: React.FC<LocationDetailsProps> = ({ location, onOpenImageModal, onOpenForgetConfirm, currentLocationId, allowHistoryManipulation, onEditLocationData, imageCache, onImageGenerated, playerCharacter, onRegenerateId }) => {
+const LocationDetailsRenderer: React.FC<LocationDetailsProps> = ({ location, onOpenImageModal, onOpenForgetConfirm, currentLocationId, allowHistoryManipulation, onEditLocationData, imageCache, onImageGenerated, playerCharacter, onRegenerateId, gameSettings }) => {
     const { t } = useLocalization();
     const [isEventsModalOpen, setIsEventsModalOpen] = useState(false);
     const [expandedLink, setExpandedLink] = useState<string | null>(null);
@@ -135,7 +133,7 @@ const LocationDetailsRenderer: React.FC<LocationDetailsProps> = ({ location, onO
             <div className="space-y-4">
                 {location.image_prompt && (
                     <div className="w-full h-48 rounded-lg overflow-hidden mb-4 bg-gray-900 group relative cursor-pointer" onClick={() => onOpenImageModal?.(imagePrompt)}>
-                        <ImageRenderer prompt={imagePrompt} alt={location.name} imageCache={imageCache} onImageGenerated={onImageGenerated} />
+                        <ImageRenderer prompt={imagePrompt} alt={location.name} imageCache={imageCache} onImageGenerated={onImageGenerated} model={gameSettings?.pollinationsImageModel} />
                         <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                             <p className="text-white font-bold text-lg">{t('Enlarge')}</p>
                         </div>

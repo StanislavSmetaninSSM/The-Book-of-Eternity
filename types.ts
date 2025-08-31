@@ -118,6 +118,7 @@ export interface GameSettings {
   notificationSound: boolean;
   keepLatestNpcJournals: boolean;
   latestNpcJournalsCount: number;
+  pollinationsImageModel?: 'flux' | 'kontext' | 'turbo';
 }
 
 export interface RecipeMaterial {

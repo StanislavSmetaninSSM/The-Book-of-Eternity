@@ -162,7 +162,7 @@ const CombatantCard: React.FC<CombatantCardProps> = ({ combatant, fullNpcData, o
         <div className={`bg-gray-900/40 rounded-lg p-3 border border-gray-700/50 transition-opacity ${isDefeated ? 'opacity-50' : ''}`}>
             <div className="flex justify-between items-start gap-3">
                  <div className="w-16 h-16 rounded-md overflow-hidden flex-shrink-0 bg-gray-800 cursor-pointer" onClick={() => imagePrompt && onOpenImageModal(imagePrompt)}>
-                    <ImageRenderer prompt={imagePrompt} alt={combatant.name} imageCache={imageCache} onImageGenerated={onImageGenerated} />
+                    <ImageRenderer prompt={imagePrompt} alt={combatant.name} imageCache={imageCache} onImageGenerated={onImageGenerated} model={gameSettings?.pollinationsImageModel} />
                 </div>
                 <div className="flex-1">
                     <div className="flex justify-between items-start">

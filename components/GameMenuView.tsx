@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { ArrowDownTrayIcon, ArrowUpTrayIcon, ClockIcon, CpuChipIcon, WrenchScrewdriverIcon, InformationCircleIcon, TrashIcon, CloudArrowDownIcon, ExclamationTriangleIcon } from '@heroicons/react/24/outline';
 import { GameSettings, DBSaveSlotInfo } from '../types';
@@ -139,7 +138,7 @@ export default function GameMenuView({
         )
     }
 
-    const { aiProvider, modelName, geminiThinkingBudget, adultMode, geminiApiKey, openRouterApiKey, youtubeApiKey, allowHistoryManipulation, correctionModelName, useDynamicThinkingBudget, isCustomModel, customModelName, openRouterModelName, hardMode, notificationSound, keepLatestNpcJournals, latestNpcJournalsCount } = gameSettings;
+    const { aiProvider, modelName, geminiThinkingBudget, adultMode, geminiApiKey, openRouterApiKey, youtubeApiKey, allowHistoryManipulation, correctionModelName, useDynamicThinkingBudget, isCustomModel, customModelName, openRouterModelName, hardMode, notificationSound, keepLatestNpcJournals, latestNpcJournalsCount, pollinationsImageModel } = gameSettings;
 
     const handleProviderChange = (provider: 'gemini' | 'openrouter') => {
         updateGameSettings({
@@ -455,7 +454,28 @@ export default function GameMenuView({
                 </div>
             </fieldset>
 
-             <fieldset disabled={!isGameActive || isLoading}>
+            <fieldset disabled={!isGameActive || isLoading}>
+                <h3 className="text-xl font-bold text-cyan-400 my-4 narrative-text">{t("Image Generation Settings")}</h3>
+                <div className="p-4 bg-gray-900/30 rounded-lg border border-cyan-500/20 space-y-4">
+                    <div>
+                        <label htmlFor="pollinationsImageModel" className="block text-sm font-medium text-gray-300 mb-2">{t("Image Generation Model (Pollinations.ai)")}</label>
+                        <select
+                            id="pollinationsImageModel"
+                            name="pollinationsImageModel"
+                            value={pollinationsImageModel || 'flux'}
+                            onChange={(e) => updateGameSettings({ pollinationsImageModel: e.target.value as any })}
+                            className="w-full bg-gray-700/50 border border-gray-600 rounded-md p-3 text-gray-200 focus:ring-2 focus:ring-cyan-500 transition"
+                        >
+                            <option value="flux">{t("Flux (Default)")}</option>
+                            <option value="kontext">{t("Kontext")}</option>
+                            <option value="turbo">{t("Turbo")}</option>
+                        </select>
+                        <p className="text-xs text-gray-400 mt-2">{t("pollinations_model_desc")}</p>
+                    </div>
+                </div>
+            </fieldset>
+
+            <fieldset disabled={!isGameActive || isLoading}>
                 <h3 className="text-xl font-bold text-cyan-400 my-4 narrative-text">{t("Game Master's Memory")}</h3>
                 <div className="p-4 bg-gray-900/30 rounded-lg border border-cyan-500/20 space-y-4">
                     <div className="flex items-center justify-between p-3 bg-gray-900/30 rounded-lg" title={t('keep_journals_tooltip')}>

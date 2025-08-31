@@ -1,5 +1,3 @@
-
-
 import React, { useState, useMemo } from 'react';
 import { PlayerCharacter, Item, ActiveSkill, PassiveSkill, Effect, Wound, GameSettings, StructuredBonus, CustomState } from '../types';
 import {
@@ -34,6 +32,7 @@ import {
 import { useLocalization } from '../context/LocalizationContext';
 import MarkdownRenderer from './MarkdownRenderer';
 import ConfirmationModal from './ConfirmationModal';
+import EditableField from './DetailRenderer/Shared/EditableField';
 
 interface CharacterSheetProps {
   character: PlayerCharacter;
@@ -45,6 +44,7 @@ interface CharacterSheetProps {
   forgetActiveWound: (characterType: 'player' | 'npc', characterId: string | null, woundId: string) => void;
   clearAllHealedWounds: (characterType: 'player' | 'npc', characterId: string | null) => void;
   onDeleteCustomState: (stateId: string) => void;
+  onEditPlayerData: (field: keyof PlayerCharacter, value: any) => void;
 }
 
 const CHARACTERISTICS_LIST = ['strength', 'dexterity', 'constitution', 'intelligence', 'wisdom', 'faith', 'attractiveness', 'trade', 'persuasion', 'perception', 'luck', 'speed'];
@@ -97,7 +97,7 @@ const TABS = [
     { name: 'Conditions', icon: ExclamationTriangleIcon },
 ];
 
-export default function CharacterSheet({ character, gameSettings, onOpenModal, onOpenInventory, onSpendAttributePoint, forgetHealedWound, forgetActiveWound, clearAllHealedWounds, onDeleteCustomState }: CharacterSheetProps): React.ReactNode {
+export default function CharacterSheet({ character, gameSettings, onOpenModal, onOpenInventory, onSpendAttributePoint, forgetHealedWound, forgetActiveWound, clearAllHealedWounds, onDeleteCustomState, onEditPlayerData }: CharacterSheetProps): React.ReactNode {
   const [activeTab, setActiveTab] = useState(TABS[0].name);
   const { t } = useLocalization();
   const [confirmClear, setConfirmClear] = useState(false);
@@ -796,12 +796,37 @@ export default function CharacterSheet({ character, gameSettings, onOpenModal, o
     <div className="space-y-4 text-sm">
       <div>
         <div className="flex items-center gap-2">
-            <h2 className="text-3xl font-bold text-cyan-400 narrative-text">{character.name}</h2>
+            <EditableField 
+                label={t('Character Name')}
+                value={character.name}
+                isEditable={gameSettings?.allowHistoryManipulation ?? false}
+                onSave={(newName) => onEditPlayerData('name', newName)}
+                as="input"
+                className="text-4xl font-bold text-cyan-400 narrative-text"
+            />
             <button onClick={() => onOpenModal(t("Character Details"), { ...character, type: 'playerCharacter' })} className="p-1 text-gray-400 rounded-full hover:bg-gray-700/50 hover:text-white transition-colors">
                 <InformationCircleIcon className="w-5 h-5" />
             </button>
         </div>
-        <p className="text-gray-400">{t("Level {level} {race} {charClass}", { level: character.level, race: t(character.race as any), charClass: t(character.class as any) })}</p>
+        <div className="text-lg text-gray-400 flex items-baseline flex-wrap gap-x-3 gap-y-1 mt-1">
+          <span>{t("Level {level}", { level: character.level })}</span>
+          <EditableField
+              label={t('Race')}
+              value={t(character.race as any)}
+              isEditable={gameSettings?.allowHistoryManipulation ?? false}
+              onSave={(newVal) => onEditPlayerData('race', newVal)}
+              as="input"
+              className="text-lg text-gray-400"
+          />
+          <EditableField
+              label={t('Class')}
+              value={t(character.class as any)}
+              isEditable={gameSettings?.allowHistoryManipulation ?? false}
+              onSave={(newVal) => onEditPlayerData('class', newVal)}
+              as="input"
+              className="text-lg text-gray-400"
+          />
+        </div>
       </div>
 
       <div className="space-y-3">

@@ -1,6 +1,5 @@
-
 import React from 'react';
-import { GameState, Item, PlayerCharacter } from '../types';
+import { GameState, Item, PlayerCharacter, GameSettings } from '../types';
 import Modal from './Modal';
 import { useLocalization } from '../context/LocalizationContext';
 import InventoryManagerUI from './InventoryManagerUI';
@@ -20,11 +19,13 @@ interface InventoryScreenProps {
     onImageGenerated: (prompt: string, base64: string) => void;
     updateItemSortOrder: (newOrder: string[]) => void;
     updateItemSortSettings: (criteria: PlayerCharacter['itemSortCriteria'], direction: PlayerCharacter['itemSortDirection']) => void;
+    gameSettings: GameSettings | null;
 }
 
 export default function InventoryScreen({ 
     gameState, 
     onClose, 
+    gameSettings,
     ...handlers 
 }: InventoryScreenProps) {
     const { t } = useLocalization();
@@ -33,6 +34,7 @@ export default function InventoryScreen({
         <Modal title={t("Inventory & Equipment")} isOpen={true} onClose={onClose}>
             <InventoryManagerUI
                 character={gameState.playerCharacter}
+                gameSettings={gameSettings}
                 {...handlers}
             />
         </Modal>

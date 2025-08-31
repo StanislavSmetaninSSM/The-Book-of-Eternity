@@ -102,6 +102,7 @@ const initialFormData = {
   oldMagicDescription: oldMagicDescEn,
   useDivineFavorSystem: false,
   divineFavorDescription: divineFavorDescEn,
+  pollinationsImageModel: 'flux',
 };
 
 const formatTimestamp = (timestamp: string | null): string => {

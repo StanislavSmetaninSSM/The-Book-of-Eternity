@@ -1,5 +1,3 @@
-
-
 import React, { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import { NPC, FateCard, Faction, Wound, Item, PlayerCharacter, Location, ActiveSkill, PassiveSkill, CustomState, UnlockedMemory, StructuredBonus } from '../../types';
 import { DetailRendererProps } from './types';
@@ -32,14 +30,14 @@ interface NpcDetailsProps extends Omit<DetailRendererProps, 'data'> {
 }
 
 const qualityColorMap: Record<string, string> = {
-    'Trash': 'text-gray-500 border-gray-700',
-    'Common': 'text-gray-300 border-gray-500',
-    'Uncommon': 'text-green-400 border-green-700/80',
-    'Good': 'text-blue-400 border-blue-700/80',
-    'Rare': 'text-indigo-400 border-indigo-700/80',
-    'Epic': 'text-purple-400 border-purple-700/80',
-    'Legendary': 'text-orange-400 border-orange-700/80',
-    'Unique': 'text-yellow-400 border-yellow-600/80',
+    'Trash': 'border-gray-700 hover:border-gray-500',
+    'Common': 'border-gray-600 hover:border-gray-400',
+    'Uncommon': 'border-green-800 hover:border-green-600',
+    'Good': 'border-blue-800 hover:border-blue-600',
+    'Rare': 'border-indigo-800 hover:border-indigo-600',
+    'Epic': 'border-purple-800 hover:border-purple-600',
+    'Legendary': 'border-orange-700 hover:border-orange-500',
+    'Unique': 'border-yellow-700 hover:border-yellow-500',
 };
 
 interface DragData {
@@ -105,7 +103,7 @@ const NpcDetailsRenderer: React.FC<NpcDetailsProps> = (props) => {
         handleTransferItem, handleEquipItemForNpc, handleUnequipItemForNpc, handleSplitItemForNpc, handleMergeItemsForNpc,
         updateNpcItemSortOrder, updateNpcItemSortSettings, playerCharacter, visitedLocations,
         onShowMessageModal, deleteNpcCustomState, onEditNpcMemory, onDeleteNpcMemory, onCloseModal,
-        onDeleteNpcJournalEntry, forgetActiveWound
+        onDeleteNpcJournalEntry, forgetActiveWound, gameSettings
     } = props;
     const { t } = useLocalization();
     const [isJournalOpen, setIsJournalOpen] = useState(false);
@@ -265,8 +263,8 @@ const NpcDetailsRenderer: React.FC<NpcDetailsProps> = (props) => {
     const getRelationshipTooltip = (level: number) => {
         if (level <= 49) return t('relationship_level_hostility');
         if (level === 50) return t('relationship_level_neutrality');
-        if (level <= 100) return t('relationship_level_friendship');
-        if (level <= 150) return t('relationship_level_deep_bond');
+        if (level <= 100) return t('relationship_level_deep_bond');
+        if (level <= 150) return t('relationship_level_devotion');
         return t('relationship_level_devotion');
     };
 
@@ -403,6 +401,7 @@ const NpcDetailsRenderer: React.FC<NpcDetailsProps> = (props) => {
                         showRegenerateButton={allowHistoryManipulation} 
                         imageCache={imageCache}
                         onImageGenerated={onImageGenerated}
+                        model={gameSettings?.pollinationsImageModel}
                     />
                      <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                         <p className="text-white font-bold text-lg">{t('Enlarge')}</p>
@@ -852,6 +851,7 @@ const NpcDetailsRenderer: React.FC<NpcDetailsProps> = (props) => {
                                     onOpenImageModal={openCardImageModal}
                                     imageCache={imageCache}
                                     onImageGenerated={onImageGenerated}
+                                    model={gameSettings?.pollinationsImageModel}
                                 />
                             );
                         })}
@@ -953,6 +953,7 @@ const NpcDetailsRenderer: React.FC<NpcDetailsProps> = (props) => {
                     onOpenImageModal={onOpenImageModal}
                     imageCache={imageCache}
                     onImageGenerated={onImageGenerated}
+                    gameSettings={gameSettings}
                 />
             </Modal>
         )}

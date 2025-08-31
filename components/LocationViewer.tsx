@@ -1,7 +1,7 @@
 
 import React, { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import ReactDOM from 'react-dom';
-import { Location, LocationData } from '../types';
+import { Location, LocationData, GameSettings } from '../types';
 import { 
     MapPinIcon, QuestionMarkCircleIcon, HomeModernIcon, BuildingStorefrontIcon, 
     FireIcon, GlobeAltIcon, SunIcon, PlusIcon, MinusIcon, ArrowPathIcon, UserGroupIcon,
@@ -15,12 +15,14 @@ const Tooltip = ({
     location, 
     position, 
     imageCache, 
-    onImageGenerated 
+    onImageGenerated,
+    model
 }: { 
     location: Location | null; 
     position: { top: number; left: number };
     imageCache: Record<string, string>;
     onImageGenerated: (prompt: string, base64: string) => void;
+    model?: 'flux' | 'kontext' | 'turbo';
 }) => {
     const { t } = useLocalization();
     if (!location) return null;
@@ -39,7 +41,7 @@ const Tooltip = ({
         >
             {imagePrompt && (
                 <div className="map-tooltip-image">
-                    <ImageRenderer prompt={imagePrompt} alt={location.name} imageCache={imageCache} onImageGenerated={onImageGenerated} />
+                    <ImageRenderer prompt={imagePrompt} alt={location.name} imageCache={imageCache} onImageGenerated={onImageGenerated} model={model} />
                 </div>
             )}
             <div className="map-tooltip-title">{location.name}</div>
@@ -152,9 +154,10 @@ interface LocationViewerProps {
   isFullScreen?: boolean;
   onExpand?: () => void;
   onCollapse?: () => void;
+  gameSettings: GameSettings | null;
 }
 
-export default function LocationViewer({ visitedLocations, currentLocation, onOpenModal, imageCache, onImageGenerated, isFullScreen, onExpand, onCollapse }: LocationViewerProps): React.ReactNode {
+export default function LocationViewer({ visitedLocations, currentLocation, onOpenModal, imageCache, onImageGenerated, isFullScreen, onExpand, onCollapse, gameSettings }: LocationViewerProps): React.ReactNode {
     const [hoveredLocation, setHoveredLocation] = useState<Location | null>(null);
     const [tooltipPosition, setTooltipPosition] = useState({ top: 0, left: 0 });
     const [zoom, setZoom] = useState(1);
@@ -561,6 +564,7 @@ export default function LocationViewer({ visitedLocations, currentLocation, onOp
                 position={tooltipPosition} 
                 imageCache={imageCache} 
                 onImageGenerated={onImageGenerated}
+                model={gameSettings?.pollinationsImageModel}
             />
         </div>
     );

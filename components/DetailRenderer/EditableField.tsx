@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { PencilSquareIcon } from '@heroicons/react/24/solid';
-import { useLocalization } from '../../../context/LocalizationContext';
-import MarkdownRenderer from '../../MarkdownRenderer';
+import { useLocalization } from '../../context/LocalizationContext';
+import MarkdownRenderer from '../MarkdownRenderer';
 
 interface EditableFieldProps {
   label: string;

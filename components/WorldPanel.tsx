@@ -1,8 +1,7 @@
 
-
 import React, { useState, useEffect, useMemo } from 'react';
-import { WorldState, WorldStateFlag, WorldEvent, NPC, Faction, Location } from '../types';
-import { useLocalization } from '../../context/LocalizationContext';
+import { WorldState, WorldStateFlag, WorldEvent, NPC, Faction, Location, GameSettings } from '../types';
+import { useLocalization } from '../context/LocalizationContext';
 import { 
     GlobeAltIcon, FlagIcon, TrashIcon, PencilSquareIcon, CheckIcon, XMarkIcon, 
     ClockIcon, ChevronDownIcon, ChevronUpIcon, ScaleIcon as PoliticalIcon, ShieldExclamationIcon as MilitaryIcon, 
@@ -14,6 +13,7 @@ import MarkdownRenderer from './MarkdownRenderer';
 import ConfirmationModal from './ConfirmationModal';
 import Modal from './Modal';
 import EditableField from './DetailRenderer/Shared/EditableField';
+import LocationLog from './LocationLog';
 
 interface WorldPanelProps {
     worldState: WorldState | null;
@@ -33,13 +33,8 @@ interface WorldPanelProps {
     onDeleteEvent: (eventId: string) => void;
     deleteWorldEventsByTurnRange: (startTurn: number, endTurn: number) => void;
     onShowMessageModal: (title: string, content: string) => void;
+    gameSettings: GameSettings | null;
 }
-
-const FULL_WEATHER_OPTIONS: string[] = [
-    'Blizzard', 'Clear', 'Cloudy', 'Downpour', 'Drizzle', 'Foggy', 'Frigid Air',
-    'Heavy Rain', 'Heavy Snow', 'Humid', 'Light Rain', 'Light Snow', 'Misty',
-    'Overcast', 'Rain', 'Sandstorm', 'Scorching Sun', 'Snow', 'Storm', 'Windy'
-];
 
 const FlagEditor: React.FC<{
     flag: WorldStateFlag;
@@ -151,8 +146,30 @@ const WorldEventCard: React.FC<{
     );
 };
 
+const FULL_WEATHER_OPTIONS = [
+    'Blizzard', 
+    'Clear', 
+    'Cloudy', 
+    'Downpour', 
+    'Drizzle', 
+    'Foggy', 
+    'Frigid Air', 
+    'Heavy Rain', 
+    'Heavy Snow', 
+    'Humid', 
+    'Light Rain', 
+    'Light Snow', 
+    'Misty', 
+    'Overcast', 
+    'Rain', 
+    'Sandstorm', 
+    'Scorching Sun', 
+    'Snow', 
+    'Storm', 
+    'Windy'
+];
 
-const WorldPanel = ({ worldState, worldStateFlags, worldEventsLog, turnNumber, allowHistoryManipulation, onDeleteFlag, onEditWorldState, onEditWeather, onEditFlagData, biome, allNpcs, allFactions, allLocations, onOpenDetailModal, onDeleteEvent, deleteWorldEventsByTurnRange, onShowMessageModal }: WorldPanelProps) => {
+const WorldPanel = ({ worldState, worldStateFlags, worldEventsLog, turnNumber, allowHistoryManipulation, onDeleteFlag, onEditWorldState, onEditWeather, onEditFlagData, biome, allNpcs, allFactions, allLocations, onOpenDetailModal, onDeleteEvent, deleteWorldEventsByTurnRange, onShowMessageModal, gameSettings }: WorldPanelProps) => {
     const { t } = useLocalization();
     const [flagToDelete, setFlagToDelete] = useState<WorldStateFlag | null>(null);
     const [isEditingTime, setIsEditingTime] = useState(false);
@@ -450,135 +467,131 @@ const WorldPanel = ({ worldState, worldStateFlags, worldEventsLog, turnNumber, a
                                             />
                                         </div>
                                     )}
-                                    {editingFlagDescriptionId === flag.flagId && (
+                                     {editingFlagDescriptionId === flag.flagId && (
                                         <div onClick={e => e.stopPropagation()} className="mt-2 p-2 bg-gray-900/50 rounded-md">
                                             <textarea
                                                 value={editedDescription}
                                                 onChange={(e) => setEditedDescription(e.target.value)}
                                                 className="w-full bg-gray-700/50 border border-gray-600 rounded-md p-2 text-gray-200 focus:ring-1 focus:ring-cyan-500 transition text-sm"
                                                 rows={3}
-                                                autoFocus
                                             />
-                                            <div className="flex justify-end gap-2 mt-2">
-                                                <button onClick={() => setEditingFlagDescriptionId(null)} className="px-3 py-1 text-xs rounded-md bg-gray-600 hover:bg-gray-500 text-white font-semibold transition flex items-center gap-1"><XMarkIcon className="w-4 h-4"/>{t('Cancel')}</button>
-                                                <button onClick={() => { onEditFlagData(flag.flagId, 'description', editedDescription); setEditingFlagDescriptionId(null); }} className="px-3 py-1 text-xs rounded-md bg-cyan-600 hover:bg-cyan-500 text-white font-semibold transition flex items-center gap-1"><CheckIcon className="w-4 h-4"/>{t('Save')}</button>
+                                            <div className="flex justify-end gap-2 mt-1">
+                                                <button onClick={() => setEditingFlagDescriptionId(null)} className="px-2 py-1 text-xs rounded-md bg-gray-600 hover:bg-gray-500 text-white font-semibold transition">{t('Cancel')}</button>
+                                                <button onClick={() => { onEditFlagData(flag.flagId, 'description', editedDescription); setEditingFlagDescriptionId(null); }} className="px-2 py-1 text-xs rounded-md bg-cyan-600 hover:bg-cyan-500 text-white font-semibold transition">{t('Save')}</button>
                                             </div>
                                         </div>
                                     )}
                                 </div>
                             ))}
-                             {displayableFlags.length > INITIAL_FLAGS_TO_SHOW && (
+                            {displayableFlags.length > INITIAL_FLAGS_TO_SHOW && (
                                 <button
                                     onClick={() => setIsFlagsExpanded(!isFlagsExpanded)}
-                                    className="w-full mt-2 text-center text-sm text-cyan-400 hover:text-cyan-300 font-semibold py-2 rounded-lg bg-gray-700/50 hover:bg-gray-700 transition-colors"
+                                    className="w-full text-center text-xs text-cyan-400 hover:underline py-1"
                                 >
-                                    {isFlagsExpanded ? t('Hide') : `${t('Show')} ${t('All')} (${displayableFlags.length})`}
+                                    {isFlagsExpanded ? t('Show Less') : t('Show More...')}
                                 </button>
                             )}
                         </div>
                     ) : (
-                        <div className="text-center text-gray-500 p-4 bg-gray-900/20 rounded-lg">
-                            <p>{t('The state of the world is calm and unchanged.')}</p>
-                        </div>
+                        <p className="text-sm text-gray-500 text-center p-4 bg-gray-900/20 rounded-lg">{t("The state of the world is calm and unchanged.")}</p>
                     )}
-                    {systemFlags.length > 0 && allowHistoryManipulation && (
-                        <div className="mt-4">
-                            <p className="text-xs text-gray-500">{t('system_flags_hidden')}</p>
-                        </div>
+                    {allowHistoryManipulation && systemFlags.length > 0 && (
+                        <p className="text-xs text-gray-500 text-center mt-2" title={systemFlags.map(f => `${f.flagId}: ${f.value}`).join(', ')}>
+                            {t('system_flags_hidden')}
+                        </p>
                     )}
                 </div>
-
+                
                 <div>
-                    <h3 className="text-xl font-bold text-cyan-400 mt-6 mb-3 narrative-text flex items-center gap-2">
+                    <h3 className="text-xl font-bold text-cyan-400 mb-3 narrative-text flex items-center gap-2">
                         <ClockIcon className="w-6 h-6" />
                         {t('World Events Log')}
                     </h3>
                     
-                    <div className="flex gap-4 mb-4 flex-wrap">
-                        <div className="flex-1 min-w-[150px]">
-                            <h4 className="text-xs font-bold uppercase text-gray-500 mb-2">{t('Filter by Type')}</h4>
-                            <div className="flex flex-wrap gap-2">
-                                {Object.keys(eventTypeMapping).map(key => (
-                                    <button 
-                                        key={key}
-                                        onClick={() => toggleFilter('type', key)}
-                                        className={`filter-button ${eventTypeMapping[key].colorClass} ${filters.type.includes(key) ? 'active' : ''}`}
-                                    >
-                                        {eventTypeMapping[key].label}
-                                    </button>
-                                ))}
+                    {/* Filters */}
+                    <div className="bg-gray-900/40 p-3 rounded-lg mb-4 space-y-3">
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                             <div>
+                                <h4 className="text-sm font-semibold text-gray-400 mb-2">{t('Filter by Type')}</h4>
+                                <div className="flex flex-wrap gap-1">
+                                    {Object.keys(eventTypeMapping).map(key => (
+                                        <button
+                                            key={key}
+                                            onClick={() => toggleFilter('type', key)}
+                                            className={`px-2 py-1 text-xs rounded-full border transition-colors ${filters.type.includes(key) ? 'bg-cyan-500/30 border-cyan-400 text-white' : 'bg-gray-700/50 border-gray-600 text-gray-300 hover:bg-gray-700'}`}
+                                        >
+                                            {eventTypeMapping[key as keyof typeof eventTypeMapping].label}
+                                        </button>
+                                    ))}
+                                </div>
                             </div>
-                        </div>
-                         <div className="flex-1 min-w-[150px]">
-                            <h4 className="text-xs font-bold uppercase text-gray-500 mb-2">{t('Filter by Visibility')}</h4>
-                             <div className="flex flex-wrap gap-2">
-                                {Object.keys(visibilityMapping).map(key => (
-                                    <button 
-                                        key={key}
-                                        onClick={() => toggleFilter('visibility', key)}
-                                        className={`filter-button ${visibilityMapping[key].colorClass} ${filters.visibility.includes(key) ? 'active' : ''}`}
-                                    >
-                                        {visibilityMapping[key].label}
-                                    </button>
-                                ))}
+                            <div>
+                                <h4 className="text-sm font-semibold text-gray-400 mb-2">{t('Filter by Visibility')}</h4>
+                                <div className="flex flex-wrap gap-1">
+                                    {Object.keys(visibilityMapping).map(key => (
+                                        <button
+                                            key={key}
+                                            onClick={() => toggleFilter('visibility', key)}
+                                            className={`px-2 py-1 text-xs rounded-full border transition-colors ${filters.visibility.includes(key) ? 'bg-cyan-500/30 border-cyan-400 text-white' : 'bg-gray-700/50 border-gray-600 text-gray-300 hover:bg-gray-700'}`}
+                                        >
+                                            {visibilityMapping[key as keyof typeof visibilityMapping].label}
+                                        </button>
+                                    ))}
+                                </div>
                             </div>
+                             <div className="col-span-2 sm:col-span-2">
+                                <h4 className="text-sm font-semibold text-gray-400 mb-2">{t('Filter by Turn')}</h4>
+                                <input
+                                    type="text"
+                                    value={turnFilter}
+                                    onChange={(e) => setTurnFilter(e.target.value)}
+                                    placeholder={t('Enter turn number...')}
+                                    className="w-full bg-gray-700/50 border border-gray-600 rounded-md p-2 text-gray-200 focus:ring-1 focus:ring-cyan-500 transition text-sm"
+                                />
+                             </div>
                         </div>
-                        <div className="w-full sm:w-auto">
-                           <h4 className="text-xs font-bold uppercase text-gray-500 mb-2">{t('Filter by Turn')}</h4>
-                           <input
-                                id="turn-filter"
-                                type="number"
-                                value={turnFilter}
-                                onChange={(e) => setTurnFilter(e.target.value)}
-                                placeholder={t('Enter turn number...')}
-                                className="w-full bg-gray-900/50 border border-gray-600 rounded-md py-1.5 px-2 text-sm text-white"
-                            />
-                        </div>
+                        {allowHistoryManipulation && (
+                             <div className="pt-3 border-t border-gray-700/50">
+                                <h4 className="text-sm font-semibold text-gray-400 mb-2">{t("Admin Actions")}</h4>
+                                <div className="flex flex-wrap items-center gap-2">
+                                    <span className="text-sm text-gray-300">{t("From turn")}</span>
+                                    <input
+                                        type="number"
+                                        value={deleteTurnRange.start}
+                                        onChange={(e) => setDeleteTurnRange(prev => ({ ...prev, start: e.target.value }))}
+                                        className="w-20 bg-gray-700/50 border border-gray-600 rounded-md py-1 px-2 text-sm text-center text-white"
+                                    />
+                                    <span className="text-sm text-gray-300">{t("To turn")}</span>
+                                     <input
+                                        type="number"
+                                        value={deleteTurnRange.end}
+                                        onChange={(e) => setDeleteTurnRange(prev => ({ ...prev, end: e.target.value }))}
+                                        className="w-20 bg-gray-700/50 border border-gray-600 rounded-md py-1 px-2 text-sm text-center text-white"
+                                    />
+                                    <button
+                                        onClick={handleRangeDeleteClick}
+                                        className="flex items-center gap-2 px-3 py-1.5 text-xs font-semibold text-red-300 bg-red-500/10 rounded-md hover:bg-red-500/20 transition-colors"
+                                    >
+                                        <TrashIcon className="w-4 h-4" />
+                                        {t("Delete Range")}
+                                    </button>
+                                </div>
+                            </div>
+                        )}
                     </div>
-
-                    {allowHistoryManipulation && (
-                        <div className="mt-4 p-3 bg-gray-900/50 rounded-lg border border-yellow-500/30">
-                            <h4 className="text-sm font-bold uppercase text-yellow-400/80 mb-3">{t('Admin Actions')}</h4>
-                            <div className="flex items-center gap-2">
-                                <input 
-                                    type="number" 
-                                    placeholder={t('From turn')} 
-                                    value={deleteTurnRange.start} 
-                                    onChange={(e) => setDeleteTurnRange(prev => ({...prev, start: e.target.value}))}
-                                    className="w-full bg-gray-700/50 border border-gray-600 rounded-md py-1.5 px-2 text-sm text-white"
-                                />
-                                <span className="text-gray-400">-</span>
-                                <input 
-                                    type="number" 
-                                    placeholder={t('To turn')} 
-                                    value={deleteTurnRange.end} 
-                                    onChange={(e) => setDeleteTurnRange(prev => ({...prev, end: e.target.value}))}
-                                    className="w-full bg-gray-700/50 border border-gray-600 rounded-md py-1.5 px-2 text-sm text-white"
-                                />
-                                <button 
-                                    onClick={handleRangeDeleteClick}
-                                    className="flex items-center gap-2 px-3 py-1.5 text-xs font-semibold text-red-300 bg-red-500/10 rounded-md hover:bg-red-500/20 transition-colors"
-                                >
-                                    <TrashIcon className="w-4 h-4" />
-                                    {t('Delete Range')}
-                                </button>
-                            </div>
-                        </div>
-                    )}
-
+                    
                     {Object.keys(filteredEventsByTurn).length > 0 ? (
-                        <div className="timeline-container mt-4">
-                            <div className="timeline-line"></div>
-                            {Object.keys(filteredEventsByTurn).sort((a, b) => Number(b) - Number(a)).map((turn, turnIndex) => (
-                                <div key={turn} className="relative mb-4">
-                                    <div className="timeline-turn-marker" style={{ top: `${turnIndex * 20}px` }}>
-                                        <span>{t('TurnAbbr')}{turn}</span>
+                        <div className="timeline-container">
+                             {Object.keys(filteredEventsByTurn).sort((a,b) => Number(b) - Number(a)).map(turn => (
+                                <div key={turn} className="timeline-turn-group">
+                                    <div className="timeline-turn-header">
+                                        <span className="timeline-turn-number">{t('Turn')} {turn}</span>
                                     </div>
-                                    <div className="space-y-4 pt-2">
-                                        {filteredEventsByTurn[Number(turn)].map((event) => (
-                                            <WorldEventCard
-                                                key={event.eventId}
-                                                event={event}
+                                    <div className="timeline-events-for-turn">
+                                        {filteredEventsByTurn[Number(turn)].map(event => (
+                                            <WorldEventCard 
+                                                key={event.eventId} 
+                                                event={event} 
                                                 onOpenModal={setViewingEvent}
                                                 onDelete={setEventToDelete}
                                                 allowHistoryManipulation={allowHistoryManipulation}
@@ -593,30 +606,29 @@ const WorldPanel = ({ worldState, worldStateFlags, worldEventsLog, turnNumber, a
                             ))}
                         </div>
                     ) : (
-                         <div className="text-center text-gray-500 p-6 bg-gray-900/20 rounded-lg">
-                            <GlobeAltIcon className="w-8 h-8 mx-auto mb-2 text-gray-600" />
-                            <p>{t('No major world events have been recorded yet.')}</p>
-                        </div>
+                        <p className="text-sm text-gray-500 text-center p-4 bg-gray-900/20 rounded-lg">{t("No major world events have been recorded yet.")}</p>
                     )}
                 </div>
             </div>
+            
             <ConfirmationModal
                 isOpen={!!flagToDelete}
                 onClose={() => setFlagToDelete(null)}
                 onConfirm={handleDeleteFlagConfirm}
-                title={t('delete_flag_title', { name: flagToDelete?.displayName ?? '' })}
+                title={t('delete_flag_title', { name: flagToDelete?.displayName || flagToDelete?.flagId || ''})}
             >
-                <p>{t('delete_flag_confirm', { name: flagToDelete?.displayName ?? '' })}</p>
+                <p>{t('delete_flag_confirm', { name: flagToDelete?.displayName || flagToDelete?.flagId || ''})}</p>
             </ConfirmationModal>
 
             <ConfirmationModal
                 isOpen={!!eventToDelete}
                 onClose={() => setEventToDelete(null)}
                 onConfirm={handleDeleteEventConfirm}
-                title={t("Delete Event")}
+                title={t('Delete Event')}
             >
-                <p>{t('Are you sure you want to permanently delete this event from the log?')}</p>
+                <p>{t('Are you sure you want to permanently delete the event: "{headline}"?', { headline: eventToDelete?.headline })}</p>
             </ConfirmationModal>
+
             <ConfirmationModal
                 isOpen={isRangeDeleteConfirmOpen}
                 onClose={() => setIsRangeDeleteConfirmOpen(false)}
@@ -625,97 +637,84 @@ const WorldPanel = ({ worldState, worldStateFlags, worldEventsLog, turnNumber, a
             >
                 <p>{t('delete_event_range_confirm', { start: deleteTurnRange.start, end: deleteTurnRange.end })}</p>
             </ConfirmationModal>
-            {viewingEvent && (() => {
-                const VisIcon = visibilityMapping[viewingEvent.visibility].icon;
-                const involvedNPCs = Array.isArray(viewingEvent.involvedNPCs) ? viewingEvent.involvedNPCs : [];
-                const affectedFactions = Array.isArray(viewingEvent.affectedFactions) ? viewingEvent.affectedFactions : [];
-                const affectedLocations = Array.isArray(viewingEvent.affectedLocations) ? viewingEvent.affectedLocations : [];
 
-                return (
-                    <Modal
-                        isOpen={true}
-                        onClose={() => setViewingEvent(null)}
-                        title={viewingEvent.headline}
-                        showFontSizeControls={true}
-                    >
-                        <div className="space-y-4">
-                            <div className="flex items-center gap-4 text-sm text-gray-400 flex-wrap">
-                               <span className="flex items-center gap-1.5 event-tag">
-                                   <ClockIcon className="w-4 h-4" />
-                                   <span>{t('Day')} {viewingEvent.worldTime.day}, {t('Turn')} {viewingEvent.turnNumber}</span>
-                               </span>
-                               <span className="flex items-center gap-1.5 event-tag">
-                                   <VisIcon className="w-4 h-4" />
-                                   <span>{visibilityMapping[viewingEvent.visibility].label}</span>
-                               </span>
+            {viewingEvent && (
+                <Modal
+                    isOpen={!!viewingEvent}
+                    onClose={() => setViewingEvent(null)}
+                    title={viewingEvent.headline}
+                >
+                    <div className="space-y-4">
+                        <div className="bg-gray-700/50 p-3 rounded-lg">
+                            <p className="text-gray-300"><MarkdownRenderer content={viewingEvent.summary} /></p>
+                        </div>
+                        <div className="grid grid-cols-2 gap-4 text-sm">
+                            <div className="flex items-center gap-2">
+                                {React.createElement(eventTypeMapping[viewingEvent.eventType as keyof typeof eventTypeMapping].icon, { className: 'w-5 h-5 text-cyan-400' })}
+                                <span>{eventTypeMapping[viewingEvent.eventType as keyof typeof eventTypeMapping].label}</span>
                             </div>
-                            <MarkdownRenderer content={viewingEvent.summary} />
-
-                             <div className="space-y-4 pt-4 border-t border-gray-700/50">
-                                {involvedNPCs.length > 0 && (
-                                    <div>
-                                        <h5 className="font-semibold text-gray-400 text-sm mb-2 flex items-center gap-2">
-                                            <PersonalIcon className="w-5 h-5"/>
-                                            {t('Involved NPCs')}
-                                        </h5>
-                                        <div className="flex flex-wrap gap-2">
-                                            {involvedNPCs.map(involvedNpc => {
-                                                const fullNpc = allNpcs.find(n => n.NPCId === involvedNpc.NPCId);
-                                                if (!fullNpc) return <span key={involvedNpc.NPCId || involvedNpc.NPCName} className="event-tag !cursor-default">{involvedNpc.NPCName}</span>;
-                                                return (
-                                                    <button key={fullNpc.NPCId} onClick={() => onOpenDetailModal(t("NPC: {name}", { name: fullNpc.name }), fullNpc)} className="event-tag">
-                                                        {fullNpc.name}
-                                                    </button>
-                                                );
-                                            })}
-                                        </div>
-                                    </div>
-                                )}
-                                {affectedFactions.length > 0 && (
-                                    <div>
-                                        <h5 className="font-semibold text-gray-400 text-sm mb-2 flex items-center gap-2">
-                                            <FactionIcon className="w-5 h-5"/>
-                                            {t('Affected Factions')}
-                                        </h5>
-                                        <div className="flex flex-wrap gap-2">
-                                            {affectedFactions.map(involvedFaction => {
-                                                const fullFaction = allFactions.find(f => f.factionId === involvedFaction.factionId);
-                                                if (!fullFaction) return <span key={involvedFaction.factionId || involvedFaction.factionName} className="event-tag !cursor-default">{involvedFaction.factionName}</span>;
-                                                return (
-                                                    <button key={fullFaction.factionId} onClick={() => onOpenDetailModal(t("Faction: {name}", { name: fullFaction.name }), { ...fullFaction, type: 'faction' })} className="event-tag">
-                                                        {fullFaction.name}
-                                                    </button>
-                                                );
-                                            })}
-                                        </div>
-                                    </div>
-                                )}
-                                {affectedLocations.length > 0 && (
-                                    <div>
-                                        <h5 className="font-semibold text-gray-400 text-sm mb-2 flex items-center gap-2">
-                                            <MapPinIcon className="w-5 h-5"/>
-                                            {t('Affected Locations')}
-                                        </h5>
-                                        <div className="flex flex-wrap gap-2">
-                                            {affectedLocations.map(involvedLocation => {
-                                                const fullLocation = allLocations.find(l => l.locationId === involvedLocation.locationId);
-                                                if (!fullLocation) return <span key={involvedLocation.locationId || involvedLocation.locationName} className="event-tag !cursor-default">{involvedLocation.locationName}</span>;
-                                                return (
-                                                    <button key={fullLocation.locationId} onClick={() => onOpenDetailModal(t("Location: {name}", { name: fullLocation.name }), { ...fullLocation, type: 'location' })} className="event-tag">
-                                                        {fullLocation.name}
-                                                    </button>
-                                                );
-                                            })}
-                                        </div>
-                                    </div>
-                                )}
+                             <div className="flex items-center gap-2">
+                                {React.createElement(visibilityMapping[viewingEvent.visibility as keyof typeof visibilityMapping].icon, { className: 'w-5 h-5 text-cyan-400' })}
+                                <span>{visibilityMapping[viewingEvent.visibility as keyof typeof visibilityMapping].label}</span>
                             </div>
                         </div>
-                    </Modal>
-                );
-            })()}
+
+                        {viewingEvent.involvedNPCs && viewingEvent.involvedNPCs.length > 0 && (
+                            <div>
+                                {/* FIX: Use PersonalIcon alias for UserIcon */}
+                                <h4 className="font-semibold text-gray-400 text-base mb-2 flex items-center gap-2"><PersonalIcon className="w-5 h-5"/>{t('Involved NPCs')}</h4>
+                                <div className="space-y-2">
+                                    {viewingEvent.involvedNPCs.map(npcRef => {
+                                        const npcData = allNpcs.find(n => n.NPCId === npcRef.NPCId);
+                                        return (
+                                        <button key={npcRef.NPCId} onClick={() => { if (npcData) { setViewingEvent(null); onOpenDetailModal(t("NPC: {name}", {name: npcData.name}), npcData); } }} disabled={!npcData} className="w-full text-left bg-gray-700/40 p-2 rounded-md hover:bg-gray-700 transition-colors disabled:cursor-not-allowed">
+                                            <p className="font-semibold text-cyan-300">{npcRef.NPCName}</p>
+                                            <p className="text-xs text-gray-400">{npcRef.roleInEvent}</p>
+                                        </button>
+                                    )})}
+                                </div>
+                            </div>
+                        )}
+
+                        {viewingEvent.affectedFactions && viewingEvent.affectedFactions.length > 0 && (
+                            <div>
+                                {/* FIX: Use FactionIcon alias for UserGroupIcon */}
+                                <h4 className="font-semibold text-gray-400 text-base mb-2 flex items-center gap-2"><FactionIcon className="w-5 h-5"/>{t('Affected Factions')}</h4>
+                                <div className="space-y-2">
+                                    {viewingEvent.affectedFactions.map(facRef => {
+                                        const factionData = allFactions.find(f => f.factionId === facRef.factionId);
+                                        return (
+                                        <button key={facRef.factionId} onClick={() => { if (factionData) { setViewingEvent(null); onOpenDetailModal(t("Faction: {name}", {name: factionData.name}), {...factionData, type: 'faction'}); } }} disabled={!factionData} className="w-full text-left bg-gray-700/40 p-2 rounded-md hover:bg-gray-700 transition-colors disabled:cursor-not-allowed">
+                                            <p className="font-semibold text-cyan-300">{facRef.factionName}</p>
+                                            <p className="text-xs text-gray-400 italic">{facRef.impactDescription}</p>
+                                        </button>
+                                    )})}
+                                </div>
+                            </div>
+                        )}
+                        
+                        {viewingEvent.affectedLocations && viewingEvent.affectedLocations.length > 0 && (
+                            <div>
+                                <h4 className="font-semibold text-gray-400 text-base mb-2 flex items-center gap-2"><MapPinIcon className="w-5 h-5"/>{t('Affected Locations')}</h4>
+                                 <div className="space-y-2">
+                                    {viewingEvent.affectedLocations.map(locRef => {
+                                        const locationData = allLocations.find(l => l.locationId === locRef.locationId);
+                                        return (
+                                        <button key={locRef.locationId} onClick={() => { if (locationData) { setViewingEvent(null); onOpenDetailModal(t("Location: {name}", {name: locationData.name}), {...locationData, type: 'location'}); } }} disabled={!locationData} className="w-full text-left bg-gray-700/40 p-2 rounded-md hover:bg-gray-700 transition-colors disabled:cursor-not-allowed">
+                                            <p className="font-semibold text-cyan-300">{locRef.locationName}</p>
+                                            <p className="text-xs text-gray-400 italic">{locRef.impactDescription}</p>
+                                        </button>
+                                    )})}
+                                </div>
+                            </div>
+                        )}
+
+                    </div>
+                </Modal>
+            )}
         </>
     );
 };
 
+// FIX: Added default export
 export default WorldPanel;

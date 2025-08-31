@@ -1,6 +1,9 @@
 
 
 
+
+
+
 import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import ChatWindow from './components/ChatWindow';
 import InputBar from './components/InputBar';
@@ -545,6 +548,8 @@ export default function App(): React.ReactNode {
           onImageGenerated={onImageGenerated}
           updateItemSortOrder={updateItemSortOrder}
           updateItemSortSettings={updateItemSortSettings}
+          // FIX: Pass gameSettings prop to InventoryScreen
+          gameSettings={gameSettings}
         />
       )}
        {messageModalState && (
@@ -638,6 +643,8 @@ export default function App(): React.ReactNode {
                     onImageGenerated={onImageGenerated}
                     isFullScreen={true}
                     onCollapse={() => setIsMapFullScreen(false)}
+                    // FIX: Pass gameSettings prop to LocationViewer
+                    gameSettings={gameSettings}
                 />
             </div>
         </Modal>
@@ -686,7 +693,6 @@ export default function App(): React.ReactNode {
                   setJournalModalNpc(prev => prev ? { ...prev, journalEntries: newEntries } : null);
               }
           }}
-          // FIX: Corrected typo from onDeleteOldestNpcJournalEntries to deleteOldestNpcJournalEntries
           onDeleteOldest={deleteOldestNpcJournalEntries && journalModalNpc.NPCId ? (count) => {
               deleteOldestNpcJournalEntries(journalModalNpc.NPCId!, count);
               setJournalModalNpc(prev => {

@@ -1,6 +1,7 @@
 
+
 import React, { useMemo, useState } from 'react';
-import { Location, LocationData } from '../types';
+import { Location, LocationData, GameSettings } from '../types';
 import { MapIcon, FireIcon, GlobeAltIcon, UserGroupIcon, MapPinIcon, TrashIcon } from '@heroicons/react/24/outline';
 import { useLocalization } from '../context/LocalizationContext';
 import MarkdownRenderer from './MarkdownRenderer';
@@ -16,6 +17,7 @@ interface LocationLogProps {
   imageCache: Record<string, string>;
   onImageGenerated: (prompt: string, base64: string) => void;
   forgetLocation: (locationId: string) => void;
+  gameSettings: GameSettings | null;
 }
 
 const LocationItem: React.FC<{ 
@@ -26,7 +28,8 @@ const LocationItem: React.FC<{
   isCurrentLocation: boolean;
   allowHistoryManipulation: boolean;
   onDelete: () => void;
-}> = ({ loc, onOpenModal, imageCache, onImageGenerated, isCurrentLocation, allowHistoryManipulation, onDelete }) => {
+  gameSettings: GameSettings | null;
+}> = ({ loc, onOpenModal, imageCache, onImageGenerated, isCurrentLocation, allowHistoryManipulation, onDelete, gameSettings }) => {
   const { t } = useLocalization();
   
   const displayType = t((loc.indoorType || loc.biome || loc.locationType) as any);
@@ -76,7 +79,7 @@ const LocationItem: React.FC<{
       >
         <div className="flex items-start gap-4">
             <div className="w-16 h-16 rounded-md overflow-hidden flex-shrink-0 bg-gray-800 flex items-center justify-center">
-                <ImageRenderer prompt={imagePrompt} alt={loc.name} className="w-full h-full object-cover" imageCache={imageCache} onImageGenerated={onImageGenerated} />
+                <ImageRenderer prompt={imagePrompt} alt={loc.name} className="w-full h-full object-cover" imageCache={imageCache} onImageGenerated={onImageGenerated} model={gameSettings?.pollinationsImageModel} />
             </div>
             <div className="flex-1">
                 <p className="font-semibold text-cyan-400 text-lg group-hover:underline">{loc.name}</p>
@@ -114,7 +117,7 @@ const LocationItem: React.FC<{
   );
 };
 
-export default function LocationLog({ locations, currentLocation, onOpenModal, allowHistoryManipulation, onEditLocationData, imageCache, onImageGenerated, forgetLocation }: LocationLogProps): React.ReactNode {
+export default function LocationLog({ locations, currentLocation, onOpenModal, allowHistoryManipulation, onEditLocationData, imageCache, onImageGenerated, forgetLocation, gameSettings }: LocationLogProps): React.ReactNode {
   const { t } = useLocalization();
   const [locationToDelete, setLocationToDelete] = useState<Location | null>(null);
 
@@ -153,6 +156,7 @@ export default function LocationLog({ locations, currentLocation, onOpenModal, a
                                 isCurrentLocation={loc.locationId === currentLocation.locationId}
                                 allowHistoryManipulation={allowHistoryManipulation}
                                 onDelete={() => setLocationToDelete(loc)}
+                                gameSettings={gameSettings}
                               /> : null
             ))}
           </div>
