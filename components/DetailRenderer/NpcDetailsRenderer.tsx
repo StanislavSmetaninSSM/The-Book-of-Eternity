@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import { NPC, FateCard, Faction, Wound, Item, PlayerCharacter, Location, ActiveSkill, PassiveSkill, CustomState, UnlockedMemory, StructuredBonus } from '../../types';
 import { DetailRendererProps } from './types';
@@ -15,6 +16,7 @@ import {
     CogIcon, TrashIcon, ArchiveBoxXMarkIcon, BoltIcon, PhotoIcon,
     AcademicCapIcon, FingerPrintIcon, ArrowUpOnSquareIcon, ArrowsRightLeftIcon, PlusIcon, MapPinIcon,
     ExclamationTriangleIcon, ChevronDownIcon, ChevronUpIcon, ShieldExclamationIcon, ClockIcon, ScaleIcon,
+    SunIcon, CloudIcon
 } from '@heroicons/react/24/outline';
 import { UserCircleIcon, CheckIcon, XMarkIcon } from '@heroicons/react/24/solid';
 import ConfirmationModal from '../ConfirmationModal';
@@ -583,6 +585,29 @@ const NpcDetailsRenderer: React.FC<NpcDetailsProps> = (props) => {
                                 )}
                             </>
                         )}
+                    </div>
+                </Section>
+            )}
+
+            {npc.activeEffects && npc.activeEffects.length > 0 && (
+                <Section title={t("Active Effects")} icon={ExclamationTriangleIcon}>
+                    <div className="space-y-3">
+                        {(npc.activeEffects ?? []).map((effect, index) => (
+                             <button 
+                                key={effect.effectId || index} 
+                                onClick={() => onOpenDetailModal(t("Effect: {name}", { name: effect.sourceSkill || 'Effect' }), effect)} 
+                                className={`w-full text-left p-3 rounded-md text-sm flex items-start gap-3 hover:scale-105 transition-transform ${effect.effectType.includes('Buff') ? 'bg-green-900/40 text-green-300' : 'bg-red-900/40 text-red-300'}`}
+                             >
+                                {effect.effectType.includes('Buff') ? <SunIcon className="w-5 h-5 mt-0.5 text-green-400 flex-shrink-0" /> : <CloudIcon className="w-5 h-5 mt-0.5 text-red-400 flex-shrink-0" />}
+                                <div className="flex-1">
+                                    <div className="flex justify-between">
+                                        <span className="font-semibold">{effect.sourceSkill || t('Effect')}</span>
+                                        {effect.duration < 999 && <span className="text-xs">{t('({duration} turns left)', { duration: effect.duration })}</span>}
+                                    </div>
+                                    <p>{effect.description}</p>
+                                </div>
+                             </button>
+                        ))}
                     </div>
                 </Section>
             )}
