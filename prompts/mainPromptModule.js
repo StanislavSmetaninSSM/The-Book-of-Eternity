@@ -29933,7 +29933,7 @@ export const getStepWorldProgression = () => {
         A response containing only the 'worldEventsLog' without its consequences is an incorrect and incomplete response.
 
         ---
-        ## CRITICAL DIRECTIVE: SCOPE LIMITATION (NEW ADDITION) ##
+        ## CRITICAL DIRECTIVE: SCOPE LIMITATION ##
 
         You are STRICTLY FORBIDDEN from generating data for any keys NOT directly related to World Progression and its consequences in THIS step.
         Your task is LIMITED ONLY to the keys listed above.
