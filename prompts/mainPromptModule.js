@@ -1441,14 +1441,34 @@ export const getGameMasterGuideRules = (configuration) => {
                 If no flags were created or changed this turn, this is null or an empty array.",
 
                 "worldMapUpdates": { 
-                    // (object or null) Reports additions or changes to the world map. 
-                    Structure: { 
-                        "newLinks": [ 
-                            { "sourceLocationId": "string", "link": "adjacency_map_entry_object" } 
-                        ] 
-                    }
+                    // (object or null) Reports additions or changes to the world map.
+                    // Use 'newLinks' to add new links for the specific location.
+                    // Use 'locationUpdates' to apply changes to EXISTING, OFF-SCREEN locations data.
+                    // This is the mandatory method for updating locations the player is not currently in.
+                    
+                    "newLinks": [ 
+                        { "sourceLocationId": "string", "link": "adjacency_map_entry_object" } 
+                    ],
+                    "locationUpdates": [
+                        {
+                            "locationId": "guid_of_existing_off-screen_location",
+                            // This object follows the Law of Partial Updates.
+                            // Include ONLY the fields of the location that have changed.
+                            "newDifficultyProfile": { "combat": 50, "environment": 60, "social": 10, "exploration": 40 },
+                            "newLastEventsDescription": "#[turn_number]. The magical blight has corrupted this area, making it far more dangerous.",
+                            "newName": "The Corrupted Forest" // Optional, if the location's name itself has changed.
+                        }
+                    ]
 
-                    /* Example: { "newLinks": [ { "sourceLocationId": "loc-guid-01", "link": { "name": "Secret Tunnel", ... } } ] } */
+                    /* Example for "newLinks" generation : 
+                    { 
+                        "newLinks": [ 
+                            { 
+                                "sourceLocationId": "loc-guid-01", 
+                                "link": { "name": "Secret Tunnel", ... } 
+                            } 
+                        ] 
+                    } */
                 },
 
                 "dialogueOptions": "(array of strings or null) 
@@ -24776,6 +24796,100 @@ export const getGameMasterGuideRules = (configuration) => {
                 </Content>
             </Rule>
 
+            <Rule id="20.4.A">
+                <Title>CRITICAL DIRECTIVE: Updating Off-Screen Locations ('worldMapUpdates')</Title>
+                <Description>
+                    This rule defines the mandatory protocol for applying changes to known locations on the world map that the player is NOT currently in. 
+                    This is the ONLY correct method for simulating off-screen events and prevents the corruption of 'currentLocationData'.
+                </Description>
+                <InstructionText>
+                    <![CDATA[
+
+                    When a world event (from the World Progression step) affects a location where the player is NOT present, you are STRICTLY FORBIDDEN from using the 'currentLocationData' key to report this change.
+                    Instead, you MUST use the 'locationUpdates' array within the 'worldMapUpdates' key.
+
+                    ]]>
+                </InstructionText>
+                <Content type="ruleset">
+                    <Rule id="20.4.A.1">
+                        <Title>Structure and Usage</Title>
+                        <Content type="code_example" language="json">
+                            <![CDATA[
+
+                            "worldMapUpdates": {
+                                "locationUpdates": [
+                                    {
+                                        "locationId": "guid_of_the_existing_off-screen_location_to_update",
+                                        // This object follows the Law of Partial Updates.
+                                        // Include ONLY the fields of the location that have changed.
+                                        "newDifficultyProfile": { "combat": 40, "environment": 55, "social": 10, "exploration": 30 },
+                                        "newLastEventsDescription": "#[turn_number]. The corruption in this forest has visibly worsened.",
+                                        "newName": "The Corrupted Forest" // Optional: if the name itself changes
+                                    }
+                                ]
+                            }
+
+                            ]]>
+                        </Content>
+                    </Rule>
+                    <Rule id="20.4.A.2">
+                        <Title>Process Flow</Title>
+                        <Content type="rule_text">
+                            <![CDATA[
+                            
+                            1.  Identify an off-screen event from the World Progression analysis that affects a known location.
+                            2.  Retrieve the 'locationId' of the affected location from the 'worldMap' in the Context.
+                            3.  Create an object containing this 'locationId' and only the specific properties that need to be updated (e.g., 'newDifficultyProfile', 'newLastEventsDescription').
+                            4.  Add this object to the 'locationUpdates' array inside the 'worldMapUpdates' key.
+                            5.  Log the reason for the off-screen update in 'items_and_stat_calculations'.
+
+                            ]]>
+                        </Content>
+                    </Rule>
+                </Content>
+                <Examples>
+                    <Example type="good" contentType="log_and_json_snippet">
+                        <Title>Example: A magical plague spreads while the player is in town.</Title>
+                        <ScenarioContext>
+                            Player is in "Oakhaven Town" (loc-oakhaven-01). 
+                            A world event is generated: "The magical blight in the Whispering Forest (loc-forest-01) has intensified."
+                        </ScenarioContext>
+                        <LogOutput target="items_and_stat_calculations">
+                            <![CDATA[
+
+                            World Event: Blight intensifies in Whispering Forest.
+                            Consequence: The forest's difficulty profile must be updated.
+                            Action: Player is not in the forest. Using 'worldMapUpdates' to apply the change to location 'loc-forest-01'.
+                            - New Environment Difficulty: 50.
+
+                            ]]>
+                        </LogOutput>
+                        <JsonResponse>
+                            <worldMapUpdates>
+                                <![CDATA[
+
+                                {
+                                    "locationUpdates": [
+                                        {
+                                            "locationId": "loc-forest-01",
+                                            "newDifficultyProfile": {
+                                                "combat": 35,
+                                                "environment": 50,
+                                                "social": 5,
+                                                "exploration": 30
+                                            },
+                                            "newLastEventsDescription": "#[75]. The blight has fully consumed the forest. The air is poisonous, and the land itself is twisted by dark magic."
+                                        }
+                                    ]
+                                }
+
+                                ]]>
+                            </worldMapUpdates>
+                        </JsonResponse>
+                    </Example>
+                </Examples>
+            </Rule>
+
             <Rule id="20.5">
                 <Title>Outdoor Biome Types ('biome')</Title>
                 <Description>
@@ -29901,7 +30015,8 @@ export const getStepWorldProgression = () => {
 <InstructionBlock id="Step_WorldProgression_TaskGuide">
     <Title>Step: World Progression (Generation & Immediate Integration)</Title>
     <Description>
-        This step has been triggered automatically. Your task is to execute a single, inseparable process: generate world events AND their immediate consequences.
+        This step has been triggered automatically. 
+        Your task is to execute a single, inseparable process: generate world events AND their immediate consequences.
     </Description>
     <InstructionText>
         <![CDATA[
@@ -29916,11 +30031,11 @@ export const getStepWorldProgression = () => {
 
         **Step 2: Integrate Immediate Consequences (Phase 2)**
         - Execute the integration protocol from 'InstructionBlock id="30"', specifically Rule #30.6.
-        - This requires you to analyze the events you just created in Step 1 and generate their direct fallout by populating keys such as 'factionDataChanges', 'questUpdates', 'NPCsData', 'worldMapUpdates', etc.
+        - This requires you to analyze the events you just created in Step 1 and generate their direct fallout.
 
         **Step 3: Final Self-Audit (MANDATORY)**
         - Before finalizing your response, you MUST execute the self-audit described in **'Rule id="30.7": The Protocol of Inseparable Actions'**.
-        - You must verify that for every event you created, you have also created its logical consequences in the appropriate JSON keys.
+        - You must verify that for every event you created, you have also created its logical consequences.
 
         ## FINAL OUTPUT FOR THIS STEP ##
 
@@ -29928,27 +30043,92 @@ export const getStepWorldProgression = () => {
         1.  The 'worldEventsLog' array.
         2.  An updated 'plotOutline' object.
         3.  The mandatory 'updateWorldProgressionTracker' command.
-        4.  **AND** all other JSON keys required to mechanically represent the immediate consequences of the new events.
-
-        A response containing only the 'worldEventsLog' without its consequences is an incorrect and incomplete response.
+        4.  **AND** all other JSON keys required to mechanically represent the immediate consequences of the new events. This includes, but is not limited to:
+            -   Updates to factions, quests, NPCs, and global flags (e.g., 'factionDataChanges', 'questUpdates', 'NPCsData', 'NPCJournals', 'worldStateFlags').
+            -   **Location Data Consequences:**
+                -   IF an event affects the player's CURRENT location, you MUST update 'currentLocationData'.
+                -   IF an event affects a DIFFERENT, off-screen location, you MUST use 'worldMapUpdates' with the 'locationUpdates' array.
+            -   **Other necessary mechanical updates.** 
+                For example, if a world event results in an NPC acquiring a specific item, you MUST use the 'NPCInventoryAdds' command to reflect this. 
+                If an event grants an NPC a new skill, you must use 'NPCPassiveSkillChanges' or 'NPCActiveSkillChanges'. 
+                You are authorized to use any command key from the main guide as long as it is a direct and logical consequence of a generated world event.
 
         ---
         ## CRITICAL DIRECTIVE: SCOPE LIMITATION ##
 
         You are STRICTLY FORBIDDEN from generating data for any keys NOT directly related to World Progression and its consequences in THIS step.
-        Your task is LIMITED ONLY to the keys listed above.
 
         DO NOT generate or modify the following keys in this step:
         - "response" (This will be handled in the Narrative step)
         - "dialogueOptions" (This will be handled in the Narrative step)
-        - "inventoryItemsData" (Unless an item is a direct consequence of a world event)
         - "playerStatus"
         - "combatLogEntries"
-        - Any other key that is not a direct, mechanical result of a NEWLY generated world event.
-        ---
-
+        - Any change to the PLAYER'S inventory, skills, or status effects, unless it is a direct, unavoidable consequence of a newly generated world event 
+        (e.g., a magical plague event applying a debuff to everyone in the region, including the player).
+        
         ]]>
     </InstructionText>
+    <Examples>
+        <Example id="wp_example_1" type="good">
+            <Title>Example 1: GM's Thought Process for a Political Event</Title>
+            <ScenarioContext>
+                The GM's analysis in Step 1 determined that the "Kingdom of Eldoria" faction should declare war on the "Twilight Blade Order" faction. 
+                The player is currently in the capital city of Eldoria.
+            </ScenarioContext>
+            <LogOutput target="items_and_stat_calculations">
+                <![CDATA[
+
+                # World Progression: GM's Thought Process
+
+                1.  **Event Generation:** 
+                I will create a new event in 'worldEventsLog' announcing the declaration of war. Its visibility will be 'Public'.
+
+                2.  **Consequence Integration (My Checklist):**
+                    -   **Factions:** This directly affects the relationship between the two factions. I MUST use 'factionDataChanges' to set their mutual status to 'War' and drastically lower their reputation with each other.
+                    -   **Locations:** The capital city will go on high alert. This is the player's current location. I MUST use 'currentLocationData' to update its 'difficultyProfile' (increase 'combat' and 'social') and add a note to its 'lastEventsDescription'.
+                    -   **NPCs:** Captain Thorne is a high-ranking officer in the Kingdom's army. He would have strong feelings about this. I MUST use 'NPCJournals' to record his reaction.
+                    -   **Quests:** A war creates demand for soldiers. This is a perfect opportunity for a new quest. I MUST use 'questUpdates' to generate a new "Call to Arms" quest.
+                    -   **Player's Inventory/Status:** Does this event *unavoidably* change the player's state? No. The player can choose to get involved or not. Therefore, I MUST NOT touch any player-specific keys like 'inventoryItemsData' or 'playerActiveEffectsChanges'.
+                    -   **Narrative:** Do I write a full story about this? NO. That is for the Narrative step. My job here is purely mechanical. I MUST NOT fill the 'response' key.
+
+                3.  **Final JSON Assembly:** 
+                My final JSON for this step will contain: 'worldEventsLog', 'factionDataChanges', 'currentLocationData' (with the update), 'NPCJournals', 'questUpdates', and the mandatory 'updateWorldProgressionTracker'. 
+                All other keys will be null.
+                
+                ]]>
+            </LogOutput>
+        </Example>
+
+        <Example id="wp_example_2" type="good">
+            <Title>Example 2: GM's Thought Process for an Off-Screen NPC Action</Title>
+            <ScenarioContext>
+                The GM's analysis determined that the off-screen antagonist, Lord Malakor, has traveled to a new location (the "Sunken Temple") and retrieved a quest item ("The Shadow Orb"). 
+                The player is far away in a different city.
+            </ScenarioContext>
+            <LogOutput target="items_and_stat_calculations">
+                <![CDATA[
+
+                # World Progression: GM's Thought Process
+
+                1.  **Event Generation:** 
+                I will create a 'Secret' visibility event in 'worldEventsLog' stating that Malakor has found the Orb.
+
+                2.  **Consequence Integration (My Checklist):**
+                    -   **NPCs:** Malakor's state has changed significantly.
+                        -   His location has changed. I MUST use 'NPCsData' to send his complete, updated object with the new 'currentLocationId'.
+                        -   He has acquired a new, powerful item. I MUST use 'NPCInventoryAdds' to give him the "Shadow Orb".
+                        -   This achievement would grant him XP. I will calculate it, see that he levels up, and update his level and stats within the 'NPCsData' object.
+                    -   **Locations:** The "Sunken Temple" has been visited and looted by Malakor. It is an *off-screen* location. I MUST use 'worldMapUpdates' with the 'locationUpdates' array to change its 'lastEventsDescription' to note Malakor's visit.
+                    -   **Player's State:** Is the player affected? No, this happened secretly, far away. I MUST NOT modify any player-related keys.
+                    -   **Narrative:** Do I describe Malakor's triumph? NO. This is for the Narrative step to handle if the player learns about it later. I MUST NOT fill the 'response' key.
+
+                3.  **Final JSON Assembly:** 
+                My final JSON for this step will contain: 'worldEventsLog', 'NPCsData' (for Malakor's update), 'NPCInventoryAdds', 'worldMapUpdates', and 'updateWorldProgressionTracker'.
+                
+                ]]>
+            </LogOutput>
+        </Example>
+    </Examples>
 </InstructionBlock>
     `;
 };
