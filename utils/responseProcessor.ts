@@ -35,6 +35,7 @@ const isObject = (item: any): item is object => {
 
 /**
  * Deeply merges two objects. Arrays are replaced, not merged, but are sanitized for null/undefined values.
+ * Crucially, it ignores 'undefined' values from the source to prevent accidental data erasure.
  * This is crucial for handling both partial state updates (like characteristics)
  * and full array replacements, ensuring no corrupted data enters the state.
  * @param target The original object.
@@ -49,6 +50,12 @@ function deepMerge<T extends object, U extends object>(target: T, source: U): T 
             const sourceKey = key as keyof U;
             const targetKey = key as keyof T;
             const sourceValue = source[sourceKey];
+            
+            // THE FIX: Ignore undefined values from the source object.
+            // This prevents an update like { woundName: undefined } from erasing existing data.
+            if (sourceValue === undefined) {
+                return; 
+            }
             
             if (isObject(sourceValue)) {
                 if (!(key in target) || !isObject(target[targetKey])) {
@@ -783,15 +790,17 @@ export const processAndApplyResponse = (response: GameResponse, baseState: GameS
         if(npc) npc.name = rename.newName;
     });
 
+    // FIX: Removed redundant `String()` conversion which was causing a type error.
+    // The `if (change.NPCId)` and `if (nameToFind)` guards already ensure the values are strings.
     const findNpc = (change: { NPCId?: string | null, NPCName?: string, name?: string }): NPC | undefined => {
         let npc: NPC | undefined;
         if (change.NPCId) {
-            npc = newState.encounteredNPCs.find(n => n.NPCId && n.NPCId.toLowerCase() === String(change.NPCId).toLowerCase());
+            npc = newState.encounteredNPCs.find(n => n.NPCId && n.NPCId.toLowerCase() === change.NPCId!.toLowerCase());
         }
         if (!npc) {
             const nameToFind = change.NPCName || change.name;
             if (nameToFind) {
-                npc = newState.encounteredNPCs.find(n => n.name && n.name.toLowerCase() === String(nameToFind).toLowerCase());
+                npc = newState.encounteredNPCs.find(n => n.name && n.name.toLowerCase() === nameToFind.toLowerCase());
             }
         }
         return npc;
