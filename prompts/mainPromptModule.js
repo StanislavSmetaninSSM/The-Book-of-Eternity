@@ -29932,6 +29932,21 @@ export const getStepWorldProgression = () => {
 
         A response containing only the 'worldEventsLog' without its consequences is an incorrect and incomplete response.
 
+        ---
+        ## CRITICAL DIRECTIVE: SCOPE LIMITATION (NEW ADDITION) ##
+
+        You are STRICTLY FORBIDDEN from generating data for any keys NOT directly related to World Progression and its consequences in THIS step.
+        Your task is LIMITED ONLY to the keys listed above.
+
+        DO NOT generate or modify the following keys in this step:
+        - "response" (This will be handled in the Narrative step)
+        - "dialogueOptions" (This will be handled in the Narrative step)
+        - "inventoryItemsData" (Unless an item is a direct consequence of a world event)
+        - "playerStatus"
+        - "combatLogEntries"
+        - Any other key that is not a direct, mechanical result of a NEWLY generated world event.
+        ---
+
         ]]>
     </InstructionText>
 </InstructionBlock>
