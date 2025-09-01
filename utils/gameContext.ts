@@ -1,5 +1,6 @@
 
 
+
 import { GameState, GameContext, ChatMessage, GameResponse, PlayerCharacter, LocationData, Characteristics, Location, Faction, Language, LootTemplate, UnlockedMemory, Recipe, Item, WorldStateFlag, SkillMastery, GameSettings, WorldState, NPC, Effect, WorldEvent, PassiveSkill } from '../types';
 import { gameData } from './localizationGameData';
 import { generateLootTemplates } from './lootGenerator';
@@ -157,6 +158,29 @@ export function updateWorldMap(
                 }
                 if (!sourceLocation.adjacencyMap.some((l: any) => l.name === linkUpdate.link.name)) {
                     sourceLocation.adjacencyMap.push(linkUpdate.link);
+                }
+            }
+        });
+    }
+
+    if (updates && updates.locationUpdates) {
+        (updates.locationUpdates as any[]).forEach(update => {
+            const { locationId, newName, newDifficultyProfile, newLastEventsDescription } = update;
+            if (locationId && newMap[locationId]) {
+                const locationToUpdate = newMap[locationId];
+                if (newName) {
+                    locationToUpdate.name = newName;
+                }
+                if (newDifficultyProfile) {
+                    // Deep merge for the profile, as it might be a partial update
+                    locationToUpdate.difficultyProfile = { 
+                        ...locationToUpdate.difficultyProfile, 
+                        ...newDifficultyProfile 
+                    };
+                }
+                if (newLastEventsDescription) {
+                    const oldEvents = locationToUpdate.lastEventsDescription || '';
+                    locationToUpdate.lastEventsDescription = `${newLastEventsDescription}\n\n${oldEvents}`.trim();
                 }
             }
         });
@@ -517,6 +541,29 @@ export function buildNextContext(
                 ...newLocationData,
             };
         }
+    }
+
+    const locationUpdates = response.worldMapUpdates?.locationUpdates;
+    if (locationUpdates) {
+        (locationUpdates as any[]).forEach(update => {
+            const { locationId, newName, newDifficultyProfile, newLastEventsDescription } = update;
+            if (locationId) {
+                const visitedIndex = newVisitedLocations.findIndex(l => l.locationId === locationId);
+                if (visitedIndex > -1) {
+                    const locToUpdate = newVisitedLocations[visitedIndex];
+                    if (newName) {
+                        locToUpdate.name = newName;
+                    }
+                    if (newDifficultyProfile) {
+                        locToUpdate.difficultyProfile = { ...locToUpdate.difficultyProfile, ...newDifficultyProfile };
+                    }
+                    if (newLastEventsDescription) {
+                        const oldEvents = locToUpdate.lastEventsDescription || '';
+                        locToUpdate.lastEventsDescription = `${newLastEventsDescription}\n\n${oldEvents}`.trim();
+                    }
+                }
+            }
+        });
     }
 
     const nextContext: GameContext = {
