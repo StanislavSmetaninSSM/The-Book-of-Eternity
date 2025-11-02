@@ -30,10 +30,9 @@ export function formatError(error: any): string {
         const columnNumber = match[3];
         let fileName = filePath.split('/').pop() || filePath;
         
-        // Try to decode the filename if it appears to be base64 encoded
         let decodedFileName = fileName;
         try {
-          if (fileName.length > 20 && !fileName.includes('.')) {
+          if (typeof window !== 'undefined' && fileName.length > 20 && !fileName.includes('.')) {
             const decoded = atob(fileName);
             // Check if the decoded content looks like code by checking for common patterns
             if (decoded.includes('=') || decoded.includes('{') || decoded.includes('function') || decoded.includes('const') || decoded.includes('let')) {
@@ -93,7 +92,7 @@ export function extractCodeContextFromStack(error: any): string | null {
         const lineNumber = parseInt(match[2]);
         
         // Try to decode if it looks like base64
-        if (filePath.length > 20 && !filePath.includes('.')) {
+        if (typeof window !== 'undefined' && filePath.length > 20 && !filePath.includes('.')) {
           try {
             const decoded = atob(filePath);
             const lines = decoded.split('\n');

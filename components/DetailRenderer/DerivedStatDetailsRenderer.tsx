@@ -18,12 +18,17 @@ const DerivedStatDetailsRenderer: React.FC<DerivedStatDetailsProps> = ({ data })
         </div>
         <div className="text-gray-400 text-lg italic"><MarkdownRenderer content={data.description} /></div>
         <Section title={t("Calculation Breakdown")} icon={AcademicCapIcon}>
-            {data.breakdown.map((item, i) => (
-                <div key={i} className="flex justify-between items-start py-2 border-b border-gray-700/50">
-                    <span className="font-semibold text-gray-400 flex items-center gap-2">{item.label}</span>
-                    <span className="text-right font-mono">{item.value}</span>
-                </div>
-            ))}
+            {data.breakdown.map((item, i) => {
+                if (item.label === '---') {
+                    return <div key={i} className="pt-2 mt-2 border-t border-gray-700/50" />;
+                }
+                return (
+                    <div key={i} className="flex justify-between items-start py-2 border-b border-gray-700/50">
+                        <span className="font-semibold text-gray-400 flex items-center gap-2">{item.label}</span>
+                        <span className="text-right font-mono">{item.value}</span>
+                    </div>
+                )
+            })}
         </Section>
     </div>
     );

@@ -18,9 +18,6 @@ export const getMusicPrompt = (context) => {
         2.  **Music MUST be ambient and instrumental.** Avoid distracting vocals or jarring sounds, unless the context is chaotic combat or intense horror. The music is for background listening.
         3.  **Thematic Match:** The music's genre should match the game world's genre (e.g., epic orchestral for fantasy, dark ambient for sci-fi horror).
         4.  **Mood Match:** The music's tone must match the current situation (e.g., mysterious, peaceful, tense, epic, sorrowful).
-        5.  **Output Format:** Your response MUST be a valid JSON object with ONLY the following keys: "searchQuery" and "reasoning".
-            - "searchQuery": A string containing 2-4 concise keywords **IN ENGLISH ONLY**, suitable for a YouTube search (e.g., "dark ambient horror music", "epic fantasy battle score"). The search query MUST be in English to work correctly.
-            - "reasoning": A brief, one-sentence justification for your choice, written in **${reasoningLanguage}**.
     </Constraints>
     <History>
         <Constraint>AVOID REPETITION. You have suggested the following search queries before in this session. DO NOT suggest them again. Be creative and find a different style or artist that also fits the mood.</Constraint>
@@ -41,6 +38,28 @@ export const getMusicPrompt = (context) => {
         ${context.last_messages || 'No recent events.'}
         </RecentEvents>
     </GameContextToAnalyze>
+
+    <JSON_OUTPUT_FORMAT>
+        <DESCRIPTION>
+            You are a JSON generation expert. Your response MUST be a single, raw, syntactically perfect JSON object.
+            Do NOT include any surrounding text, explanations, or markdown formatting like \`\`\`json.
+            Your entire output must start with '{' and end with '}'.
+            The JSON object MUST have the following structure and data types:
+        </DESCRIPTION>
+        <STRUCTURE>
+            - "searchQuery": (String) A string containing 2-4 concise keywords IN ENGLISH ONLY, suitable for a YouTube search.
+            - "reasoning": (String) A brief, one-sentence justification for your choice, written in ${reasoningLanguage}.
+        </STRUCTURE>
+        <EXAMPLE>
+            <![CDATA[
+            {
+              "searchQuery": "ancient mystery dark ambient",
+              "reasoning": "The current scene is tense and mysterious, calling for dark ambient music to build atmosphere."
+            }
+            ]]>
+        </EXAMPLE>
+    </JSON_OUTPUT_FORMAT>
+
     <FinalDirective>
         Based on the context, provide the JSON object now.
     </FinalDirective>

@@ -1,5 +1,6 @@
-import React, { useState, useMemo, useRef, useEffect, useCallback } from 'react';
-import { Item, PlayerCharacter, NPC, GameSettings } from '../types';
+import React, { useState, useMemo, useRef, useCallback, useEffect } from 'react';
+// FIX: Add GameState to import from types.
+import { Item, PlayerCharacter, NPC, GameSettings, GameState } from '../types';
 import Modal from './Modal';
 import {
     AcademicCapIcon, 
@@ -9,27 +10,22 @@ import {
     FingerPrintIcon,
     ArrowUturnLeftIcon,
     TrashIcon,
-    MagnifyingGlassPlusIcon,
     ArrowUpIcon,
     ArrowDownIcon,
-    ExclamationTriangleIcon,
     ArrowDownOnSquareIcon,
-    ArrowUpOnSquareIcon
+    ArrowUpOnSquareIcon,
+    HeartIcon,
+    BoltIcon,
+    ScaleIcon,
+    // FIX: Add missing ChevronUpIcon and ChevronDownIcon imports.
+    ChevronUpIcon,
+    ChevronDownIcon
 } from '@heroicons/react/24/outline';
-import { ArchiveBoxIcon as ArchiveBoxSolidIcon, ArrowsUpDownIcon, CheckIcon } from '@heroicons/react/24/solid';
-import ImageRenderer from './ImageRenderer';
+// FIX: Imported ArchiveBoxIcon as ArchiveBoxSolidIcon to resolve multiple 'Cannot find name' errors.
+import { ArrowsUpDownIcon, CheckIcon, ArchiveBoxIcon as ArchiveBoxSolidIcon } from '@heroicons/react/24/solid';
+import ItemCard from './CharacterSheet/Shared/ItemCard';
 import { useLocalization } from '../context/LocalizationContext';
-
-const qualityColorMap: Record<string, string> = {
-    'Trash': 'border-gray-700 hover:border-gray-500',
-    'Common': 'border-gray-600 hover:border-gray-400',
-    'Uncommon': 'border-green-800 hover:border-green-600',
-    'Good': 'border-blue-800 hover:border-blue-600',
-    'Rare': 'border-indigo-800 hover:border-indigo-600',
-    'Epic': 'border-purple-800 hover:border-purple-600',
-    'Legendary': 'border-orange-700 hover:border-orange-500',
-    'Unique': 'border-yellow-700 hover:border-yellow-500',
-};
+import StatBar from './CharacterSheet/Shared/StatBar';
 
 interface DragData {
     item: Item;
@@ -39,17 +35,17 @@ interface DragData {
 
 interface InventoryManagerUIProps {
     character: PlayerCharacter | NPC;
-    playerCharacter?: PlayerCharacter; // Player, used when character is an NPC
+    playerCharacter?: PlayerCharacter;
     isCompanionMode?: boolean;
     onEquip: (item: Item, slot: string) => void;
     onUnequip: (item: Item) => void;
-    onDropItem: (item: Item) => void; // For Player: drop. For NPC: take.
+    onDropItem: (item: Item) => void;
     onGiveItem?: (item: Item, quantity: number) => void;
     onMoveItem: (item: Item, containerId: string | null) => void;
     onSplitItem: (item: Item, quantity: number) => void;
     onMergeItems: (sourceItem: Item, targetItem: Item) => void;
     onOpenDetailModal: (title: string, data: any) => void;
-    onOpenImageModal: (prompt: string) => void;
+    onOpenImageModal: (displayPrompt: string, originalTextPrompt: string, onClearCustom?: () => void, onUpload?: (base64: string) => void) => void;
     imageCache: Record<string, string>;
     onImageGenerated: (prompt: string, base64: string) => void;
     updateItemSortOrder: (newOrder: string[]) => void;
@@ -61,6 +57,81 @@ const qualityOrder: Record<string, number> = {
     'Trash': 0, 'Common': 1, 'Uncommon': 2, 'Good': 3,
     'Rare': 4, 'Epic': 5, 'Legendary': 6, 'Unique': 7,
 };
+
+const EquipmentSlotComponent: React.FC<{
+    slot: { id: string, label: string, icon: React.ElementType };
+    item: Item | null;
+    onEquip: (item: Item, slot: string) => void;
+    gameSettings: GameSettings | null;
+    imageCache: Record<string, string>;
+    onImageGenerated: (prompt: string, base64: string) => void;
+    onOpenImageModal: (displayPrompt: string, originalTextPrompt: string, onClearCustom?: () => void, onUpload?: (base64: string) => void) => void;
+}> = ({ slot, item, onEquip, gameSettings, imageCache, onImageGenerated, onOpenImageModal }) => {
+    const [isOver, setIsOver] = useState(false);
+    const { t } = useLocalization();
+    const Icon = slot.icon;
+
+    const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+        e.preventDefault();
+        try {
+            const data: DragData = JSON.parse(e.dataTransfer.getData('application/json'));
+            if (data.isEquipped || data.item.durability === '0%') return;
+            const validSlots = Array.isArray(data.item.equipmentSlot) ? data.item.equipmentSlot : [data.item.equipmentSlot];
+            if (validSlots.includes(slot.id)) {
+              setIsOver(true);
+            }
+        } catch(e) {}
+    };
+    const handleDragLeave = () => setIsOver(false);
+
+    const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
+        e.preventDefault();
+        setIsOver(false);
+        try {
+            const data: DragData = JSON.parse(e.dataTransfer.getData('application/json'));
+            if (!data.isEquipped && data.item.durability !== '0%') {
+                const validSlots = Array.isArray(data.item.equipmentSlot) ? data.item.equipmentSlot : [data.item.equipmentSlot];
+                if (validSlots.includes(slot.id)) {
+                    onEquip(data.item, slot.id);
+                }
+            }
+        } catch(e) {
+            console.error("Failed to parse dropped item data:", e);
+        }
+    };
+    
+    const handleDragStart = (e: React.DragEvent<HTMLDivElement>) => {
+        if (!item) return;
+        const dragData: DragData = { item, isEquipped: true, isFromContainer: false };
+        e.dataTransfer.setData('application/json', JSON.stringify(dragData));
+        e.currentTarget.style.opacity = '0.4';
+    };
+    
+    const handleDragEnd = (e: React.DragEvent<HTMLDivElement>) => {
+        e.currentTarget.style.opacity = '1';
+    };
+
+    return (
+        <div 
+            onDrop={handleDrop}
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            className={`w-20 h-20 border-2 border-dashed rounded-md flex flex-col items-center justify-center transition-colors ${isOver ? 'border-cyan-400 bg-cyan-500/10' : 'border-gray-600'}`}
+        >
+            {item ? (
+                <div draggable onDragStart={handleDragStart} onDragEnd={handleDragEnd} className="cursor-pointer">
+                    <ItemCard item={item} gameSettings={gameSettings} imageCache={imageCache} onImageGenerated={onImageGenerated} onOpenImageModal={onOpenImageModal} />
+                </div>
+            ) : (
+                <div className="text-center text-gray-500 pointer-events-none">
+                    <Icon className="w-8 h-8 mx-auto mb-1 opacity-50" />
+                    <div className="text-xs font-semibold opacity-60">{t(slot.label as any)}</div>
+                </div>
+            )}
+        </div>
+    );
+};
+
 
 export default function InventoryManagerUI({ 
     character,
@@ -81,6 +152,10 @@ export default function InventoryManagerUI({
     updateItemSortSettings,
     gameSettings
 }: InventoryManagerUIProps) {
+    const [contextMenu, setContextMenu] = useState<{ x: number, y: number, item: Item } | null>(null);
+    const contextMenuRef = useRef<HTMLDivElement>(null);
+    const [showEquipSubMenu, setShowEquipSubMenu] = useState(false);
+
     const [viewingContainer, setViewingContainer] = useState<Item | null>(null);
     const [splitItem, setSplitItem] = useState<Item | null>(null);
     const [splitAmount, setSplitAmount] = useState('1');
@@ -92,7 +167,9 @@ export default function InventoryManagerUI({
     const dragOverItemIndex = useRef<number | null>(null);
 
     const containerRef = useRef<HTMLDivElement>(null);
-    const [topPanelFlexBasis, setTopPanelFlexBasis] = useState('50%');
+    const [topPanelFlexBasis, setTopPanelFlexBasis] = useState('40%');
+    // FIX: Add missing state for stats visibility toggle.
+    const [isStatsVisible, setIsStatsVisible] = useState(true);
 
     const startResize = useCallback((mouseDownEvent: React.MouseEvent) => {
         mouseDownEvent.preventDefault();
@@ -100,7 +177,7 @@ export default function InventoryManagerUI({
         const onMouseMove = (mouseMoveEvent: MouseEvent) => {
             if (containerRef.current) {
                 const containerRect = containerRef.current.getBoundingClientRect();
-                const containerHeight = containerRect.height - 12; // Account for resizer and margins
+                const containerHeight = containerRect.height - 8; // Account for resizer height
                 const newTopHeight = mouseMoveEvent.clientY - containerRect.top;
                 const newPercentage = (newTopHeight / containerHeight) * 100;
                 const clampedPercentage = Math.max(15, Math.min(85, newPercentage));
@@ -119,6 +196,35 @@ export default function InventoryManagerUI({
 
     const { itemSortCriteria = 'manual', itemSortDirection = 'asc' } = character;
 
+    const closeContextMenu = useCallback(() => {
+        setContextMenu(null);
+        setShowEquipSubMenu(false);
+    }, []);
+
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (contextMenuRef.current && !contextMenuRef.current.contains(event.target as Node)) {
+                closeContextMenu();
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+        };
+    }, [closeContextMenu]);
+
+    const handleContextMenu = (e: React.MouseEvent, item: Item) => {
+        e.preventDefault();
+        setContextMenu({ x: e.pageX, y: e.pageY, item });
+    };
+
+    const handleEquip = (slot: string) => {
+        if (!contextMenu) return;
+        const { item } = contextMenu;
+        onEquip(item, slot);
+        closeContextMenu();
+    };
+
     const handleSplit = () => {
         if (!splitItem) return;
         const amount = parseInt(splitAmount, 10);
@@ -135,123 +241,29 @@ export default function InventoryManagerUI({
         return playerCharacter.inventory.filter(item => !item.existedId || !equippedIds.has(item.existedId));
     }, [playerCharacter]);
 
-    // Slot definition
-    const EQUIPMENT_SLOTS = [
+    const ALL_SLOTS = useMemo(() => [
+        { id: 'Underwear_Top', label: 'Underwear Top', icon: ArchiveBoxSolidIcon },
         { id: 'Head', label: 'Head', icon: AcademicCapIcon },
+        { id: 'Accessory1', label: 'Accessory 1', icon: ArchiveBoxSolidIcon },
+        { id: 'Underwear_Bottom', label: 'Underwear Bottom', icon: ArchiveBoxSolidIcon },
         { id: 'Neck', label: 'Neck', icon: ArchiveBoxSolidIcon },
-        { id: 'Chest', label: 'Chest', icon: UserCircleIcon },
+        { id: 'Accessory4', label: 'Accessory 4', icon: ArchiveBoxSolidIcon },
         { id: 'Back', label: 'Back', icon: ArchiveBoxSolidIcon },
-        { id: 'MainHand', label: 'Main Hand', icon: SparklesIcon },
-        { id: 'OffHand', label: 'Off Hand', icon: ShieldCheckIcon },
-        { id: 'Hands', label: 'Hands', icon: ArchiveBoxSolidIcon },
+        { id: 'Chest', label: 'Chest', icon: UserCircleIcon },
+        { id: 'Sigil', label: 'Sigil', icon: SparklesIcon },
         { id: 'Wrists', label: 'Wrists', icon: ArchiveBoxSolidIcon },
         { id: 'Waist', label: 'Waist', icon: ArchiveBoxSolidIcon },
+        { id: 'Hands', label: 'Hands', icon: ArchiveBoxSolidIcon },
+        { id: 'MainHand', label: 'Main Hand', icon: SparklesIcon },
         { id: 'Legs', label: 'Legs', icon: ArchiveBoxSolidIcon },
-        { id: 'Feet', label: 'Feet', icon: ArchiveBoxSolidIcon },
+        { id: 'OffHand', label: 'Off Hand', icon: ShieldCheckIcon },
         { id: 'Finger1', label: 'Finger 1', icon: FingerPrintIcon },
+        { id: 'Feet', label: 'Feet', icon: ArchiveBoxSolidIcon },
         { id: 'Finger2', label: 'Finger 2', icon: FingerPrintIcon },
-    ];
+        { id: 'Accessory2', label: 'Accessory 2', icon: ArchiveBoxSolidIcon },
+        { id: 'Accessory3', label: 'Accessory 3', icon: ArchiveBoxSolidIcon }
+    ], []);
 
-    const ItemCard = ({ item }: { item: Item }) => {
-        const isBroken = item.durability === '0%';
-        const imagePrompt = item.custom_image_prompt || item.image_prompt || `game asset, inventory icon, ${item.quality} ${item.name}, fantasy art, plain background`;
-
-        const handleImageClick = (e: React.MouseEvent) => {
-            e.stopPropagation();
-            onOpenImageModal(imagePrompt);
-        };
-
-        return (
-            <div
-                className={`w-20 h-20 bg-gray-900/50 rounded-md flex flex-col justify-center items-center border-2 ${qualityColorMap[item.quality] || 'border-gray-600'} shadow-lg transition-all relative group overflow-hidden ${isBroken ? '' : 'hover:shadow-cyan-500/20 hover:scale-105'}`}
-                title={isBroken ? t("This item is broken and cannot be equipped.") : (typeof item.name === 'string' ? item.name : '')}
-            >
-                <ImageRenderer prompt={imagePrompt} alt={item.name} className={`absolute inset-0 w-full h-full object-cover ${isBroken ? 'filter grayscale brightness-50' : ''}`} imageCache={imageCache} onImageGenerated={onImageGenerated} model={gameSettings?.pollinationsImageModel} />
-                 {isBroken && (
-                    <div className="absolute inset-0 bg-red-900/50 flex items-center justify-center pointer-events-none">
-                        <ExclamationTriangleIcon className="w-8 h-8 text-red-400" />
-                    </div>
-                )}
-                <div className="absolute inset-x-0 bottom-0 bg-black/70 p-1 text-center">
-                    <p className="text-xs text-white line-clamp-1 font-semibold">{typeof item.name === 'string' ? item.name : `[${t('corrupted_item')}]`}</p>
-                </div>
-                {item.count > 1 && <div className="absolute top-1 right-1 text-xs bg-gray-900/80 px-1.5 py-0.5 rounded-full font-mono text-white">{item.count}</div>}
-                {item.resource !== undefined && item.maximumResource !== undefined && (
-                    <div className="absolute bottom-1 left-1 text-xs bg-cyan-700/90 px-1.5 py-0.5 rounded-full font-mono text-white border border-cyan-400/50">
-                        {item.resource}/{item.maximumResource}
-                    </div>
-                )}
-                <div onClick={handleImageClick} className="absolute top-1 left-1 bg-gray-900/50 p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-cyan-500/50 cursor-pointer">
-                    <MagnifyingGlassPlusIcon className="w-4 h-4 text-white" />
-                </div>
-            </div>
-        );
-    };
-    
-    const EquipmentSlotComponent = ({ slot, item }: { slot: { id: string, label: string, icon: React.ElementType }, item: Item | null }) => {
-        const [isOver, setIsOver] = useState(false);
-        const Icon = slot.icon;
-    
-        const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
-            e.preventDefault();
-            try {
-                const data: DragData = JSON.parse(e.dataTransfer.getData('application/json'));
-                if (data.isEquipped || data.item.durability === '0%') return;
-                const validSlots = Array.isArray(data.item.equipmentSlot) ? data.item.equipmentSlot : [data.item.equipmentSlot];
-                if (validSlots.includes(slot.id)) {
-                  setIsOver(true);
-                }
-            } catch(e) {}
-        };
-        const handleDragLeave = () => setIsOver(false);
-    
-        const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
-            e.preventDefault();
-            setIsOver(false);
-            try {
-                const data: DragData = JSON.parse(e.dataTransfer.getData('application/json'));
-                if (!data.isEquipped && data.item.durability !== '0%') {
-                    const validSlots = Array.isArray(data.item.equipmentSlot) ? data.item.equipmentSlot : [data.item.equipmentSlot];
-                    if (validSlots.includes(slot.id)) {
-                        onEquip(data.item, slot.id);
-                    }
-                }
-            } catch(e) {
-                console.error("Failed to parse dropped item data:", e);
-            }
-        };
-        
-        const handleDragStart = (e: React.DragEvent<HTMLDivElement>) => {
-            if (!item) return;
-            const dragData: DragData = { item, isEquipped: true, isFromContainer: false };
-            e.dataTransfer.setData('application/json', JSON.stringify(dragData));
-            e.currentTarget.style.opacity = '0.4';
-        };
-        
-        const handleDragEnd = (e: React.DragEvent<HTMLDivElement>) => {
-            e.currentTarget.style.opacity = '1';
-        };
-    
-        return (
-            <div 
-                onDrop={handleDrop}
-                onDragOver={handleDragOver}
-                onDragLeave={handleDragLeave}
-                className={`w-24 h-24 border-2 border-dashed rounded-md flex flex-col items-center justify-center transition-colors ${isOver ? 'border-cyan-400 bg-cyan-500/10' : 'border-gray-600'}`}
-            >
-                {item ? (
-                    <div draggable onDragStart={handleDragStart} onDragEnd={handleDragEnd} className="cursor-pointer">
-                        <ItemCard item={item} />
-                    </div>
-                ) : (
-                    <div className="text-center text-gray-500 pointer-events-none">
-                        <Icon className="w-8 h-8 mx-auto mb-1" />
-                        <div className="text-xs font-semibold">{t(slot.label as any)}</div>
-                    </div>
-                )}
-            </div>
-        );
-    };
 
     const equippedItemsMap = useMemo(() => {
         const map = new Map<string, Item>();
@@ -268,11 +280,9 @@ export default function InventoryManagerUI({
         const inventory = character.inventory || [];
         const equippedItemIds = new Set(Object.values(character.equippedItems || {}).filter(Boolean));
 
-        if (!viewingContainer) { // Root inventory view
-            // Filter for items that are at the root AND are not currently equipped.
+        if (!viewingContainer) {
             return inventory.filter(item => !item.contentsPath && (!item.existedId || !equippedItemIds.has(item.existedId)));
-        } else { // Viewing a container
-            // Items inside containers are never considered equipped, so we just filter by path.
+        } else {
             const containerPath = viewingContainer.contentsPath ? [...viewingContainer.contentsPath, viewingContainer.name] : [viewingContainer.name];
             return inventory.filter(item => item.contentsPath?.join('/') === containerPath.join('/'));
         }
@@ -284,16 +294,16 @@ export default function InventoryManagerUI({
     
         let sortedList: Item[] = [];
     
-        // Step 1: Apply sorting to the entire list of items in view
         if (itemSortCriteria === 'manual') {
             if (itemSortOrder && itemSortOrder.length > 0) {
                 const itemMap = new Map(itemsToProcess.map(item => [item.existedId, item]));
-                const sorted = itemSortOrder.map(id => itemMap.get(id!))
+                const sorted = itemSortOrder
+                    .map(id => itemMap.get(id!))
                     .filter((item): item is Item => !!item && itemsToProcess.some(i => i.existedId === item.existedId));
-                const newItems = itemsToProcess.filter(item => item.existedId && !itemSortOrder.includes(item.existedId));
+                const newItems = itemsToProcess.filter(item => !item.existedId || !itemSortOrder.includes(item.existedId));
                 sortedList = [...sorted, ...newItems];
             } else {
-                sortedList = itemsToProcess; // If manual but no order, keep as is
+                sortedList = itemsToProcess;
             }
         } else { // Automatic sorting
             const sortFn = (a: Item, b: Item) => {
@@ -333,13 +343,9 @@ export default function InventoryManagerUI({
                 
                 return itemSortDirection === 'asc' ? comparison : -comparison;
             };
-    
-            const containers = itemsToProcess.filter(i => i.isContainer);
-            const normalItems = itemsToProcess.filter(i => !i.isContainer);
-            sortedList = [...containers.sort(sortFn), ...normalItems.sort(sortFn)];
+            sortedList = [...itemsToProcess].sort(sortFn);
         }
-    
-        // Step 2: Bubble equipped items to the top, preserving their relative sorted order
+        
         const equippedItemIds = new Set(Object.values(character.equippedItems || {}).filter(id => id !== null));
         const equippedItems: Item[] = [];
         const unequippedItems: Item[] = [];
@@ -368,7 +374,6 @@ export default function InventoryManagerUI({
         dragItemIndex.current = null;
         dragOverItemIndex.current = null;
         setLocalItems(_localItems);
-        // Immediately persist the new manual order and criteria
         const newOrder = _localItems.map(item => item.existedId).filter(Boolean) as string[];
         updateItemSortOrder(newOrder);
         if (itemSortCriteria !== 'manual') {
@@ -377,10 +382,10 @@ export default function InventoryManagerUI({
     };
 
     const handleSortToggle = () => {
-        if (isSorting) { // Finishing sort
+        if (isSorting) {
             const newOrder = localItems.map(item => item.existedId).filter(Boolean) as string[];
             updateItemSortOrder(newOrder);
-        } else { // Starting sort
+        } else {
             if (itemSortCriteria !== 'manual') {
                 updateItemSortSettings('manual', itemSortDirection);
             }
@@ -395,7 +400,7 @@ export default function InventoryManagerUI({
             if (data.isEquipped) {
                 onUnequip(data.item);
             } else if (data.isFromContainer) {
-                onMoveItem(data.item, null); // Move to root
+                onMoveItem(data.item, null);
             }
         } catch(err) {}
     };
@@ -457,39 +462,142 @@ export default function InventoryManagerUI({
     const dropZoneLabel = isCompanionMode ? t('Take Item') : t('Drag here to drop item');
     const dropZoneIcon = isCompanionMode ? ArrowDownOnSquareIcon : TrashIcon;
 
+    const renderContextMenu = () => {
+        if (!contextMenu) return null;
+        const { item } = contextMenu;
+        const isEquipped = item.existedId ? Object.values(character.equippedItems || {}).includes(item.existedId) : false;
+        const canEquip = item.equipmentSlot && item.durability !== '0%';
+    
+        const handleUnequip = () => {
+            onUnequip(item);
+            closeContextMenu();
+        };
+
+        const handleDrop = () => {
+            onDropItem(item);
+            closeContextMenu();
+        }
+
+        const handleDetails = () => {
+            const ownerInfo = isCompanionMode 
+                ? { ownerType: 'npc', ownerId: 'NPCId' in character ? character.NPCId : '', isEquippedByOwner: isEquipped }
+                : { ownerType: 'player', ownerId: (character as PlayerCharacter).playerId, isEquippedByOwner: isEquipped };
+            onOpenDetailModal(t("Item: {name}", { name: item.name }), { ...item, ...ownerInfo });
+            closeContextMenu();
+        };
+
+        const handleGive = (quantity: number) => {
+            if (onGiveItem) {
+                onGiveItem(item, quantity);
+            }
+            closeContextMenu();
+        };
+    
+        return (
+            <div ref={contextMenuRef} className="context-menu animate-fade-in-down-fast" style={{ top: contextMenu.y, left: contextMenu.x }}>
+                <button onClick={handleDetails} className="context-menu-item">{t('Details')}</button>
+                {canEquip && !isEquipped && (
+                    <div 
+                        className="relative" 
+                        onMouseEnter={() => setShowEquipSubMenu(true)} 
+                        onMouseLeave={() => setShowEquipSubMenu(false)}
+                    >
+                        <div className="context-menu-item context-menu-item-with-submenu block w-full text-left cursor-default">
+                            {t('Equip')}
+                        </div>
+                        {showEquipSubMenu && (
+                            <div className="context-menu absolute left-full top-0 ml-1 z-10">
+                                {(Array.isArray(item.equipmentSlot) ? item.equipmentSlot : [item.equipmentSlot]).map(slot => (
+                                    slot && <button key={slot} onClick={() => handleEquip(slot)} className="context-menu-item">
+                                        {t(slot as any)}
+                                    </button>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                )}
+                {isEquipped && <button onClick={handleUnequip} className="context-menu-item">{t('Unequip')}</button>}
+                {!isCompanionMode && <button onClick={handleDrop} className="context-menu-item">{t('Drop')}</button>}
+                {isCompanionMode && <button onClick={handleDrop} className="context-menu-item">{t('Take Stack')}</button>}
+                {isCompanionMode && item.count > 1 && <button onClick={() => onGiveItem!(item, 1)} className="context-menu-item">{t('Take')} 1</button>}
+                {isCompanionMode && (
+                    <>
+                        <div className="my-1 border-t border-gray-600" />
+                        <button onClick={() => onGiveItem!(item, item.count)} className="context-menu-item">{t('Give Stack')}</button>
+                        {item.count > 1 && <button onClick={() => onGiveItem!(item, 1)} className="context-menu-item">{t('Give')} 1</button>}
+                    </>
+                )}
+            </div>
+        );
+    };
+
     return (
-        <div className={`flex flex-col md:flex-row gap-8 ${isCompanionMode ? 'h-[80vh]' : 'h-[70vh]'}`}>
-            {/* Equipment Panel */}
-            <div className="flex-shrink-0 w-full md:w-auto text-center">
-                <h3 className="text-xl font-bold text-cyan-400 mb-4 narrative-text">{isCompanionMode ? character.name : t('Equipment')}</h3>
-                <div className="grid grid-cols-2 md:grid-cols-2 gap-4 justify-items-center">
-                    {EQUIPMENT_SLOTS.map(slot => (
-                        <EquipmentSlotComponent 
-                            key={slot.id} 
-                            slot={slot} 
-                            item={equippedItemsMap.get(slot.id) || null}
-                        />
+        <div className="inventory-screen-layout">
+            <div className="flex flex-col w-[500px] flex-shrink-0 gap-4">
+                <h3 className="text-xl font-bold text-cyan-400 narrative-text text-center">{t('Equipment')}</h3>
+                <div className="equipment-grid-layout">
+                    {ALL_SLOTS.map(slot => (
+                        <div key={slot.id} className={`slot-${slot.id}`}>
+                            <EquipmentSlotComponent 
+                                slot={slot} 
+                                item={equippedItemsMap.get(slot.id) || null}
+                                onEquip={onEquip}
+                                gameSettings={gameSettings}
+                                imageCache={imageCache}
+                                onImageGenerated={onImageGenerated}
+                                onOpenImageModal={onOpenImageModal}
+                            />
+                        </div>
                     ))}
                 </div>
             </div>
-            
-            {/* Inventory Panels (Conditional Rendering for Companion Mode) */}
-            <div ref={containerRef} className="flex-1 flex flex-col min-h-0">
-                {!isCompanionMode ? (
-                    // --- SINGLE PLAYER VIEW ---
-                    <div className="flex-1 flex flex-col min-h-0">
-                        <div className="flex justify-between items-center mb-4 flex-wrap gap-2">
-                            <h3 className="text-xl font-bold text-cyan-400 narrative-text">
-                                {viewingContainer ? viewingContainer.name : t('Inventory')}
+
+            <div className="inventory-panel" ref={containerRef}>
+                {isCompanionMode ? (
+                    <>
+                        <div style={{ flex: `0 0 ${topPanelFlexBasis}` }} className="flex flex-col min-h-0 gap-4">
+                            <h3 className="text-xl font-bold text-cyan-400 narrative-text text-center">{t('Carried Items')}</h3>
+                             <div onDrop={handleDropOnInventory} onDragOver={allowDrop} className="inventory-scroll-container flex flex-col !p-0" style={{marginBottom: 0, marginTop: 0}}>
+                                <div className="flex-1 p-4 overflow-y-auto">
+                                    <div className="inventory-grid">{itemsToDisplay.map((item, index) => <div key={item.existedId} draggable={item.durability !== '0%'} onDragStart={(e) => handleItemDragStart(e, index, item)} onDragEnd={handleItemDragEnd} onDragEnter={isSorting ? () => (dragOverItemIndex.current = index) : undefined} onDragOver={(e) => e.preventDefault()} onDrop={(e) => handleDropOnItem(e, item)} onClick={() => { if (isSorting) return; if (item.isContainer) { setViewingContainer(item); } else { const detailData = { ...item, ownerType: 'npc', ownerId: 'NPCId' in character ? character.NPCId : '', isEquippedByOwner: 'NPCId' in character ? Object.values(character.equippedItems || {}).includes(item.existedId) : false }; onOpenDetailModal(t("Item: {name}", { name: item.name }), detailData); } }} onContextMenu={(e) => handleContextMenu(e, item)} className={`${isSorting ? 'cursor-move' : 'cursor-pointer'}`}><ItemCard item={item} gameSettings={gameSettings} imageCache={imageCache} onImageGenerated={onImageGenerated} onOpenImageModal={onOpenImageModal} /></div>)}</div>
+                                    {itemsToDisplay.length === 0 && <p className="text-gray-500 text-center mt-16">{t('No carried items.')}</p>}
+                                </div>
+                                <div onDrop={handleDropOnDropZone} onDragOver={allowDrop} className={`p-4 mt-auto drop-zone`}>{React.createElement(dropZoneIcon, { className: "w-8 h-8 mx-auto mb-2" })}{dropZoneLabel}</div>
+                            </div>
+                        </div>
+
+                        <div onMouseDown={startResize} className="inventory-resizer" />
+
+                        <div style={{ flex: '1 1 0' }} className="flex flex-col min-h-0">
+                            <h3 className="text-xl font-bold text-cyan-400 narrative-text my-4 text-center">{t("Your Inventory")}</h3>
+                            <div className="inventory-scroll-container" style={{marginBottom: 0}}>
+                                <div className="inventory-grid">
+                                    {playerUnequippedInventory.map(item => (<div key={item.existedId} className="flex flex-col items-center justify-start gap-2">
+                                        <div onContextMenu={(e) => handleContextMenu(e, item)}>
+                                            <ItemCard item={item} gameSettings={gameSettings} imageCache={imageCache} onImageGenerated={onImageGenerated} onOpenImageModal={onOpenImageModal} />
+                                        </div>
+                                        <button onClick={() => onGiveItem?.(item, item.count)} className="w-full flex items-center justify-center gap-2 px-2 py-1.5 text-xs font-semibold rounded-md transition-colors bg-green-600/20 text-green-300 hover:bg-green-600/40" title={t('Give Item')}>
+                                            <ArrowUpOnSquareIcon className="w-4 h-4" /><span>{t('Give Item')}</span>
+                                        </button>
+                                    </div>))}
+                                </div>
+                                {playerUnequippedInventory.length === 0 && <p className="text-gray-500 text-center mt-16">{t('Your pockets are empty.')}</p>}
+                            </div>
+                        </div>
+                    </>
+                ) : (
+                     <div className="flex-1 flex flex-col min-h-0">
+                        <div className="relative mb-4">
+                            <h3 className="text-xl font-bold text-cyan-400 narrative-text text-center">
+                                {viewingContainer ? viewingContainer.name : t('Your Inventory')}
                             </h3>
-                            {/* Sorting controls for player */}
-                            <div className="flex items-center gap-2">
+                            <div className="absolute top-1/2 right-0 -translate-y-1/2 flex items-center gap-2">
                                 <fieldset disabled={isSorting} className="flex items-center gap-2">
                                     <label htmlFor="sort-criteria" className="text-sm text-gray-400 flex-shrink-0">{t('Sort by:')}</label>
-                                    <select id="sort-criteria" value={itemSortCriteria} onChange={(e) => updateItemSortSettings(e.target.value as any, itemSortDirection)} className="bg-gray-700/50 border border-gray-600 rounded-md py-1 px-2 text-xs text-gray-200 focus:ring-1 focus:ring-cyan-500 transition">
+                                    <select id="sort-criteria" value={itemSortCriteria} onChange={(e) => updateItemSortSettings(e.target.value as any, itemSortDirection)} className="dark-select">
                                         <option value="manual">{t('Manual')}</option><option value="name">{t('Name')}</option><option value="quality">{t('Quality')}</option><option value="weight">{t('Weight')}</option><option value="price">{t('Price')}</option><option value="type">{t('Type')}</option>
                                     </select>
-                                    <button onClick={() => updateItemSortSettings(itemSortCriteria, itemSortDirection === 'asc' ? 'desc' : 'asc')} className="p-1 bg-gray-700/50 border border-gray-600 rounded-md text-gray-200 hover:bg-gray-700" title={itemSortDirection === 'asc' ? t('Ascending') : t('Descending')}>
+                                    <button onClick={() => updateItemSortSettings(itemSortCriteria, itemSortDirection === 'asc' ? 'desc' : 'asc')} className="p-1.5 bg-gray-700/50 border border-gray-600 rounded-md text-gray-200 hover:bg-gray-700" title={itemSortDirection === 'asc' ? t('Ascending') : t('Descending')}>
                                         {itemSortDirection === 'asc' ? <ArrowUpIcon className="w-4 h-4" /> : <ArrowDownIcon className="w-4 h-4" />}
                                     </button>
                                 </fieldset>
@@ -500,55 +608,26 @@ export default function InventoryManagerUI({
                                 {viewingContainer && <button onClick={() => setViewingContainer(null)} className="flex items-center gap-2 px-3 py-1.5 text-xs font-semibold text-cyan-300 bg-cyan-500/10 rounded-md hover:bg-cyan-500/20 transition-colors"><ArrowUturnLeftIcon className="w-4 h-4" />{t('Back to Inventory')}</button>}
                             </div>
                         </div>
-                        <div onDrop={handleDropOnInventory} onDragOver={allowDrop} className="flex-1 bg-gray-900/30 p-4 rounded-lg overflow-y-auto flex flex-col">
-                            <div className="flex-1"><div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 gap-4">{itemsToDisplay.map((item, index) => <div key={item.existedId} draggable={item.durability !== '0%'} onDragStart={(e) => handleItemDragStart(e, index, item)} onDragEnd={handleItemDragEnd} onDragEnter={isSorting ? () => (dragOverItemIndex.current = index) : undefined} onDragOver={(e) => e.preventDefault()} onDrop={(e) => handleDropOnItem(e, item)} onClick={() => {if (isSorting) return; if (item.isContainer) {setViewingContainer(item);} else {onOpenDetailModal(t("Item: {name}", { name: item.name }), item);}}} onContextMenu={(e) => { e.preventDefault(); if (!isSorting && item.count > 1) { setSplitItem(item); setSplitAmount('1'); } }} className={`${isSorting ? 'cursor-move' : 'cursor-pointer'}`}><ItemCard item={item} /></div>)}</div>{itemsToDisplay.length === 0 && <p className="text-gray-500 text-center mt-16">{t('Your pockets are empty.')}</p>}</div>
-                            <div onDrop={handleDropOnDropZone} onDragOver={allowDrop} className={`mt-4 p-4 border-2 border-dashed rounded-lg text-center ${'border-red-800/50 text-red-400/70'}`}>{React.createElement(dropZoneIcon, { className: "w-8 h-8 mx-auto mb-2" })}{dropZoneLabel}</div>
+                        <div onDrop={handleDropOnInventory} onDragOver={allowDrop} className="inventory-scroll-container">
+                            <div className="inventory-grid">{itemsToDisplay.map((item, index) => <div key={item.existedId} draggable={item.durability !== '0%'} onDragStart={(e) => handleItemDragStart(e, index, item)} onDragEnd={handleItemDragEnd} onDragEnter={isSorting ? () => (dragOverItemIndex.current = index) : undefined} onDragOver={(e) => e.preventDefault()} onDrop={(e) => handleDropOnItem(e, item)} onClick={() => {if (isSorting) return; if (item.isContainer) {setViewingContainer(item);} else {onOpenDetailModal(t("Item: {name}", { name: item.name }), item);}}} onContextMenu={(e) => handleContextMenu(e, item)} className={`${isSorting ? 'cursor-move' : 'cursor-pointer'}`}><ItemCard item={item} gameSettings={gameSettings} imageCache={imageCache} onImageGenerated={onImageGenerated} onOpenImageModal={onOpenImageModal} /></div>)}</div>{itemsToDisplay.length === 0 && <p className="text-gray-500 text-center mt-16">{t('Your pockets are empty.')}</p>}
                         </div>
+
+                        <div className="character-stats-summary">
+                            <button onClick={() => setIsStatsVisible(!isStatsVisible)} className="w-full flex justify-between items-center text-left font-semibold text-gray-300 mb-2">
+                                {character.name}
+                                {isStatsVisible ? <ChevronUpIcon className="w-5 h-5"/> : <ChevronDownIcon className="w-5 h-5"/>}
+                            </button>
+                            {isStatsVisible && (
+                                <div className="space-y-2 animate-fade-in-down-fast">
+                                    <StatBar label={t('Health')} value={character.currentHealth} max={character.maxHealth} color="bg-red-500" icon={HeartIcon} character={character} />
+                                    {'currentEnergy' in character && <StatBar label={t('Energy')} value={character.currentEnergy} max={character.maxEnergy} color="bg-blue-500" icon={BoltIcon} character={character} />}
+                                    <StatBar label={t('Weight')} value={character.totalWeight!} max={character.maxWeight!} threshold={character.maxWeight} color="bg-orange-500" unit={t('kg_short')} icon={ScaleIcon} character={character} />
+                                </div>
+                            )}
+                        </div>
+
+                        <div onDrop={handleDropOnDropZone} onDragOver={allowDrop} className={`drop-zone`}>{React.createElement(dropZoneIcon, { className: "w-8 h-8 mx-auto mb-2" })}{dropZoneLabel}</div>
                     </div>
-                ) : (
-                    // --- COMPANION VIEW ---
-                    <>
-                        {/* NPC Inventory Panel */}
-                        <div style={{ flex: `0 0 ${topPanelFlexBasis}` }} className="flex flex-col min-h-0">
-                            <div className="flex justify-between items-center mb-4 flex-wrap gap-2">
-                                <h3 className="text-xl font-bold text-cyan-400 narrative-text">{viewingContainer ? viewingContainer.name : t('Carried Items')}</h3>
-                                {/* Sorting controls for NPC */}
-                                <div className="flex items-center gap-2">
-                                    <fieldset disabled={isSorting} className="flex items-center gap-2">
-                                        <label htmlFor="sort-criteria-npc" className="text-sm text-gray-400 flex-shrink-0">{t('Sort by:')}</label>
-                                        <select id="sort-criteria-npc" value={itemSortCriteria} onChange={(e) => updateItemSortSettings(e.target.value as any, itemSortDirection)} className="bg-gray-700/50 border border-gray-600 rounded-md py-1 px-2 text-xs text-gray-200 focus:ring-1 focus:ring-cyan-500 transition">
-                                            <option value="manual">{t('Manual')}</option><option value="name">{t('Name')}</option><option value="quality">{t('Quality')}</option><option value="weight">{t('Weight')}</option><option value="price">{t('Price')}</option><option value="type">{t('Type')}</option>
-                                        </select>
-                                        <button onClick={() => updateItemSortSettings(itemSortCriteria, itemSortDirection === 'asc' ? 'desc' : 'asc')} className="p-1 bg-gray-700/50 border border-gray-600 rounded-md text-gray-200 hover:bg-gray-700" title={itemSortDirection === 'asc' ? t('Ascending') : t('Descending')}>
-                                            {itemSortDirection === 'asc' ? <ArrowUpIcon className="w-4 h-4" /> : <ArrowDownIcon className="w-4 h-4" />}
-                                        </button>
-                                    </fieldset>
-                                    <button onClick={handleSortToggle} className="flex items-center gap-2 px-3 py-1.5 text-xs font-semibold text-cyan-300 bg-cyan-500/10 rounded-md hover:bg-cyan-500/20 transition-colors">
-                                        {isSorting ? <CheckIcon className="w-4 h-4" /> : <ArrowsUpDownIcon className="w-4 h-4" />}
-                                        {isSorting ? t('Done') : t('Sort')}
-                                    </button>
-                                    {viewingContainer && <button onClick={() => setViewingContainer(null)} className="flex items-center gap-2 px-3 py-1.5 text-xs font-semibold text-cyan-300 bg-cyan-500/10 rounded-md hover:bg-cyan-500/20 transition-colors"><ArrowUturnLeftIcon className="w-4 h-4" />{t('Back to Inventory')}</button>}
-                                </div>
-                            </div>
-                            <div onDrop={handleDropOnInventory} onDragOver={allowDrop} className="flex-1 bg-gray-900/30 p-4 rounded-lg overflow-y-auto flex flex-col min-h-0">
-                                <div className="flex-1"><div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 gap-4">{itemsToDisplay.map((item, index) => <div key={item.existedId} draggable={item.durability !== '0%'} onDragStart={(e) => handleItemDragStart(e, index, item)} onDragEnd={handleItemDragEnd} onDragEnter={isSorting ? () => (dragOverItemIndex.current = index) : undefined} onDragOver={(e) => e.preventDefault()} onDrop={(e) => handleDropOnItem(e, item)} onClick={() => { if (isSorting) return; if (item.isContainer) { setViewingContainer(item); } else { const detailData = { ...item, ownerType: 'npc', ownerId: 'NPCId' in character ? character.NPCId : '', isEquippedByOwner: 'NPCId' in character ? Object.values(character.equippedItems || {}).includes(item.existedId) : false }; onOpenDetailModal(t("Item: {name}", { name: item.name }), detailData); } }} onContextMenu={(e) => { e.preventDefault(); if (!isSorting && item.count > 1) { setSplitItem(item); setSplitAmount('1'); } }} className={`${isSorting ? 'cursor-move' : 'cursor-pointer'}`}><ItemCard item={item} /></div>)}</div>{itemsToDisplay.length === 0 && <p className="text-gray-500 text-center mt-16">{t('No carried items.')}</p>}</div>
-                                <div onDrop={handleDropOnDropZone} onDragOver={allowDrop} className={`mt-4 p-4 border-2 border-dashed rounded-lg text-center ${'border-green-800/50 text-green-400/70'}`}>{React.createElement(dropZoneIcon, { className: "w-8 h-8 mx-auto mb-2" })}{dropZoneLabel}</div>
-                            </div>
-                        </div>
-
-                        <div onMouseDown={startResize} className="w-full h-3 my-1 bg-gray-600 hover:bg-cyan-500 cursor-row-resize flex-shrink-0" />
-
-                        {/* Player Inventory Panel */}
-                        <div style={{ flex: '1 1 0' }} className="flex flex-col min-h-0">
-                            <h3 className="text-xl font-bold text-cyan-400 narrative-text mb-4">{t("Your Inventory")}</h3>
-                            <div className="flex-1 bg-gray-900/30 p-4 rounded-lg overflow-y-auto min-h-0">
-                                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                                    {playerUnequippedInventory.map(item => (<div key={item.existedId} className="flex flex-col gap-2"><ItemCard item={item} /><button onClick={() => onGiveItem?.(item, item.count)} className="w-full flex items-center justify-center gap-2 px-2 py-1.5 text-xs font-semibold rounded-md transition-colors bg-green-600/20 text-green-300 hover:bg-green-600/40" title={t('Give Item')}><ArrowUpOnSquareIcon className="w-4 h-4" /><span>{t('Give Item')}</span></button></div>))}
-                                </div>
-                                {playerUnequippedInventory.length === 0 && <p className="text-gray-500 text-center mt-16">{t('Your pockets are empty.')}</p>}
-                            </div>
-                        </div>
-                    </>
                 )}
             </div>
             
@@ -574,6 +653,123 @@ export default function InventoryManagerUI({
                     </div>
                 </Modal>
             )}
+            {renderContextMenu()}
         </div>
     );
 }
+
+interface InventoryScreenProps {
+    gameState: GameState;
+    npc: NPC | null;
+    onClose: () => void;
+    
+    // Player actions
+    onEquip: (item: Item, slot: string) => void;
+    onUnequip: (item: Item) => void;
+    onDropItem: (item: Item) => void;
+    onMoveItem: (item: Item, containerId: string | null) => void;
+    onSplitItem: (item: Item, quantity: number) => void;
+    onMergeItems: (sourceItem: Item, targetItem: Item) => void;
+    
+    // NPC-specific actions
+    onTransferItem: (sourceType: 'player' | 'npc', targetType: 'player' | 'npc', npcId: string, item: Item, quantity: number) => void;
+    onEquipItemForNpc: (npcId: string, item: Item, slot: string) => void;
+    onUnequipItemForNpc: (npcId: string, item: Item) => void;
+    onSplitItemForNpc: (npcId: string, item: Item, quantity: number) => void;
+    onMergeItemsForNpc: (npcId: string, sourceItem: Item, targetItem: Item) => void;
+    onMoveNpcItem: (npcId: string, item: Item, containerId: string | null) => void;
+
+    // Common actions
+    onOpenDetailModal: (title: string, data: any) => void;
+    onOpenImageModal: (displayPrompt: string, originalTextPrompt: string, onClearCustom?: () => void, onUpload?: (base64: string) => void) => void;
+    imageCache: Record<string, string>;
+    onImageGenerated: (prompt: string, base64: string) => void;
+    
+    // Sorting
+    updateItemSortOrder: (newOrder: string[]) => void;
+    updateItemSortSettings: (criteria: PlayerCharacter['itemSortCriteria'], direction: PlayerCharacter['itemSortDirection']) => void;
+    updateNpcItemSortOrder: (npcId: string, newOrder: string[]) => void;
+    updateNpcItemSortSettings: (npcId: string, criteria: PlayerCharacter['itemSortCriteria'], direction: PlayerCharacter['itemSortDirection']) => void;
+    
+    gameSettings: GameSettings | null;
+}
+
+export const InventoryScreen: React.FC<Partial<InventoryScreenProps>> = ({ 
+    gameState, 
+    npc,
+    onClose, 
+    gameSettings,
+    onEquip,
+    onUnequip,
+    onDropItem,
+    onMoveItem,
+    onSplitItem,
+    onMergeItems,
+    onTransferItem,
+    onEquipItemForNpc,
+    onUnequipItemForNpc,
+    onSplitItemForNpc,
+    onMergeItemsForNpc,
+    onMoveNpcItem,
+    onOpenDetailModal,
+    onOpenImageModal,
+    imageCache,
+    onImageGenerated,
+    updateItemSortOrder,
+    updateItemSortSettings,
+    updateNpcItemSortOrder,
+    updateNpcItemSortSettings,
+}) => {
+    const { t } = useLocalization();
+    
+    if (!gameState || !onClose || !gameSettings) return null;
+
+    const managerProps = {
+        gameSettings,
+        onOpenDetailModal: onOpenDetailModal!,
+        onOpenImageModal: onOpenImageModal!,
+        imageCache: imageCache!,
+        onImageGenerated: onImageGenerated!,
+    };
+
+    if (npc) {
+        // NPC Inventory management
+        return (
+            <Modal title={t("Inventory") + `: ${npc.name}`} isOpen={true} onClose={onClose} size="fullscreen">
+                <InventoryManagerUI
+                    {...managerProps}
+                    character={npc}
+                    playerCharacter={gameState.playerCharacter}
+                    isCompanionMode={true}
+                    onEquip={(item, slot) => onEquipItemForNpc!(npc.NPCId, item, slot)}
+                    onUnequip={(item) => onUnequipItemForNpc!(npc.NPCId, item)}
+                    onDropItem={(item) => onTransferItem!('npc', 'player', npc.NPCId, item, item.count)} // Take from NPC
+                    onGiveItem={(item, quantity) => onTransferItem!('player', 'npc', npc.NPCId, item, quantity)} // Give to NPC
+                    onMoveItem={(item, containerId) => onMoveNpcItem!(npc.NPCId, item, containerId)}
+                    onSplitItem={(item, quantity) => onSplitItemForNpc!(npc.NPCId, item, quantity)}
+                    onMergeItems={(source, target) => onMergeItemsForNpc!(npc.NPCId, source, target)}
+                    updateItemSortOrder={(newOrder) => updateNpcItemSortOrder!(npc.NPCId, newOrder)}
+                    updateItemSortSettings={(criteria, direction) => updateNpcItemSortSettings!(npc.NPCId, criteria, direction)}
+                />
+            </Modal>
+        );
+    }
+
+    // Player Inventory management
+    return (
+        <Modal title={t("Inventory & Equipment")} isOpen={true} onClose={onClose} size="fullscreen">
+            <InventoryManagerUI
+                {...managerProps}
+                character={gameState.playerCharacter}
+                onEquip={onEquip!}
+                onUnequip={onUnequip!}
+                onDropItem={onDropItem!}
+                onMoveItem={onMoveItem!}
+                onSplitItem={onSplitItem!}
+                onMergeItems={onMergeItems!}
+                updateItemSortOrder={updateItemSortOrder!}
+                updateItemSortSettings={updateItemSortSettings!}
+            />
+        </Modal>
+    );
+};

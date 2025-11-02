@@ -1,5 +1,4 @@
-
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { WorldState, WorldStateFlag, WorldEvent, NPC, Faction, Location, GameSettings } from '../types';
 import { useLocalization } from '../context/LocalizationContext';
 import { 
@@ -7,13 +6,13 @@ import {
     ClockIcon, ChevronDownIcon, ChevronUpIcon, ScaleIcon as PoliticalIcon, ShieldExclamationIcon as MilitaryIcon, 
     CurrencyDollarIcon as EconomicIcon, BuildingLibraryIcon as SocialIcon, BoltIcon as MysticalIcon, 
     FireIcon as DisasterIcon, UserIcon as PersonalIcon, EyeIcon as PublicIcon, EyeSlashIcon as SecretIcon, 
-    UsersIcon as RegionalIcon, UserGroupIcon as FactionIcon, MapPinIcon, BookOpenIcon
+    UsersIcon as RegionalIcon, UserGroupIcon, MapPinIcon, BookOpenIcon
 } from '@heroicons/react/24/outline';
 import MarkdownRenderer from './MarkdownRenderer';
 import ConfirmationModal from './ConfirmationModal';
 import Modal from './Modal';
 import EditableField from './DetailRenderer/Shared/EditableField';
-import LocationLog from './LocationLog';
+import ImageRenderer from './ImageRenderer';
 
 interface WorldPanelProps {
     worldState: WorldState | null;
@@ -22,7 +21,7 @@ interface WorldPanelProps {
     turnNumber: number | null;
     allowHistoryManipulation: boolean;
     onDeleteFlag: (flagId: string) => void;
-    onEditWorldState: (day: number, time: string) => void;
+    editWorldState: (updates: Partial<{ day: number, time: string, year: number, monthIndex: number }>) => void;
     onEditWeather: (newWeather: string) => void;
     onEditFlagData: (flagId: string, field: keyof WorldStateFlag, value: any) => void;
     biome: string | null | undefined;
@@ -34,6 +33,9 @@ interface WorldPanelProps {
     deleteWorldEventsByTurnRange: (startTurn: number, endTurn: number) => void;
     onShowMessageModal: (title: string, content: string) => void;
     gameSettings: GameSettings | null;
+    imageCache: Record<string, string>;
+    onImageGenerated: (prompt: string, base64: string) => void;
+    onOpenImageModal: (prompt: string, originalTextPrompt: string, onClearCustom?: () => void, onUpload?: (base64: string) => void) => void;
 }
 
 const FlagEditor: React.FC<{
@@ -94,15 +96,16 @@ const FlagEditor: React.FC<{
 
 const WorldEventCard: React.FC<{
     event: WorldEvent;
-    onOpenModal: (event: WorldEvent) => void;
     onDelete: (event: WorldEvent) => void;
     allowHistoryManipulation: boolean;
     onOpenDetailModal: (title: string, data: any) => void;
-    allNpcs: NPC[];
-    allFactions: Faction[];
-    allLocations: Location[];
-}> = ({ event, onOpenModal, onDelete, allowHistoryManipulation, onOpenDetailModal, allNpcs, allFactions, allLocations }) => {
+    imageCache: Record<string, string>;
+    onImageGenerated: (prompt: string, base64: string) => void;
+    gameSettings: GameSettings | null;
+    onOpenImageModal: (prompt: string, originalTextPrompt: string) => void;
+}> = ({ event, onDelete, allowHistoryManipulation, onOpenDetailModal, imageCache, onImageGenerated, gameSettings, onOpenImageModal }) => {
     const { t } = useLocalization();
+
     const eventTypeMapping = useMemo(() => ({
         'Political': { icon: PoliticalIcon, colorClass: 'event-type-Political', label: t('Political') },
         'Military': { icon: MilitaryIcon, colorClass: 'event-type-Military', label: t('Military') },
@@ -113,7 +116,21 @@ const WorldEventCard: React.FC<{
         'Personal': { icon: PersonalIcon, colorClass: 'event-type-Personal', label: t('Personal') },
     }), [t]);
 
-    const typeInfo = eventTypeMapping[event.eventType as keyof typeof eventTypeMapping];
+    const visibilityMapping = useMemo(() => ({
+        'Public': { icon: PublicIcon, colorClass: 'visibility-Public', label: t('Public') },
+        'Regional': { icon: RegionalIcon, colorClass: 'visibility-Regional', label: t('Regional') },
+        'Faction-Internal': { icon: UserGroupIcon, colorClass: 'visibility-Faction-Internal', label: t('Faction-Internal') },
+        'Secret': { icon: SecretIcon, colorClass: 'visibility-Secret', label: t('Secret') },
+    }), [t]);
+
+    const typeInfo = eventTypeMapping[event.eventType as keyof typeof eventTypeMapping] || { icon: PersonalIcon, colorClass: 'event-type-Personal', label: t(event.eventType as any) || t('Personal') };
+
+    const handleImageClick = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        if (event.image_prompt && onOpenImageModal) {
+            onOpenImageModal(event.image_prompt, event.image_prompt);
+        }
+    };
 
     return (
         <div className={`timeline-event-card ${typeInfo.colorClass} group relative`}>
@@ -126,22 +143,45 @@ const WorldEventCard: React.FC<{
                     <TrashIcon className="w-4 h-4" />
                 </button>
             )}
-            <button onClick={() => onOpenModal(event)} className="w-full text-left p-3 space-y-2">
-                <div className="flex justify-between items-start gap-2">
-                    <div className="flex items-start gap-3">
-                        <typeInfo.icon className={`w-6 h-6 flex-shrink-0 mt-0.5 ${typeInfo.colorClass.replace('event-type-', 'text-').replace(/-\d+$/, '-400')}`} />
+            {event.image_prompt && (
+                <div 
+                    className="h-32 bg-gray-800 overflow-hidden cursor-pointer"
+                    onClick={handleImageClick}
+                >
+                    <ImageRenderer 
+                        prompt={event.image_prompt}
+                        originalTextPrompt={event.image_prompt}
+                        alt={event.headline}
+                        imageCache={imageCache || {}}
+                        onImageGenerated={onImageGenerated}
+                        model={gameSettings?.pollinationsImageModel}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                        gameSettings={gameSettings}
+                    />
+                    <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center pointer-events-none">
+                        <p className="text-white font-bold text-lg">{t('Enlarge')}</p>
+                    </div>
+                </div>
+            )}
+            
+            <div className="p-3">
+                <button
+                    onClick={() => onOpenDetailModal(t("World Event: {headline}", { headline: event.headline }), { ...event, type: 'worldEvent' })}
+                    className="w-full text-left"
+                >
+                    <div className="flex justify-between items-start gap-2">
                         <div className="flex-1">
-                            <p className="font-bold text-gray-100 pr-16">{event.headline}</p>
+                            <p className="font-bold text-gray-100 pr-8 group-hover:text-cyan-300 transition-colors">{event.headline}</p>
                             <div className="text-xs text-gray-400 mt-1">
                                 {t('Day')} {event.worldTime.day} - {t('Turn')} {event.turnNumber}
                             </div>
                         </div>
                     </div>
-                </div>
-                <div className="pl-9 text-sm text-gray-300 italic line-clamp-2">
-                    <MarkdownRenderer content={event.summary} />
-                </div>
-            </button>
+                     <p className="text-sm text-gray-400 italic mt-2 line-clamp-3">
+                        <MarkdownRenderer content={event.summary} />
+                    </p>
+                </button>
+            </div>
         </div>
     );
 };
@@ -169,17 +209,184 @@ const FULL_WEATHER_OPTIONS = [
     'Windy'
 ];
 
-const WorldPanel = ({ worldState, worldStateFlags, worldEventsLog, turnNumber, allowHistoryManipulation, onDeleteFlag, onEditWorldState, onEditWeather, onEditFlagData, biome, allNpcs, allFactions, allLocations, onOpenDetailModal, onDeleteEvent, deleteWorldEventsByTurnRange, onShowMessageModal, gameSettings }: WorldPanelProps) => {
+const formatTime = (totalMinutes: number) => {
+    const hours = Math.floor((totalMinutes / 60) % 24);
+    const minutes = Math.floor(totalMinutes % 60);
+    return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
+};
+
+const WorldStateDisplay: React.FC<{
+    worldState: WorldState | null;
+    turnNumber: number | null;
+    allowHistoryManipulation: boolean;
+    editWorldState: (updates: Partial<{ day: number, time: string, year: number, monthIndex: number }>) => void;
+    onEditWeather: (newWeather: string) => void;
+    gameSettings: GameSettings | null;
+}> = ({ worldState, turnNumber, allowHistoryManipulation, editWorldState, onEditWeather, gameSettings }) => {
+    const { t } = useLocalization();
+    const [isEditingTime, setIsEditingTime] = useState(false);
+    const [isEditingWeather, setIsEditingWeather] = useState(false);
+    
+    const [editedDate, setEditedDate] = useState({
+        year: worldState?.date?.currentYear || 1,
+        monthIndex: gameSettings?.gameWorldInformation.calendar?.months.findIndex(m => m.name === worldState?.date?.currentMonthName) || 0,
+        day: worldState?.date?.dayOfMonth || 1,
+        time: formatTime(worldState?.currentTimeInMinutes || 480)
+    });
+
+    const [editedWeather, setEditedWeather] = useState(worldState?.weather || 'Clear');
+
+    useEffect(() => {
+        if (isEditingTime && worldState?.date && gameSettings?.gameWorldInformation.calendar) {
+            setEditedDate({
+                year: worldState.date.currentYear,
+                monthIndex: gameSettings.gameWorldInformation.calendar.months.findIndex(m => m.name === worldState.date?.currentMonthName) || 0,
+                day: worldState.date.dayOfMonth,
+                time: formatTime(worldState.currentTimeInMinutes)
+            });
+        }
+    }, [isEditingTime, worldState, gameSettings]);
+
+    const handleTimeSave = () => {
+        editWorldState({
+            year: editedDate.year,
+            monthIndex: editedDate.monthIndex,
+            day: editedDate.day,
+            time: editedDate.time
+        });
+        setIsEditingTime(false);
+    };
+
+    const handleWeatherSave = () => {
+        onEditWeather(editedWeather);
+        setIsEditingWeather(false);
+    };
+    
+    const handleWeatherCancel = () => {
+        setIsEditingWeather(false);
+        setEditedWeather(worldState?.weather || 'Clear');
+    };
+
+    const calendar = gameSettings?.gameWorldInformation.calendar;
+
+    const fullDateString = worldState?.date
+    ? `${t(worldState.date.dayOfWeekName as any)}, ${t('day_of_month', { dayOfMonth: worldState.date.dayOfMonth })} ${t(worldState.date.currentMonthName as any)}, ${worldState.date.currentYear}`
+    : `${t('Day')} ${worldState?.day || '?'}`;
+    
+    const daysInSelectedMonth = useMemo(() => {
+        if (!calendar) return 31;
+        const monthData = calendar.months[editedDate.monthIndex];
+        return monthData ? monthData.days : 31;
+    }, [editedDate.monthIndex, calendar]);
+
+
+    return (
+        <div>
+            <h3 className="text-xl font-bold text-cyan-400 mb-3 narrative-text flex items-center gap-2">
+                <GlobeAltIcon className="w-6 h-6" />
+                {t('World State')}
+            </h3>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-center">
+                <div className="bg-gray-900/40 p-3 rounded-lg">
+                    <p className="text-sm text-gray-400">{t('Turn')}</p>
+                    <p className="text-2xl font-bold font-mono">{turnNumber}</p>
+                </div>
+                <div className="bg-gray-900/40 p-3 rounded-lg col-span-2">
+                    <p className="text-sm text-gray-400">{t('Date')}</p>
+                    {allowHistoryManipulation ? (
+                        <div onClick={() => setIsEditingTime(true)} className="group cursor-pointer p-1 rounded-md hover:bg-gray-700/50 transition-colors relative">
+                            <p className="text-lg font-semibold capitalize text-center">{fullDateString}</p>
+                            <PencilSquareIcon className="w-4 h-4 text-gray-500 absolute top-1/2 -translate-y-1/2 right-2 opacity-0 group-hover:opacity-100 transition-opacity" />
+                        </div>
+                    ) : (
+                        <p className="text-lg font-semibold capitalize text-center">{fullDateString}</p>
+                    )}
+                </div>
+                 <div className="bg-gray-900/40 p-3 rounded-lg">
+                    <p className="text-sm text-gray-400">{t('Time')}</p>
+                    {allowHistoryManipulation ? (
+                         <div onClick={() => setIsEditingTime(true)} className="group cursor-pointer p-1 rounded-md hover:bg-gray-700/50 transition-colors relative">
+                            <p className="text-2xl font-bold font-mono">{formatTime(worldState?.currentTimeInMinutes || 0)}</p>
+                            <PencilSquareIcon className="w-4 h-4 text-gray-500 absolute top-1/2 -translate-y-1/2 right-2 opacity-0 group-hover:opacity-100 transition-opacity" />
+                        </div>
+                    ) : (
+                         <p className="text-2xl font-bold font-mono">{formatTime(worldState?.currentTimeInMinutes || 0)}</p>
+                    )}
+                </div>
+                <div className="bg-gray-900/40 p-3 rounded-lg col-span-full">
+                    <p className="text-sm text-gray-400">{t('Weather')}</p>
+                    {allowHistoryManipulation ? (
+                        isEditingWeather ? (
+                            <div className="space-y-2">
+                                <select 
+                                    value={editedWeather} 
+                                    onChange={e => setEditedWeather(e.target.value)} 
+                                    className="dark-select w-full text-center text-lg font-semibold capitalize"
+                                >
+                                    {FULL_WEATHER_OPTIONS.map(w => <option key={w} value={w}>{t(w as any)}</option>)}
+                                </select>
+                                <div className="flex justify-end gap-2">
+                                    <button onClick={handleWeatherCancel} className="p-1 text-red-400 hover:text-white rounded-full hover:bg-red-700/50" title={t('Cancel')}><XMarkIcon className="w-4 h-4" /></button>
+                                    <button onClick={handleWeatherSave} className="p-1 text-green-400 hover:text-white rounded-full hover:bg-green-700/50" title={t('Save')}><CheckIcon className="w-4 h-4" /></button>
+                                </div>
+                            </div>
+                        ) : (
+                            <div onClick={() => { setEditedWeather(worldState?.weather || 'Clear'); setIsEditingWeather(true); }} className="group cursor-pointer p-1 rounded-md hover:bg-gray-700/50 transition-colors relative">
+                                <p className="text-lg font-semibold capitalize text-center">{t((worldState?.weather || 'N/A') as any)}</p>
+                                <PencilSquareIcon className="w-4 h-4 text-gray-500 absolute top-1/2 -translate-y-1/2 right-2 opacity-0 group-hover:opacity-100 transition-opacity" />
+                            </div>
+                        )
+                    ) : (
+                        <p className="text-lg font-semibold capitalize">{t((worldState?.weather || 'N/A') as any)}</p>
+                    )}
+                </div>
+            </div>
+            {allowHistoryManipulation && (
+                <Modal isOpen={isEditingTime} onClose={() => setIsEditingTime(false)} title={t('Edit Date and Time')}>
+                    <div className="space-y-4">
+                        <div className="grid grid-cols-2 gap-4">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-300">{t('Starting Year')}</label>
+                                <input type="number" value={editedDate.year} onChange={(e) => setEditedDate(p => ({...p, year: parseInt(e.target.value, 10)}))} className="w-full bg-gray-700/50 border border-gray-600 rounded-md p-2 text-gray-200" />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-300">{t('Time')}</label>
+                                <input type="time" value={editedDate.time} onChange={(e) => setEditedDate(p => ({...p, time: e.target.value}))} className="w-full bg-gray-700/50 border border-gray-600 rounded-md p-2 text-gray-200" />
+                            </div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-300">{t('Starting Month')}</label>
+                                <select value={editedDate.monthIndex} onChange={(e) => setEditedDate(p => ({...p, monthIndex: parseInt(e.target.value, 10)}))} className="w-full bg-gray-700/50 border border-gray-600 rounded-md p-2 text-gray-200">
+                                    {calendar?.months.map((month, index) => <option key={month.name} value={index}>{t(month.name as any)}</option>)}
+                                </select>
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-300">{t('Starting Day')}</label>
+                                <input type="number" value={editedDate.day} onChange={(e) => setEditedDate(p => ({...p, day: parseInt(e.target.value, 10)}))} min="1" max={daysInSelectedMonth} className="w-full bg-gray-700/50 border border-gray-600 rounded-md p-2 text-gray-200" />
+                            </div>
+                        </div>
+                        <div className="flex justify-end gap-2 pt-2">
+                            <button onClick={() => setIsEditingTime(false)} className="px-4 py-2 rounded-md bg-gray-600 hover:bg-gray-500 text-white font-semibold transition">{t('Cancel')}</button>
+                            <button onClick={handleTimeSave} className="px-4 py-2 rounded-md bg-cyan-600 hover:bg-cyan-500 text-white font-semibold transition">{t('Save')}</button>
+                        </div>
+                    </div>
+                </Modal>
+            )}
+        </div>
+    );
+};
+
+
+const WorldPanel = ({ worldState, worldStateFlags, worldEventsLog, turnNumber, allowHistoryManipulation, onDeleteFlag, editWorldState, onEditWeather, onEditFlagData, biome, allNpcs, allFactions, allLocations, onOpenDetailModal, onDeleteEvent, deleteWorldEventsByTurnRange, onShowMessageModal, gameSettings, imageCache, onImageGenerated, onOpenImageModal }: WorldPanelProps) => {
     const { t } = useLocalization();
     const [flagToDelete, setFlagToDelete] = useState<WorldStateFlag | null>(null);
-    const [isEditingTime, setIsEditingTime] = useState(false);
     const [editingFlagId, setEditingFlagId] = useState<string | null>(null);
     const [editingFlagDescriptionId, setEditingFlagDescriptionId] = useState<string | null>(null);
     const [editedDescription, setEditedDescription] = useState('');
     const [filters, setFilters] = useState<{ type: string[], visibility: string[] }>({ type: [], visibility: [] });
     const [turnFilter, setTurnFilter] = useState<string>('');
     
-    const [viewingEvent, setViewingEvent] = useState<WorldEvent | null>(null);
     const [eventToDelete, setEventToDelete] = useState<WorldEvent | null>(null);
     const [isFlagsExpanded, setIsFlagsExpanded] = useState(false);
     const INITIAL_FLAGS_TO_SHOW = 2;
@@ -199,30 +406,9 @@ const WorldPanel = ({ worldState, worldStateFlags, worldEventsLog, turnNumber, a
     const visibilityMapping = useMemo(() => ({
         'Public': { icon: PublicIcon, colorClass: 'visibility-Public', label: t('Public') },
         'Regional': { icon: RegionalIcon, colorClass: 'visibility-Regional', label: t('Regional') },
-        'Faction-Internal': { icon: FactionIcon, colorClass: 'visibility-Faction-Internal', label: t('Faction-Internal') },
+        'Faction-Internal': { icon: UserGroupIcon, colorClass: 'visibility-Faction-Internal', label: t('Faction-Internal') },
         'Secret': { icon: SecretIcon, colorClass: 'visibility-Secret', label: t('Secret') },
     }), [t]);
-
-    const formatTime = (totalMinutes: number) => {
-        const hours = Math.floor(totalMinutes / 60) % 24;
-        const minutes = totalMinutes % 60;
-        return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
-    };
-    
-    const [day, setDay] = useState(worldState?.day || 1);
-    const [time, setTime] = useState(formatTime(worldState?.currentTimeInMinutes || 480));
-
-    useEffect(() => {
-        if (!isEditingTime) {
-            setDay(worldState?.day || 1);
-            setTime(formatTime(worldState?.currentTimeInMinutes || 480));
-        }
-    }, [worldState, isEditingTime]);
-
-    const handleTimeSave = () => {
-        onEditWorldState(day, time);
-        setIsEditingTime(false);
-    };
     
     const displayableFlags = useMemo(() => 
         (worldStateFlags || []).filter(flag => flag && (flag.displayName)).slice().reverse(),
@@ -338,65 +524,17 @@ const WorldPanel = ({ worldState, worldStateFlags, worldEventsLog, turnNumber, a
         setDeleteTurnRange({ start: '', end: '' });
     };
 
-    const WorldStateDisplay = () => {
-        return (
-            <div>
-                <h3 className="text-xl font-bold text-cyan-400 mb-3 narrative-text flex items-center gap-2">
-                    <GlobeAltIcon className="w-6 h-6" />
-                    {t('World State')}
-                </h3>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-center">
-                    <div className="bg-gray-900/40 p-3 rounded-lg">
-                        <p className="text-sm text-gray-400">{t('Turn')}</p>
-                        <p className="text-2xl font-bold font-mono">{turnNumber}</p>
-                    </div>
-                    <div className="bg-gray-900/40 p-3 rounded-lg">
-                        <p className="text-sm text-gray-400">{t('Day')}</p>
-                        {isEditingTime ? (
-                            <input type="number" value={day} onChange={e => setDay(Number(e.target.value))} className="w-full text-center bg-gray-700/50 rounded-md p-0 border-gray-600 text-2xl font-bold font-mono" />
-                        ) : (
-                            <p className="text-2xl font-bold font-mono">{worldState?.day}</p>
-                        )}
-                    </div>
-                    <div className="bg-gray-900/40 p-3 rounded-lg">
-                        <p className="text-sm text-gray-400">{t('Time')}</p>
-                        {isEditingTime ? (
-                            <input type="time" value={time} onChange={e => setTime(e.target.value)} className="w-full text-center bg-gray-700/50 rounded-md p-0 border-gray-600 text-2xl font-bold font-mono" />
-                        ) : (
-                            <p className="text-2xl font-bold font-mono">{time}</p>
-                        )}
-                    </div>
-                    <div className="bg-gray-900/40 p-3 rounded-lg">
-                        <p className="text-sm text-gray-400">{t('Weather')}</p>
-                        {allowHistoryManipulation ? (
-                            <select value={worldState?.weather} onChange={e => onEditWeather(e.target.value)} className="dark-select w-full text-center text-lg font-semibold capitalize">
-                                {FULL_WEATHER_OPTIONS.map(w => <option key={w} value={w}>{t(w as any)}</option>)}
-                            </select>
-                        ) : (
-                            <p className="text-lg font-semibold capitalize">{t((worldState?.weather || 'N/A') as any)}</p>
-                        )}
-                    </div>
-                </div>
-                {allowHistoryManipulation && (
-                    <div className="flex justify-end gap-2 mt-2">
-                        {isEditingTime ? (
-                            <>
-                                <button onClick={() => setIsEditingTime(false)} className="px-3 py-1 text-xs rounded-md bg-gray-600 hover:bg-gray-500 text-white font-semibold transition flex items-center gap-1"><XMarkIcon className="w-4 h-4"/>{t('Cancel')}</button>
-                                <button onClick={handleTimeSave} className="px-3 py-1 text-xs rounded-md bg-cyan-600 hover:bg-cyan-500 text-white font-semibold transition flex items-center gap-1"><CheckIcon className="w-4 h-4"/>{t('Save')}</button>
-                            </>
-                        ) : (
-                            <button onClick={() => setIsEditingTime(true)} className="px-3 py-1 text-xs rounded-md bg-gray-700 hover:bg-gray-600 text-white font-semibold transition flex items-center gap-1"><PencilSquareIcon className="w-4 h-4"/>{t('Edit Time')}</button>
-                        )}
-                    </div>
-                )}
-            </div>
-        );
-    };
-
     return (
         <>
             <div className="space-y-6">
-                <WorldStateDisplay />
+                <WorldStateDisplay
+                    worldState={worldState}
+                    turnNumber={turnNumber}
+                    allowHistoryManipulation={allowHistoryManipulation}
+                    editWorldState={editWorldState}
+                    onEditWeather={onEditWeather}
+                    gameSettings={gameSettings}
+                />
                 <div>
                     <h3 className="text-xl font-bold text-cyan-400 mb-3 narrative-text flex items-center gap-2">
                         <FlagIcon className="w-6 h-6" />
@@ -508,17 +646,16 @@ const WorldPanel = ({ worldState, worldStateFlags, worldEventsLog, turnNumber, a
                         {t('World Events Log')}
                     </h3>
                     
-                    {/* Filters */}
                     <div className="bg-gray-900/40 p-3 rounded-lg mb-4 space-y-3">
-                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                             <div>
+                        <div className="flex items-center gap-4 flex-wrap">
+                            <div>
                                 <h4 className="text-sm font-semibold text-gray-400 mb-2">{t('Filter by Type')}</h4>
                                 <div className="flex flex-wrap gap-1">
                                     {Object.keys(eventTypeMapping).map(key => (
                                         <button
                                             key={key}
                                             onClick={() => toggleFilter('type', key)}
-                                            className={`px-2 py-1 text-xs rounded-full border transition-colors ${filters.type.includes(key) ? 'bg-cyan-500/30 border-cyan-400 text-white' : 'bg-gray-700/50 border-gray-600 text-gray-300 hover:bg-gray-700'}`}
+                                            className={`filter-button ${filters.type.includes(key) ? `active ${eventTypeMapping[key as keyof typeof eventTypeMapping].colorClass}` : ''}`}
                                         >
                                             {eventTypeMapping[key as keyof typeof eventTypeMapping].label}
                                         </button>
@@ -532,23 +669,23 @@ const WorldPanel = ({ worldState, worldStateFlags, worldEventsLog, turnNumber, a
                                         <button
                                             key={key}
                                             onClick={() => toggleFilter('visibility', key)}
-                                            className={`px-2 py-1 text-xs rounded-full border transition-colors ${filters.visibility.includes(key) ? 'bg-cyan-500/30 border-cyan-400 text-white' : 'bg-gray-700/50 border-gray-600 text-gray-300 hover:bg-gray-700'}`}
+                                            className={`filter-button ${filters.visibility.includes(key) ? `active ${visibilityMapping[key as keyof typeof visibilityMapping].colorClass}` : ''}`}
                                         >
                                             {visibilityMapping[key as keyof typeof visibilityMapping].label}
                                         </button>
                                     ))}
                                 </div>
                             </div>
-                             <div className="col-span-2 sm:col-span-2">
-                                <h4 className="text-sm font-semibold text-gray-400 mb-2">{t('Filter by Turn')}</h4>
-                                <input
-                                    type="text"
-                                    value={turnFilter}
-                                    onChange={(e) => setTurnFilter(e.target.value)}
-                                    placeholder={t('Enter turn number...')}
-                                    className="w-full bg-gray-700/50 border border-gray-600 rounded-md p-2 text-gray-200 focus:ring-1 focus:ring-cyan-500 transition text-sm"
-                                />
-                             </div>
+                        </div>
+                        <div className="pt-3 border-t border-gray-700/50">
+                            <h4 className="text-sm font-semibold text-gray-400 mb-2">{t('Filter by Turn')}</h4>
+                            <input
+                                type="text"
+                                value={turnFilter}
+                                onChange={(e) => setTurnFilter(e.target.value)}
+                                placeholder={t('Enter turn number...')}
+                                className="dark-select w-full"
+                            />
                         </div>
                         {allowHistoryManipulation && (
                              <div className="pt-3 border-t border-gray-700/50">
@@ -582,26 +719,25 @@ const WorldPanel = ({ worldState, worldStateFlags, worldEventsLog, turnNumber, a
                     
                     {Object.keys(filteredEventsByTurn).length > 0 ? (
                         <div className="timeline-container">
+                             <div className="timeline-line"></div>
                              {Object.keys(filteredEventsByTurn).sort((a,b) => Number(b) - Number(a)).map(turn => (
-                                <div key={turn} className="timeline-turn-group">
-                                    <div className="timeline-turn-header">
-                                        <span className="timeline-turn-number">{t('Turn')} {turn}</span>
+                                <div key={turn} className="relative">
+                                    <div className="timeline-turn-marker" title={`${t('Turn')} ${turn}`}>
+                                        <span>{turn}</span>
                                     </div>
-                                    <div className="timeline-events-for-turn">
-                                        {filteredEventsByTurn[Number(turn)].map(event => (
-                                            <WorldEventCard 
-                                                key={event.eventId} 
-                                                event={event} 
-                                                onOpenModal={setViewingEvent}
-                                                onDelete={setEventToDelete}
-                                                allowHistoryManipulation={allowHistoryManipulation}
-                                                onOpenDetailModal={onOpenDetailModal}
-                                                allNpcs={allNpcs}
-                                                allFactions={allFactions}
-                                                allLocations={allLocations}
-                                            />
-                                        ))}
-                                    </div>
+                                    {filteredEventsByTurn[Number(turn)].map(event => (
+                                        <WorldEventCard 
+                                            key={event.eventId} 
+                                            event={event} 
+                                            onDelete={setEventToDelete}
+                                            allowHistoryManipulation={allowHistoryManipulation}
+                                            onOpenDetailModal={onOpenDetailModal}
+                                            imageCache={imageCache}
+                                            onImageGenerated={onImageGenerated}
+                                            gameSettings={gameSettings}
+                                            onOpenImageModal={onOpenImageModal}
+                                        />
+                                    ))}
                                 </div>
                             ))}
                         </div>
@@ -637,84 +773,8 @@ const WorldPanel = ({ worldState, worldStateFlags, worldEventsLog, turnNumber, a
             >
                 <p>{t('delete_event_range_confirm', { start: deleteTurnRange.start, end: deleteTurnRange.end })}</p>
             </ConfirmationModal>
-
-            {viewingEvent && (
-                <Modal
-                    isOpen={!!viewingEvent}
-                    onClose={() => setViewingEvent(null)}
-                    title={viewingEvent.headline}
-                >
-                    <div className="space-y-4">
-                        <div className="bg-gray-700/50 p-3 rounded-lg">
-                            <p className="text-gray-300"><MarkdownRenderer content={viewingEvent.summary} /></p>
-                        </div>
-                        <div className="grid grid-cols-2 gap-4 text-sm">
-                            <div className="flex items-center gap-2">
-                                {React.createElement(eventTypeMapping[viewingEvent.eventType as keyof typeof eventTypeMapping].icon, { className: 'w-5 h-5 text-cyan-400' })}
-                                <span>{eventTypeMapping[viewingEvent.eventType as keyof typeof eventTypeMapping].label}</span>
-                            </div>
-                             <div className="flex items-center gap-2">
-                                {React.createElement(visibilityMapping[viewingEvent.visibility as keyof typeof visibilityMapping].icon, { className: 'w-5 h-5 text-cyan-400' })}
-                                <span>{visibilityMapping[viewingEvent.visibility as keyof typeof visibilityMapping].label}</span>
-                            </div>
-                        </div>
-
-                        {viewingEvent.involvedNPCs && viewingEvent.involvedNPCs.length > 0 && (
-                            <div>
-                                {/* FIX: Use PersonalIcon alias for UserIcon */}
-                                <h4 className="font-semibold text-gray-400 text-base mb-2 flex items-center gap-2"><PersonalIcon className="w-5 h-5"/>{t('Involved NPCs')}</h4>
-                                <div className="space-y-2">
-                                    {viewingEvent.involvedNPCs.map(npcRef => {
-                                        const npcData = allNpcs.find(n => n.NPCId === npcRef.NPCId);
-                                        return (
-                                        <button key={npcRef.NPCId} onClick={() => { if (npcData) { setViewingEvent(null); onOpenDetailModal(t("NPC: {name}", {name: npcData.name}), npcData); } }} disabled={!npcData} className="w-full text-left bg-gray-700/40 p-2 rounded-md hover:bg-gray-700 transition-colors disabled:cursor-not-allowed">
-                                            <p className="font-semibold text-cyan-300">{npcRef.NPCName}</p>
-                                            <p className="text-xs text-gray-400">{npcRef.roleInEvent}</p>
-                                        </button>
-                                    )})}
-                                </div>
-                            </div>
-                        )}
-
-                        {viewingEvent.affectedFactions && viewingEvent.affectedFactions.length > 0 && (
-                            <div>
-                                {/* FIX: Use FactionIcon alias for UserGroupIcon */}
-                                <h4 className="font-semibold text-gray-400 text-base mb-2 flex items-center gap-2"><FactionIcon className="w-5 h-5"/>{t('Affected Factions')}</h4>
-                                <div className="space-y-2">
-                                    {viewingEvent.affectedFactions.map(facRef => {
-                                        const factionData = allFactions.find(f => f.factionId === facRef.factionId);
-                                        return (
-                                        <button key={facRef.factionId} onClick={() => { if (factionData) { setViewingEvent(null); onOpenDetailModal(t("Faction: {name}", {name: factionData.name}), {...factionData, type: 'faction'}); } }} disabled={!factionData} className="w-full text-left bg-gray-700/40 p-2 rounded-md hover:bg-gray-700 transition-colors disabled:cursor-not-allowed">
-                                            <p className="font-semibold text-cyan-300">{facRef.factionName}</p>
-                                            <p className="text-xs text-gray-400 italic">{facRef.impactDescription}</p>
-                                        </button>
-                                    )})}
-                                </div>
-                            </div>
-                        )}
-                        
-                        {viewingEvent.affectedLocations && viewingEvent.affectedLocations.length > 0 && (
-                            <div>
-                                <h4 className="font-semibold text-gray-400 text-base mb-2 flex items-center gap-2"><MapPinIcon className="w-5 h-5"/>{t('Affected Locations')}</h4>
-                                 <div className="space-y-2">
-                                    {viewingEvent.affectedLocations.map(locRef => {
-                                        const locationData = allLocations.find(l => l.locationId === locRef.locationId);
-                                        return (
-                                        <button key={locRef.locationId} onClick={() => { if (locationData) { setViewingEvent(null); onOpenDetailModal(t("Location: {name}", {name: locationData.name}), {...locationData, type: 'location'}); } }} disabled={!locationData} className="w-full text-left bg-gray-700/40 p-2 rounded-md hover:bg-gray-700 transition-colors disabled:cursor-not-allowed">
-                                            <p className="font-semibold text-cyan-300">{locRef.locationName}</p>
-                                            <p className="text-xs text-gray-400 italic">{locRef.impactDescription}</p>
-                                        </button>
-                                    )})}
-                                </div>
-                            </div>
-                        )}
-
-                    </div>
-                </Modal>
-            )}
         </>
     );
 };
 
-// FIX: Added default export
 export default WorldPanel;

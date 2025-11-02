@@ -1,7 +1,5 @@
-
-
-import React, { useState } from 'react';
-import { Item, Quest, NPC, Location, PlayerCharacter, CombatAction, Faction, CustomState, PassiveSkill, ActiveSkill, Effect, Wound, UnlockedMemory } from '../../types';
+import React, { useState, useEffect } from 'react';
+import { Item, Quest, NPC, Location, PlayerCharacter, CombatAction, Faction, CustomState, PassiveSkill, ActiveSkill, Effect, Wound, UnlockedMemory, WorldEvent, CompletedProject, CompletedActivity, LocationStorage } from '../../types';
 import { DetailRendererProps } from './types';
 import ConfirmationModal from '../ConfirmationModal';
 import { useLocalization } from '../../context/LocalizationContext';
@@ -13,17 +11,17 @@ import ActiveSkillDetailsRenderer from './ActiveSkillDetailsRenderer';
 import PassiveSkillDetailsRenderer from './PassiveSkillDetailsRenderer';
 import EffectDetailsRenderer from './EffectDetailsRenderer';
 import WoundDetailsRenderer from './WoundDetailsRenderer';
-import NpcDetailsRenderer from './NpcDetailsRenderer';
 import CharacteristicDetailsRenderer from './CharacteristicDetailsRenderer';
 import PrimaryStatDetailsRenderer from './PrimaryStatDetailsRenderer';
 import DerivedStatDetailsRenderer from './DerivedStatDetailsRenderer';
 import LocationDetailsRenderer from './LocationDetailsRenderer';
-import PlayerCharacterDetailsRenderer from './PlayerCharacterDetailsRenderer';
 import CombatActionDetails from './Shared/CombatActionDetails';
 import Section from './Shared/Section';
 import FactionDetailsRenderer from './FactionDetailsRenderer'; // Import the new component
+import WorldEventDetailsRenderer from './WorldEventDetailsRenderer';
 import { ExclamationTriangleIcon, CogIcon } from '@heroicons/react/24/outline';
 import MarkdownRenderer from '../MarkdownRenderer';
+import RelationshipDetailsRenderer from './RelationshipDetailsRenderer';
 
 // Local component for Custom State Details
 const CustomStateDetailsRenderer: React.FC<{ state: CustomState }> = ({ state }) => {
@@ -59,27 +57,45 @@ const CustomStateDetailsRenderer: React.FC<{ state: CustomState }> = ({ state })
 
 
 // Type guards
-const isItem = (data: any): data is Item & { ownerType?: 'player' | 'npc', ownerId?: string, isEquippedByOwner?: boolean } => data && typeof data.quality === 'string' && typeof data.weight === 'number';
-const isQuest = (data: any): data is Quest => data && typeof data.questGiver === 'string' && Array.isArray(data.objectives);
-const isPassiveSkill = (data: any): data is PassiveSkill => data && typeof data.skillName === 'string' && data.masteryLevel !== undefined;
-const isActiveSkill = (data: any): data is ActiveSkill => data && typeof data.skillName === 'string' && data.masteryLevel === undefined && !isPassiveSkill(data);
-const isEffect = (data: any): data is Effect => data && typeof data.effectType === 'string' && data.duration !== undefined;
-const isWound = (data: any): data is Wound & { type: 'wound' } => data && data.type === 'wound';
-const isNpc = (data: any): data is NPC => data && (data.relationshipLevel !== undefined || data.NPCId !== undefined) && data.attitude !== undefined;
-const isCharacteristic = (data: any): data is { type: 'characteristic', name: string, value: number, description?: string } => data && data.type === 'characteristic';
-const isPrimaryStat = (data: any): data is { type: 'primaryStat', name: string, description: string } => data && data.type === 'primaryStat';
-const isLocation = (data: any): data is Location & { type: 'location' } => data && data.type === 'location' && data.difficultyProfile !== undefined;
-const isPlayerCharacter = (data: any): data is PlayerCharacter & { type: 'playerCharacter' } => data && data.type === 'playerCharacter';
-const isDerivedStat = (data: any): data is { type: 'derivedStat', name: string, value: string, breakdown: { label: string, value: string }[], description: string } => data && data.type === 'derivedStat';
-const isCombatAction = (data: any): data is CombatAction => data && Array.isArray(data.effects) && data.actionName !== undefined && data.quality === undefined && data.skillName === undefined;
-const isFaction = (data: any): data is Faction & { type: 'faction', perspectiveFor?: { name: string; rank: string } } => data && data.type === 'faction' && data.reputation !== undefined;
-const isCustomState = (data: any): data is CustomState & { type: 'customState' } => data && data.type === 'customState' && data.stateName !== undefined;
+const isItem = (data: any): data is Item & { ownerType?: 'player' | 'npc', ownerId?: string, isEquippedByOwner?: boolean } => data && typeof data === 'object' && data.quality !== undefined && data.weight !== undefined;
+const isQuest = (data: any): data is Quest => data && typeof data === 'object' && data.questGiver !== undefined && Array.isArray(data.objectives);
+const isPassiveSkill = (data: any): data is PassiveSkill => data && typeof data === 'object' && data.skillName !== undefined && data.masteryLevel !== undefined;
+const isActiveSkill = (data: any): data is ActiveSkill => data && typeof data === 'object' && data.skillName !== undefined && data.masteryLevel === undefined && !isPassiveSkill(data);
+const isEffect = (data: any): data is Effect => data && typeof data === 'object' && data.effectType !== undefined && data.duration !== undefined;
+const isWound = (data: any): data is Wound & { type: 'wound' } => data && typeof data === 'object' && data.type === 'wound';
+const isNpc = (data: any): data is NPC => data && typeof data === 'object' && !Array.isArray(data) && (data.relationshipLevel !== undefined || data.NPCId !== undefined);
+const isCharacteristic = (data: any): data is { type: 'characteristic', name: string, value: number, description?: string } => data && typeof data === 'object' && data.type === 'characteristic';
+const isPrimaryStat = (data: any): data is { type: 'primaryStat', name: string, description: string } => data && typeof data === 'object' && data.type === 'primaryStat';
+const isLocation = (data: any): data is Location & { type: 'location' } => data && typeof data === 'object' && data.type === 'location' && data.externalDifficultyProfile !== undefined;
+const isPlayerCharacter = (data: any): data is PlayerCharacter & { type: 'playerCharacter' } => data && typeof data === 'object' && data.type === 'playerCharacter';
+const isDerivedStat = (data: any): data is { type: 'derivedStat', name: string, value: string, breakdown: { label: string, value: string }[], description: string } => data && typeof data === 'object' && data.type === 'derivedStat';
+const isCombatAction = (data: any): data is CombatAction => data && typeof data === 'object' && Array.isArray(data.effects) && data.actionName !== undefined && data.quality === undefined && data.skillName === undefined;
+const isFaction = (data: any): data is Faction & { type: 'faction', perspectiveFor?: { name: string; rank: string } } => data && typeof data === 'object' && data.type === 'faction' && data.reputation !== undefined;
+const isCustomState = (data: any): data is CustomState & { type: 'customState' } => data && typeof data === 'object' && data.type === 'customState' && data.stateName !== undefined;
+const isWorldEvent = (data: any): data is WorldEvent & { type: 'worldEvent' } => data && typeof data === 'object' && data.type === 'worldEvent';
+const isMemory = (data: any): data is { type: 'memory', content: string } => data && data.type === 'memory';
+const isRelationship = (data: any): data is { type: 'relationship', tiers: any[], current: number } => data && data.type === 'relationship';
 
 
 export default function DetailRenderer(props: DetailRendererProps) {
-    const { onForgetNpc, onClearNpcJournal, onCloseModal, onForgetQuest, onForgetLocation, currentLocationId, onRegenerateId, deleteNpcCustomState, onEditNpcMemory, onDeleteNpcMemory, onDeleteNpcJournalEntry, forgetHealedWound, forgetActiveWound, clearAllHealedWounds } = props;
+    const { onForgetNpc, onClearNpcJournal, onCloseModal, onForgetQuest, onForgetLocation, currentLocationId, onRegenerateId, deleteNpcCustomState, onEditNpcMemory, onDeleteNpcMemory, onDeleteNpcJournalEntry, forgetHealedWound, forgetActiveWound, clearAllHealedWounds, allNpcs, allFactions, allLocations, updatePlayerPortrait, clearAllCompletedFactionProjects, deleteFactionCustomState, clearAllCompletedNpcActivities, onDeleteCurrentActivity, onDeleteCompletedActivity, onViewCharacterSheet, onOpenTextReader, onOpenStorage, placeAsStorage } = props;
     const [confirmation, setConfirmation] = useState<{ type: string | null; data: any }>({ type: null, data: null });
     const { t } = useLocalization();
+
+    const { data: _data, ...rest } = props;
+    
+    React.useEffect(() => {
+        if (isNpc(_data) && !('type' in _data) && props.onViewCharacterSheet) {
+            props.onViewCharacterSheet(_data);
+            if (props.onCloseModal) {
+                props.onCloseModal();
+            }
+        }
+    }, [_data, props.onViewCharacterSheet, props.onCloseModal]);
+
+    if (isNpc(_data) && !('type' in _data)) {
+        return null;
+    }
 
     const handleConfirmationClose = () => {
         setConfirmation({ type: null, data: null });
@@ -116,6 +132,11 @@ export default function DetailRenderer(props: DetailRendererProps) {
             case 'regenerateId':
                 if (onRegenerateId) {
                     onRegenerateId(confirmation.data.entity, confirmation.data.entityType);
+                }
+                break;
+            case 'placeAsStorage':
+                 if (placeAsStorage) {
+                    placeAsStorage(confirmation.data);
                 }
                 break;
         }
@@ -155,36 +176,47 @@ export default function DetailRenderer(props: DetailRendererProps) {
                         </>
                     )
                 }
+            case 'placeAsStorage':
+                 return {
+                    title: t("Place as Storage"),
+                    content: <p>{t('Are you sure you want to place {name} here as a permanent storage? The item will be removed from your inventory.', { name: confirmation.data.name })}</p>
+                }
             default:
                 return { title: '', content: null };
         }
     };
 
-    const { title: confirmationTitle, content: confirmationContent } = getConfirmationContent();
-    const { data } = props;
-    const { data: _data, ...rest } = props;
-
     let content;
-
-    if (isItem(data)) content = <ItemDetailsRenderer item={data} {...rest} />;
-    else if (isQuest(data)) content = <QuestDetailsRenderer quest={data} onOpenForgetConfirm={() => setConfirmation({ type: 'forgetQuest', data })} {...rest} />;
-    else if (isActiveSkill(data)) content = <ActiveSkillDetailsRenderer skill={data} {...rest} />;
-    else if (isPassiveSkill(data)) content = <PassiveSkillDetailsRenderer skill={data} {...rest} />;
-    else if (isEffect(data)) content = <EffectDetailsRenderer effect={data} />;
-    else if (isWound(data)) content = <WoundDetailsRenderer wound={data} forgetHealedWound={forgetHealedWound} forgetActiveWound={forgetActiveWound} clearAllHealedWounds={clearAllHealedWounds} {...rest} />;
-    else if (isNpc(data)) content = <NpcDetailsRenderer npc={data} onOpenForgetConfirm={() => setConfirmation({ type: 'forgetNpc', data })} onOpenClearJournalConfirm={() => setConfirmation({ type: 'clearJournal', data })} deleteNpcCustomState={deleteNpcCustomState} onEditNpcMemory={onEditNpcMemory} onDeleteNpcMemory={onDeleteNpcMemory} onDeleteNpcJournalEntry={onDeleteNpcJournalEntry} forgetHealedWound={forgetHealedWound} forgetActiveWound={forgetActiveWound} clearAllHealedWounds={clearAllHealedWounds} {...rest} />;
-    else if (isCharacteristic(data)) content = <CharacteristicDetailsRenderer data={data} />;
-    else if (isPrimaryStat(data)) content = <PrimaryStatDetailsRenderer data={data} />;
-    else if (isDerivedStat(data)) content = <DerivedStatDetailsRenderer data={data} />;
-    else if (isLocation(data)) content = <LocationDetailsRenderer location={data} onOpenForgetConfirm={() => setConfirmation({ type: 'forgetLocation', data })} {...rest} />;
-    else if (isPlayerCharacter(data)) content = <PlayerCharacterDetailsRenderer character={data} {...rest} />;
-    else if (isCombatAction(data)) content = <CombatActionDetails action={data} />;
-    else if (isFaction(data)) {
-        const { perspectiveFor, ...factionData } = data;
-        content = <FactionDetailsRenderer faction={factionData as Faction} perspectiveFor={perspectiveFor} {...rest} />;
+    if (isMemory(_data)) content = <MarkdownRenderer content={_data.content} />;
+    else if (isRelationship(_data)) content = <RelationshipDetailsRenderer data={_data} />;
+    else if (isItem(_data)) content = <ItemDetailsRenderer item={_data} {...rest} onOpenTextReader={onOpenTextReader} placeAsStorage={(item) => setConfirmation({ type: 'placeAsStorage', data: item })} />;
+    else if (isQuest(_data)) content = <QuestDetailsRenderer quest={_data} onOpenForgetConfirm={() => setConfirmation({ type: 'forgetQuest', data: _data })} {...rest} />;
+    else if (isActiveSkill(_data)) content = <ActiveSkillDetailsRenderer skill={_data} {...rest} />;
+    else if (isPassiveSkill(_data)) content = <PassiveSkillDetailsRenderer skill={_data} {...rest} />;
+    else if (isEffect(_data)) content = <EffectDetailsRenderer effect={_data} />;
+    else if (isWound(_data)) content = <WoundDetailsRenderer wound={_data} forgetHealedWound={forgetHealedWound} forgetActiveWound={forgetActiveWound} clearAllHealedWounds={clearAllHealedWounds} {...rest} />;
+    else if (isCharacteristic(_data)) content = <CharacteristicDetailsRenderer data={_data} />;
+    else if (isPrimaryStat(_data)) content = <PrimaryStatDetailsRenderer data={_data} />;
+    else if (isDerivedStat(_data)) content = <DerivedStatDetailsRenderer data={_data} />;
+    else if (isLocation(_data)) {
+        const { initialView, ...locationData } = _data as (Location & { type: 'location', initialView?: string });
+        content = <LocationDetailsRenderer
+            location={locationData as Location}
+            onOpenForgetConfirm={() => setConfirmation({ type: 'forgetLocation', data: _data })}
+            initialView={initialView}
+            {...rest}
+        />;
     }
-    else if (isCustomState(data)) content = <CustomStateDetailsRenderer state={data} />;
-    else content = <p className="text-gray-400">{t("No details available for this selection.")}</p>;
+    else if (isCombatAction(_data)) content = <CombatActionDetails action={_data} />;
+    else if (isFaction(_data)) {
+        const { perspectiveFor, ...factionData } = _data as Faction & { type: 'faction', perspectiveFor?: { name: string; rank: string } };
+        content = <FactionDetailsRenderer faction={factionData as Faction} clearAllCompletedFactionProjects={clearAllCompletedFactionProjects!} allNpcs={allNpcs!} onViewCharacterSheet={onViewCharacterSheet!} deleteFactionCustomState={deleteFactionCustomState} {...rest} onOpenDetailModal={props.onOpenDetailModal} />;
+    }
+    else if (isCustomState(_data)) content = <CustomStateDetailsRenderer state={_data} />;
+    else if (isWorldEvent(_data)) content = <WorldEventDetailsRenderer event={_data} {...rest} />;
+    else content = <pre className="text-xs text-gray-400 whitespace-pre-wrap">{JSON.stringify(_data, null, 2)}</pre>;
+
+    const { title: confirmTitle, content: confirmContent } = getConfirmationContent();
 
     return (
         <>
@@ -193,9 +225,9 @@ export default function DetailRenderer(props: DetailRendererProps) {
                 isOpen={!!confirmation.type}
                 onClose={handleConfirmationClose}
                 onConfirm={handleConfirmationConfirm}
-                title={confirmationTitle}
+                title={confirmTitle}
             >
-                {confirmationContent}
+                {confirmContent}
             </ConfirmationModal>
         </>
     );

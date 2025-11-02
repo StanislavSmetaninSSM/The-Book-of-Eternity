@@ -1,7 +1,5 @@
-
-
-import React from 'react';
-import { PassiveSkill } from '../../types';
+import React, { useState, useCallback } from 'react';
+import { PassiveSkill, PlayerCharacter } from '../../types';
 import { DetailRendererProps } from './types';
 import Section from './Shared/Section';
 import DetailRow from './Shared/DetailRow';
@@ -10,16 +8,47 @@ import MarkdownRenderer from '../MarkdownRenderer';
 import { useLocalization } from '../../context/LocalizationContext';
 import {
     InformationCircleIcon, TagIcon, PuzzlePieceIcon, CogIcon, AcademicCapIcon, StarIcon, LightBulbIcon, BoltIcon,
-    Cog6ToothIcon, ShieldCheckIcon, WrenchScrewdriverIcon, SparklesIcon
+    Cog6ToothIcon, ShieldCheckIcon, WrenchScrewdriverIcon, SparklesIcon, XCircleIcon
 } from '@heroicons/react/24/outline';
 import { qualityColorMap } from './utils';
 
 interface PassiveSkillDetailsProps extends Omit<DetailRendererProps, 'data'> {
-  skill: PassiveSkill;
+  skill: PassiveSkill & { owner?: 'player' | 'npc' };
 }
 
-const PassiveSkillDetailsRenderer: React.FC<PassiveSkillDetailsProps> = ({ skill }) => {
+const PassiveSkillDetailsRenderer: React.FC<PassiveSkillDetailsProps> = ({ skill, playerCharacter, onEditPlayerData, allowHistoryManipulation }) => {
     const { t } = useLocalization();
+    const isPlayerSkill = skill.owner !== 'npc';
+    const [newTag, setNewTag] = useState('');
+
+    const handleAddTag = useCallback(() => {
+        if (newTag.trim() && onEditPlayerData && playerCharacter) {
+            const currentTags = skill.tags || [];
+            const lowercasedTag = newTag.trim().toLowerCase();
+            if (!currentTags.map(t => t.toLowerCase()).includes(lowercasedTag)) {
+                const newSkillsArray = playerCharacter.passiveSkills.map(s => 
+                    s.skillName === skill.skillName 
+                        ? { ...s, tags: [...currentTags, newTag.trim()] } 
+                        : s
+                );
+                onEditPlayerData('passiveSkills', newSkillsArray);
+            }
+            setNewTag('');
+        }
+    }, [newTag, skill, playerCharacter, onEditPlayerData]);
+
+    const handleRemoveTag = useCallback((tagToRemove: string) => {
+        if (onEditPlayerData && playerCharacter) {
+            const newSkillsArray = playerCharacter.passiveSkills.map(s => {
+                if (s.skillName === skill.skillName) {
+                    const newTags = (s.tags || []).filter(t => t !== tagToRemove);
+                    return { ...s, tags: newTags };
+                }
+                return s;
+            });
+            onEditPlayerData('passiveSkills', newSkillsArray);
+        }
+    }, [skill, playerCharacter, onEditPlayerData]);
 
     const hasSpecialProperties = 
         (skill.structuredBonuses && skill.structuredBonuses.length > 0) ||
@@ -97,6 +126,34 @@ const PassiveSkillDetailsRenderer: React.FC<PassiveSkillDetailsProps> = ({ skill
                          <div className="mt-1"><CombatActionDetails action={skill.combatEffect} /></div>
                     </div>
                 )}
+            </Section>
+        )}
+         {allowHistoryManipulation && isPlayerSkill && (
+            <Section title={t("Tags")} icon={TagIcon}>
+                <div className="flex flex-wrap gap-2 items-center">
+                    {(skill.tags || []).length > 0 ? (skill.tags || []).map(tag => (
+                        <div key={tag} className="flex items-center gap-1 bg-cyan-500/20 text-cyan-300 text-xs font-semibold px-2.5 py-1 rounded-full">
+                            <span>{tag}</span>
+                            <button onClick={() => handleRemoveTag(tag)} className="text-cyan-400 hover:text-white transition-colors">
+                                <XCircleIcon className="w-4 h-4" />
+                            </button>
+                        </div>
+                    )) : (
+                        <p className="text-xs text-gray-500 italic">{t('No tags assigned.')}</p>
+                    )}
+                </div>
+                <form onSubmit={(e) => { e.preventDefault(); handleAddTag(); }} className="flex gap-2 mt-3">
+                    <input
+                        type="text"
+                        value={newTag}
+                        onChange={(e) => setNewTag(e.target.value)}
+                        placeholder={t("Add a tag...")}
+                        className="flex-1 bg-gray-800/60 border border-gray-600 rounded-md py-1 px-2 text-sm text-gray-200 focus:ring-1 focus:ring-cyan-500 transition"
+                    />
+                    <button type="submit" className="px-4 py-1 text-xs font-semibold text-white bg-cyan-600 rounded-md hover:bg-cyan-500 transition-colors">
+                        {t("Add")}
+                    </button>
+                </form>
             </Section>
         )}
     </div>

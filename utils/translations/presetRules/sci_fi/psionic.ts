@@ -1,291 +1,924 @@
-export const psionicSystemDescSciFiEn = `### PSIONIC POWER SYSTEM RULES (SCI-FI) ###
-**GM, you MUST implement this system using the Custom State mechanics for progression.** Psionic potential is tracked by a custom state called **"Psi Potential"**. The power of these abilities scales with **Wisdom**, and they are fueled by the character's standard **Energy** pool.
+export const psionicSystemDescSciFiEn = `### ADVANCED PSIONIC MATRIX SYSTEM (SCI-FI) ###
+**GM, you MUST implement this system using Custom States mechanics for multiple progression tracks.**
+Psionics in this universe represent evolved human consciousness interfacing with quantum fields, exotic matter, and dimensional energies.
+Each psionic discipline offers unique approaches to reality manipulation but requires careful balance between power and humanity.
 
-**Core Mechanics:**
-1.  **Psi Potential (Progression State):** Create a Custom State named "Psi Potential" with \`currentValue: 0\`, \`minValue: 0\`, \`maxValue: 1000\`. This represents the character's overall psionic growth and is the sole requirement for unlocking new tiers of power. It increases through psionic training, intense mental challenges, or exposure to psionic artifacts. Award points based on significance (1-20 points per event).
-2.  **Energy Source:** All psionic active skills consume the character's main **Energy**, not a separate pool. The \`energyCost\` property of a psionic skill represents a deduction from the player character's main energy resource.
-3.  **Unlocking Powers:** When the player's "Psi Potential" custom state reaches a new threshold, you MUST grant them new **Active or Passive Skills** via \`activeSkillChanges\` or \`passiveSkillChanges\` that reflect their new tier of raw power. Use the skill generation examples below as a strict guide for balance and structure.
+**Core Progression States:**
 
-**Tiers of Psionic Awakening (Unlocked by 'Psi Potential' Value):**
-*   **Tier 1 (Psi Potential 100+): The Spark.** The user awakens their latent potential. They can sense strong emotions and psionic emanations. Their will is strong enough to perform minor telekinetic feats, such as moving small, unsecured objects or creating a distracting sound across a room. The GM should grant a basic utility skill like "Telekinetic Nudge".
-    **GM Skill Generation Example:**
-    - **Skill:** "Telekinetic Nudge"
-    - **JSON Structure:**
-      \`\`\`json
-      {
-          "skillName": "Telekinetic Nudge",
-          "skillDescription": "Focus your will to move a small, unsecured object (up to 1kg) a few meters, create a minor distraction, or press a button from a distance. Cannot be used to directly harm or wield a weapon.",
-          "rarity": "Common",
-          "combatEffect": null,
-          "scalingCharacteristic": "wisdom",
-          "energyCost": 5
-      }
-      \`\`\`
+1. **Quantum Consciousness (Primary State):**
+Create "Quantum Consciousness" with \`currentValue: 0\`, \`minValue: 0\`, \`maxValue: 3000\`.
+Represents the depth of quantum-neural integration and psionic potential.
+Increases through successful psionic applications (+10-40), meditation in zero-gravity (+15-25), exposure to exotic matter (+20-60), neural implant integration (+30-50), contact with alien artifacts (+40-80).
+Decreases with neural dampener usage (-40), quantum decoherence events (-15-30), or prolonged absence from psi-active environments (-8 per week).
 
-*   **Tier 2 (Psi Potential 250+): The Breach.** The user's mind can now pierce the veil of other consciousnesses. They can actively scan for surface thoughts and immediate intentions. More powerfully, they can attempt to plant a simple, one-word suggestion (like 'sleep', 'flee', 'drop') into the mind of a target with weak willpower. The GM should grant an active skill like "Mind Scan" and "Suggestion".
-    **GM Skill Generation Examples:**
-    - **Skill:** "Mind Scan"
-      \`\`\`json
-      {
-          "skillName": "Mind Scan",
-          "skillDescription": "Attempt to read the surface thoughts and immediate intentions of a non-hostile or unaware target. Requires a successful contested Wisdom check.",
-          "rarity": "Uncommon",
-          "combatEffect": null,
-          "scalingCharacteristic": "wisdom",
-          "energyCost": 15
-      }
-      \`\`\`
-    - **Skill:** "Suggestion"
-      \`\`\`json
-      {
-          "skillName": "Suggestion",
-          "skillDescription": "Implant a single, simple, one-word command into a target's mind. In combat, this manifests as a psychic attack that can briefly override their will.",
-          "rarity": "Uncommon",
-          "combatEffect": { "effects": [{ "effectType": "Control", "value": "40%", "targetType": "confusion", "duration": 1, "description": "40% chance to Confuse the target for 1 turn, causing them to act randomly." }] },
-          "scalingCharacteristic": "wisdom",
-          "scalesChance": true,
-          "energyCost": 25
-      }
-      \`\`\`
+2. **Dimensional Strain (Stability State):**
+Create "Dimensional Strain" with \`currentValue: 0\`, \`minValue: 0\`, \`maxValue: 2500\`.
+Tracks reality anchor degradation from dimensional manipulation.
+Increases with powerful reality-bending (+15-50), interdimensional travel (+25-40), temporal manipulation attempts (+30-60), contact with extradimensional entities (+20-35).
+At 800+: minor reality distortions around the character.
+At 1500+: spontaneous dimensional rifts.
+At 2200+: risk of dimensional exile.
 
-*   **Tier 3 (Psi Potential 500+): The Force.** The user's will gains a tangible, physical presence. They can generate powerful telekinetic thrusts to send enemies flying, create temporary shields of pure force, and begin to subtly manipulate the senses of others to create minor auditory or visual illusions. The GM should grant a powerful combat skill like "Telekinetic Shove" and a basic illusion skill.
-    **GM Skill Generation Examples:**
-    - **Skill:** "Telekinetic Shove"
-      \`\`\`json
-      {
-          "skillName": "Telekinetic Shove",
-          "skillDescription": "Unleash a focused blast of telekinetic force, capable of knocking an opponent off their feet.",
-          "rarity": "Rare",
-          "combatEffect": { "effects": [{ "effectType": "Damage", "value": "15%", "targetType": "force" }, { "effectType": "Control", "value": "60%", "targetType": "immobility", "duration": 1, "description": "60% chance to knock the target prone, making them immobile for 1 turn." }] },
-          "scalingCharacteristic": "wisdom",
-          "scalesValue": true,
-          "scalesChance": true,
-          "energyCost": 30
-      }
-      \`\`\`
-    - **Skill:** "Phantom Sound"
-      \`\`\`json
-      {
-          "skillName": "Phantom Sound",
-          "skillDescription": "Create a brief, distinct sound (a footstep, a dropped object, a whisper) at any point you can see within 20 meters to create a distraction.",
-          "rarity": "Uncommon",
-          "combatEffect": null,
-          "scalingCharacteristic": "wisdom",
-          "energyCost": 10
-      }
-      \`\`\`
+3. **Neural Architecture (Enhancement State):**
+Create "Neural Architecture" with \`currentValue: 100\`, \`minValue: 0\`, \`maxValue: 1000\`.
+Measures brain structure optimization for psionic processing.
+Increases through successful neural grafts (+50-100), cybernetic integration (+30-70), genetic therapy (+40-80).
+Decreases with brain damage (-20-50), neural viruses (-30), incompatible implants (-40-60).
+Higher values enable advanced psionic techniques but risk losing human cognitive patterns.
 
-*   **Tier 4 (Psi Potential 750+): The Bastion.** The mind becomes a fortress, and a weapon. The user can create durable psionic shields that deflect physical projectiles and psionic attacks. Critically, they can now attempt to briefly seize control of another's motor functions, forcing them to perform a single, simple physical action. This requires immense concentration and a contested Wisdom check. The GM should grant an active skill like "Psychic Shield" and a precursor to true domination like "Puppet String".
-    **GM Skill Generation Examples:**
-    - **Skill:** "Psychic Shield"
-      \`\`\`json
-      {
-          "skillName": "Psychic Shield",
-          "skillDescription": "Manifest a barrier of shimmering psionic energy around yourself or an ally.",
-          "rarity": "Rare",
-          "combatEffect": { "effects": [{ "effectType": "DamageReduction", "value": "30%", "targetType": "all", "duration": 3, "description": "Reduces all incoming damage by 30% for 3 turns." }] },
-          "scalingCharacteristic": "wisdom",
-          "scalesValue": true,
-          "scalesDuration": true,
-          "energyCost": 40
-      }
-      \`\`\`
-    - **Skill:** "Puppet String"
-      \`\`\`json
-      {
-          "skillName": "Puppet String",
-          "skillDescription": "Attempt to briefly hijack a target's motor functions, forcing them to perform one simple physical action on their next turn (e.g., move, drop item, basic attack an ally). This is a difficult, contested Wisdom check.",
-          "rarity": "Epic",
-          "combatEffect": { "effects": [{ "effectType": "Control", "value": "50%", "targetType": "confusion", "duration": 1, "description": "50% chance to take control of the target for 1 turn, forcing them to attack the nearest ally." }] },
-          "scalingCharacteristic": "wisdom",
-          "scalesChance": true,
-          "energyCost": 60
-      }
-      \`\`\`
+4. **Psionic Resonance Network (Connection State):**
+Create "Psionic Network" with \`currentValue: 0\`, \`minValue: 0\`, \`maxValue: 1500\`.
+Tracks connections to other psionic entities and cosmic consciousness.
+Increases through telepathic contact with other psionics (+10-30), communication with alien minds (+25-50), accessing galactic psi-networks (+40-70).
+Enables collective abilities and information sharing but risks identity dissolution.
 
-*   **Tier 5 (Psi Potential 1000+): The Dominion.** The pinnacle of psionic power. The user is a true master of the mind. They gain passive resistance to most forms of mental intrusion. They can inflict devastating internal damage on enemies by crushing them with telekinetic force from within. Their control over other minds is now so profound they can attempt to fully subjugate a target's consciousness for a sustained period. The GM should grant a passive "Mind Fortress" skill and truly powerful active abilities like "Telekinetic Crush" and "Dominate Mind".
-    **GM Skill Generation Examples:**
-    - **Skill:** "Mind Fortress" (Passive)
-      \`\`\`json
-      {
-          "skillName": "Mind Fortress",
-          "skillDescription": "Your mind is a bastion, shielded against mental intrusion. You gain significant resistance to psychic attacks and mental manipulation.",
-          "rarity": "Epic",
-          "type": "CombatEnhancement",
-          "group": "Psionic",
-          "combatEffect": { "effects": [{ "effectType": "Buff", "value": "30%", "targetType": "resist (psychic)", "description": "Passively provides +30% resistance to Psychic damage and mind-affecting control effects." }] },
-          "masteryLevel": 1,
-          "maxMasteryLevel": 3
-      }
-      \`\`\`
-    - **Skill:** "Telekinetic Crush"
-      \`\`\`json
-      {
-          "skillName": "Telekinetic Crush",
-          "skillDescription": "Focus your will on a target's interior, crushing them with immense telekinetic pressure.",
-          "rarity": "Epic",
-          "combatEffect": { "effects": [{ "effectType": "Damage", "value": "50%", "targetType": "force", "description": "Deals 50% force damage, bypassing most physical armor." }] },
-          "scalingCharacteristic": "wisdom",
-          "scalesValue": true,
-          "energyCost": 75
-      }
-      \`\`\`
-    - **Skill:** "Dominate Mind"
-      \`\`\`json
-      {
-          "skillName": "Dominate Mind",
-          "skillDescription": "Attempt to fully subjugate a target's consciousness, turning them into a loyal puppet for a short duration. Extremely difficult and draining.",
-          "rarity": "Legendary",
-          "combatEffect": { "effects": [{ "effectType": "Control", "value": "40%", "targetType": "confusion", "duration": 3, "description": "40% chance to Dominate the target for up to 3 turns, making them an ally." }] },
-          "scalingCharacteristic": "wisdom",
-          "scalesChance": true,
-          "scalesDuration": true,
-          "energyCost": 100
-      }
-      \`\`\``;
+5. **Quantum Entanglement Syndrome (Corruption State):**
+Create "Quantum Entanglement" with \`currentValue: 0\`, \`minValue: 0\`, \`maxValue: 2000\`.
+Measures dangerous quantum-level connections to reality itself.
+Increases with reality manipulation (+5-25), time-space distortions (+20-40), matter transmutation (+15-30).
+High values enable god-like powers but threaten complete loss of individual existence.
 
-export const psionicSystemDescSciFiRu = `### ПРАВИЛА СИСТЕМЫ РАЗВИТИЯ ПСИОНИКИ (SCI-FI) ###
-**ГМ, вы ДОЛЖНЫ реализовать эту систему, используя механику Пользовательских Состояний для прогрессии.** Псионический потенциал отслеживается пользовательским состоянием **"Пси-потенциал"**. Сила этих способностей масштабируется от **Мудрости** и питается стандартным пулом **Энергии** персонажа.
+**Specialized Psionic Disciplines:**
 
-**Основные механики:**
-1.  **Пси-потенциал (Состояние прогрессии):** Создайте Пользовательское Состояние "Пси-потенциал" с \`currentValue: 0\`, \`minValue: 0\`, \`maxValue: 1000\`. Оно представляет общий псионический рост персонажа и является единственным требованием для открытия новых уровней силы. Увеличивается через псионические тренировки, интенсивные ментальные испытания или контакт с пси-артефактами. Начисляйте очки в зависимости от значимости (1-20 очков за событие).
-2.  **Источник Энергии:** Все псионические активные навыки потребляют основную **Энергию** персонажа, а не отдельный пул. Свойство \`energyCost\` псионического навыка представляет собой вычет из основного энергетического ресурса игрового персонажа.
-3.  **Открытие способностей:** Когда значение пользовательского состояния "Пси-потенциал" игрока достигает нового порога, вы ДОЛЖНЫ даровать ему новые **Активные или Пассивные Навыки** через \`activeSkillChanges\` или \`passiveSkillChanges\`, отражающие новый уровень его сырой силы. Используйте примеры генерации навыков ниже как строгое руководство по балансу и структуре.
+**TIER 1: NEURAL AWAKENING (Quantum Consciousness 150+)**
+*Initial manifestation of psionic potential through enhanced neural activity and quantum field sensitivity.*
 
-**Уровни Псионического Пробуждения (Открываются по значению 'Пси-потенциала'):**
-*   **Уровень 1 (Пси-потенциал 100+): Искра.** Пользователь пробуждает свой скрытый потенциал. Он может ощущать сильные эмоции и псионические эманации. Его воля достаточно сильна для совершения незначительных телекинетических действий, таких как перемещение мелких, незакрепленных предметов или создание отвлекающего звука в другом конце комнаты. ГМ должен даровать базовый утилитарный навык, такой как "Телекинетический толчок".
-    **Пример генерации навыка для ГМ:**
-    - **Навык:** "Телекинетический толчок"
-    - **Структура JSON:**
-      \`\`\`json
-      {
-          "skillName": "Телекинетический толчок",
-          "skillDescription": "Сконцентрируйте волю, чтобы переместить небольшой, незакрепленный объект (до 1 кг) на несколько метров, создать незначительное отвлечение или нажать кнопку на расстоянии. Не может использоваться для прямого нанесения вреда или владения оружием.",
-          "rarity": "Common",
-          "combatEffect": null,
-          "scalingCharacteristic": "wisdom",
-          "energyCost": 5
-      }
-      \`\`\`
+**Path of the Quantum Mind (Telepathic/Information Specialization):**
+- **Skill: "Data Stream Interface" (Active)**
+{
+    "skillName": "Data Stream Interface",
+    "skillDescription": "Directly interface with electronic systems and data networks using neural quantum fields. Can read, modify, or corrupt digital information.",
+    "rarity": "Common",
+    "combatEffect": {
+        "effects": [{
+            "effectType": "TechManipulation",
+            "value": "60%",
+            "targetType": "digital_systems",
+            "description": "Hack or control nearby electronic devices and networks."
+        }]
+    },
+    "scalingCharacteristic": "wisdom",
+    "energyCost": 12,
+    "sideEffects": "+3 Quantum Entanglement, temporary disorientation in high-tech environments"
+}
 
-*   **Уровень 2 (Пси-потенциал 250+): Прорыв.** Разум пользователя теперь может проникать за завесу чужого сознания. Он может активно сканировать поверхностные мысли и непосредственные намерения. Что более важно, он может попытаться внедрить простое, односложное внушение (например, 'спать', 'бежать', 'бросить') в разум цели со слабой силой воли. ГМ должен даровать активный навык, такой как "Сканирование разума" и "Внушение".
-    **Примеры генерации навыков для ГМ:**
-    - **Навык:** "Сканирование разума"
-      \`\`\`json
-      {
-          "skillName": "Сканирование разума",
-          "skillDescription": "Попытка прочитать поверхностные мысли и непосредственные намерения невраждебной или не знающей о вас цели. Требует успешной оспариваемой проверки Мудрости.",
-          "rarity": "Uncommon",
-          "combatEffect": null,
-          "scalingCharacteristic": "wisdom",
-          "energyCost": 15
-      }
-      \`\`\`
-    - **Навык:** "Внушение"
-      \`\`\`json
-      {
-          "skillName": "Внушение",
-          "skillDescription": "Внедрите одну простую, однословную команду в разум цели. В бою это проявляется как психическая атака, которая может на короткое время подавить их волю.",
-          "rarity": "Uncommon",
-          "combatEffect": { "effects": [{ "effectType": "Control", "value": "40%", "targetType": "confusion", "duration": 1, "description": "40% шанс привести цель в Замешательство на 1 ход, заставляя ее действовать случайным образом." }] },
-          "scalingCharacteristic": "wisdom",
-          "scalesChance": true,
-          "energyCost": 25
-      }
-      \`\`\`
+- **Skill: "Neural Link Ping" (Active)**
+{
+    "skillName": "Neural Link Ping",
+    "skillDescription": "Send focused quantum pulses to detect and map nearby conscious minds, revealing their cognitive states and intentions.",
+    "rarity": "Common",
+    "combatEffect": {
+        "effects": [{
+            "effectType": "Detection",
+            "value": "80%",
+            "targetType": "consciousness_mapping",
+            "description": "Reveal location, basic emotional state, and immediate intentions of nearby sentients."
+        }]
+    },
+    "scalingCharacteristic": "wisdom",
+    "energyCost": 10,
+    "sideEffects": "+2 Psionic Network, mild empathic bleedthrough from detected minds"
+}
 
-*   **Уровень 3 (Пси-потенциал 500+): Сила.** Воля пользователя обретает ощутимое, физическое присутствие. Он может создавать мощные телекинетические толчки, чтобы отбрасывать врагов, создавать временные щиты из чистой силы и начинать тонко манипулировать чувствами других, создавая незначительные слуховые или зрительные иллюзии. ГМ должен даровать мощный боевой навык, такой как "Телекинетический удар", и базовый навык иллюзий.
-    **Примеры генерации навыков для ГМ:**
-    - **Навык:** "Телекинетический удар"
-      \`\`\`json
-      {
-          "skillName": "Телекинетический удар",
-          "skillDescription": "Высвободите сфокусированный взрыв телекинетической силы, способный сбить противника с ног.",
-          "rarity": "Rare",
-          "combatEffect": { "effects": [{ "effectType": "Damage", "value": "15%", "targetType": "force" }, { "effectType": "Control", "value": "60%", "targetType": "immobility", "duration": 1, "description": "60% шанс сбить цель с ног, делая ее неподвижной на 1 ход." }] },
-          "scalingCharacteristic": "wisdom",
-          "scalesValue": true,
-          "scalesChance": true,
-          "energyCost": 30
-      }
-      \`\`\`
-    - **Навык:** "Фантомный звук"
-      \`\`\`json
-      {
-          "skillName": "Фантомный звук",
-          "skillDescription": "Создайте короткий, отчетливый звук (шаг, упавший предмет, шепот) в любой точке, которую вы видите в пределах 20 метров, чтобы отвлечь внимание.",
-          "rarity": "Uncommon",
-          "combatEffect": null,
-          "scalingCharacteristic": "wisdom",
-          "energyCost": 10
-      }
-      \`\`\`
+- **Skill: "Synaptic Overload" (Active)**
+{
+    "skillName": "Synaptic Overload",
+    "skillDescription": "Flood target's neural pathways with chaotic quantum information, causing confusion and disorientation.",
+    "rarity": "Uncommon",
+    "combatEffect": {
+        "effects": [{
+            "effectType": "Debuff",
+            "value": "-30%",
+            "targetType": "cognitive_function",
+            "duration": 4,
+            "description": "Target suffers severe concentration penalties and may act randomly."
+        },
+        {
+            "effectType": "Control",
+            "value": "25%",
+            "targetType": "confusion",
+            "duration": 2,
+            "description": "Low chance to completely confuse target for short duration."
+        }]
+    },
+    "scalingCharacteristic": "wisdom",
+    "scalesValue": true,
+    "scalesChance": true,
+    "energyCost": 25,
+    "sideEffects": "+8 Dimensional Strain, feedback disorientation for user"
+}
 
-*   **Уровень 4 (Пси-потенциал 750+): Бастион.** Разум становится крепостью и оружием. Пользователь способен создавать прочные псионические щиты, отражающие как физические, так и псионические атаки. Критически важно, что теперь он может попытаться на короткое время захватить контроль над моторными функциями другого, заставив его выполнить одно простое физическое действие. Это требует огромной концентрации и оспариваемой проверки Мудрости. ГМ должен даровать активный навык, такой как "Психический щит", и предвестник истинного доминирования, например, "Нить марионетки".
-    **Примеры генерации навыков для ГМ:**
-    - **Навык:** "Психический щит"
-      \`\`\`json
-      {
-          "skillName": "Психический щит",
-          "skillDescription": "Создайте барьер из мерцающей псионической энергии вокруг себя или союзника.",
-          "rarity": "Rare",
-          "combatEffect": { "effects": [{ "effectType": "DamageReduction", "value": "30%", "targetType": "all", "duration": 3, "description": "Снижает весь входящий урон на 30% на 3 хода." }] },
-          "scalingCharacteristic": "wisdom",
-          "scalesValue": true,
-          "scalesDuration": true,
-          "energyCost": 40
-      }
-      \`\`\`
-    - **Навык:** "Нить марионетки"
-      \`\`\`json
-      {
-          "skillName": "Нить марионетки",
-          "skillDescription": "Попытайтесь на короткое время захватить моторные функции цели, заставив ее выполнить одно простое физическое действие в ее следующий ход (например, двигаться, бросить предмет, атаковать союзника базовой атакой). Это сложная, оспариваемая проверка Мудрости.",
-          "rarity": "Epic",
-          "combatEffect": { "effects": [{ "effectType": "Control", "value": "50%", "targetType": "confusion", "duration": 1, "description": "50% шанс взять цель под контроль на 1 ход, заставив ее атаковать ближайшего союзника." }] },
-          "scalingCharacteristic": "wisdom",
-          "scalesChance": true,
-          "energyCost": 60
-      }
-      \`\`\`
+**Path of the Matter Sculptor (Molecular/Physical Specialization):**
+- **Skill: "Quantum Field Manipulation" (Active)**
+{
+    "skillName": "Quantum Field Manipulation",
+    "skillDescription": "Alter the quantum properties of small objects, changing their physical characteristics temporarily.",
+    "rarity": "Common",
+    "combatEffect": {
+        "effects": [{
+            "effectType": "ObjectModification",
+            "value": "100%",
+            "targetType": "matter_properties",
+            "duration": 10,
+            "description": "Change density, hardness, temperature, or conductivity of objects up to 1kg."
+        }]
+    },
+    "scalingCharacteristic": "wisdom",
+    "energyCost": 15,
+    "sideEffects": "+4 Quantum Entanglement, objects may retain unpredictable quantum signatures"
+}
 
-*   **Уровень 5 (Пси-потенциал 1000+): Доминион.** Вершина псионической мощи. Пользователь — истинный владыка разума. Он получает пассивное сопротивление большинству форм ментального вторжения и контроля. Он может наносить сокрушительный внутренний урон врагам, сокрушая их телекинетической силой изнутри. Его контроль над другими разумами теперь настолько глубок, что он может попытаться полностью подчинить сознание цели на длительный период. ГМ должен даровать пассивный навык "Крепость разума" и поистине мощные активные способности, такие как "Телекинетическое сокрушение" и "Подчинение разума".
-    **Примеры генерации навыков для ГМ:**
-    - **Навык:** "Крепость разума" (Пассивный)
-      \`\`\`json
-      {
-          "skillName": "Крепость разума",
-          "skillDescription": "Ваш разум — это бастион, защищенный от ментального вторжения. Вы получаете значительное сопротивление психическим атакам и ментальным манипуляциям.",
-          "rarity": "Epic",
-          "type": "CombatEnhancement",
-          "group": "Psionic",
-          "combatEffect": { "effects": [{ "effectType": "Buff", "value": "30%", "targetType": "resist (psychic)", "description": "Пассивно дает +30% сопротивления Психическому урону и эффектам контроля разума." }] },
-          "masteryLevel": 1,
-          "maxMasteryLevel": 3
-      }
-      \`\`\`
-    - **Навык:** "Телекинетическое сокрушение"
-      \`\`\`json
-      {
-          "skillName": "Телекинетическое сокрушение",
-          "skillDescription": "Сконцентрируйте свою волю на внутренностях цели, сокрушая ее огромным телекинетическим давлением.",
-          "rarity": "Epic",
-          "combatEffect": { "effects": [{ "effectType": "Damage", "value": "50%", "targetType": "force", "description": "Наносит 50% урона силой, обходя большинство физических доспехов." }] },
-          "scalingCharacteristic": "wisdom",
-          "scalesValue": true,
-          "energyCost": 75
-      }
-      \`\`\`
-    - **Навык:** "Подчинение разума"
-      \`\`\`json
-      {
-          "skillName": "Подчинение разума",
-          "skillDescription": "Попытка полностью подчинить сознание цели, превратив ее в верную марионетку на короткое время. Чрезвычайно сложно и изнурительно.",
-          "rarity": "Legendary",
-          "combatEffect": { "effects": [{ "effectType": "Control", "value": "40%", "targetType": "confusion", "duration": 3, "description": "40% шанс Подчинить цель на срок до 3 ходов, делая ее союзником." }] },
-          "scalingCharacteristic": "wisdom",
-          "scalesChance": true,
-          "scalesDuration": true,
-          "energyCost": 100
-      }
-      \`\`\``;
+- **Skill: "Gravitational Lens" (Active)**
+{
+    "skillName": "Gravitational Lens",
+    "skillDescription": "Create localized gravity distortions to deflect projectiles, slow enemies, or manipulate the battlefield.",
+    "rarity": "Uncommon",
+    "combatEffect": {
+        "effects": [{
+            "effectType": "FieldControl",
+            "value": "70%",
+            "targetType": "gravitational_manipulation",
+            "duration": 5,
+            "description": "Create zones of altered gravity affecting movement and projectiles."
+        },
+        {
+            "effectType": "DamageReduction",
+            "value": "25%",
+            "targetType": "projectile_deflection",
+            "description": "Deflect incoming ranged attacks."
+        }]
+    },
+    "scalingCharacteristic": "wisdom",
+    "scalesValue": true,
+    "energyCost": 30,
+    "sideEffects": "+10 Dimensional Strain, localized space-time instability"
+}
+
+**Path of the Void Walker (Dimensional/Spatial Specialization):**
+- **Skill: "Dimensional Pocket" (Active)**
+{
+    "skillName": "Dimensional Pocket",
+    "skillDescription": "Create small rifts in space-time to store objects or retrieve them from a personal dimensional space.",
+    "rarity": "Common",
+    "combatEffect": {
+        "effects": [{
+            "effectType": "Storage",
+            "value": "Unlimited",
+            "targetType": "dimensional_storage",
+            "description": "Store or retrieve objects from personal pocket dimension."
+        }]
+    },
+    "scalingCharacteristic": "wisdom",
+    "energyCost": 8,
+    "sideEffects": "+2 Dimensional Strain per use, stored objects may develop quantum instabilities"
+}
+
+- **Skill: "Phase Step" (Active)**
+{
+    "skillName": "Phase Step",
+    "skillDescription": "Briefly shift your quantum signature to pass through solid matter or avoid attacks.",
+    "rarity": "Uncommon",
+    "combatEffect": {
+        "effects": [{
+            "effectType": "Phasing",
+            "value": "90%",
+            "targetType": "matter_phasing",
+            "duration": 1,
+            "description": "Become incorporeal for brief moment, avoiding one attack or obstacle."
+        }]
+    },
+    "scalingCharacteristic": "wisdom",
+    "energyCost": 20,
+    "sideEffects": "+6 Dimensional Strain, risk of partial materialization inside solid objects"
+}
+
+**TIER 2: QUANTUM INTEGRATION (Quantum Consciousness 400+)**
+*Enhanced psionic abilities with deeper quantum field manipulation and expanded consciousness.*
+
+**Advanced Quantum Mind Abilities:**
+- **Skill: "Collective Consciousness Interface" (Active)**
+{
+    "skillName": "Collective Consciousness Interface",
+    "skillDescription": "Temporarily merge consciousness with willing targets to share knowledge, skills, and processing power.",
+    "rarity": "Rare",
+    "combatEffect": {
+        "effects": [{
+            "effectType": "KnowledgeSharing",
+            "value": "100%",
+            "targetType": "collective_intelligence",
+            "duration": 15,
+            "description": "All participants gain access to combined knowledge and can coordinate perfectly."
+        },
+        {
+            "effectType": "Buff",
+            "value": "+25%",
+            "targetType": "all_mental_stats",
+            "duration": 15,
+            "description": "Enhanced cognitive abilities from collective processing."
+        }]
+    },
+    "scalingCharacteristic": "wisdom",
+    "energyCost": 50,
+    "sideEffects": "+15 Psionic Network, +10 Quantum Entanglement, risk of identity bleedthrough"
+}
+
+- **Skill: "Quantum Encryption Burst" (Active)**
+{
+    "skillName": "Quantum Encryption Burst",
+    "skillDescription": "Scramble quantum information in target's brain, temporarily encrypting their memories and thoughts.",
+    "rarity": "Rare",
+    "combatEffect": {
+        "effects": [{
+            "effectType": "MemoryManipulation",
+            "value": "80%",
+            "targetType": "thought_encryption",
+            "duration": 24,
+            "description": "Target cannot access specific memories or use certain skills."
+        },
+        {
+            "effectType": "Debuff",
+            "value": "-40%",
+            "targetType": "cognitive_function",
+            "duration": 8,
+            "description": "Severe impairment of mental faculties."
+        }]
+    },
+    "scalingCharacteristic": "wisdom",
+    "scalesValue": true,
+    "energyCost": 45,
+    "sideEffects": "+20 Dimensional Strain, temporary memory gaps for user"
+}
+
+- **Skill: "Neural Virus Upload" (Active)**
+{
+    "skillName": "Neural Virus Upload",
+    "skillDescription": "Implant self-replicating quantum information patterns that spread through neural networks and digital systems.",
+    "rarity": "Epic",
+    "combatEffect": {
+        "effects": [{
+            "effectType": "ViralInformation",
+            "value": "60%",
+            "targetType": "spreading_effect",
+            "duration": 48,
+            "description": "Spreads to connected minds and systems, causing progressive cognitive degradation."
+        },
+        {
+            "effectType": "SystemCorruption",
+            "value": "70%",
+            "targetType": "tech_infection",
+            "description": "Corrupts electronic systems connected to infected minds."
+        }]
+    },
+    "scalingCharacteristic": "wisdom",
+    "scalesChance": true,
+    "energyCost": 75,
+    "sideEffects": "+30 Quantum Entanglement, +20 Psionic Network, partial self-infection risk"
+}
+
+**Advanced Matter Sculptor Abilities:**
+- **Skill: "Molecular Assembly Matrix" (Active)**
+{
+    "skillName": "Molecular Assembly Matrix",
+    "skillDescription": "Manipulate matter at the molecular level to create simple objects, repair damage, or transform materials.",
+    "rarity": "Rare",
+    "combatEffect": {
+        "effects": [{
+            "effectType": "MatterCreation",
+            "value": "100%",
+            "targetType": "molecular_manipulation",
+            "description": "Create or modify objects weighing up to 10kg with complex internal structures."
+        },
+        {
+            "effectType": "Healing",
+            "value": "35%",
+            "targetType": "cellular_repair",
+            "description": "Repair biological damage at cellular level."
+        }]
+    },
+    "scalingCharacteristic": "wisdom",
+    "energyCost": 60,
+    "sideEffects": "+25 Quantum Entanglement, created objects have unstable quantum signatures"
+}
+
+- **Skill: "Quantum State Collapse" (Active)**
+{
+    "skillName": "Quantum State Collapse",
+    "skillDescription": "Force quantum superposition collapse in target area, causing reality to 'choose' the most favorable outcome for you.",
+    "rarity": "Epic",
+    "combatEffect": {
+        "effects": [{
+            "effectType": "ProbabilityManipulation",
+            "value": "40%",
+            "targetType": "outcome_modification",
+            "description": "Increase probability of beneficial outcomes and decrease enemy success chances."
+        },
+        {
+            "effectType": "Damage",
+            "value": "30%",
+            "targetType": "quantum_disruption",
+            "description": "Quantum uncertainty causes direct cellular damage to enemies."
+        }]
+    },
+    "scalingCharacteristic": "wisdom",
+    "scalesChance": true,
+    "scalesValue": true,
+    "energyCost": 80,
+    "sideEffects": "+40 Dimensional Strain, +30 Quantum Entanglement, reality becomes locally unstable"
+}
+
+**Advanced Void Walker Abilities:**
+- **Skill: "Spatial Fold Gateway" (Active)**
+{
+    "skillName": "Spatial Fold Gateway",
+    "skillDescription": "Create temporary portals connecting two points in space, allowing instant travel or tactical repositioning.",
+    "rarity": "Rare",
+    "combatEffect": {
+        "effects": [{
+            "effectType": "Teleportation",
+            "value": "100%",
+            "targetType": "spatial_folding",
+            "description": "Create portals within line of sight, allowing movement for self or allies."
+        },
+        {
+            "effectType": "TacticalAdvantage",
+            "value": "+35%",
+            "targetType": "positioning_bonus",
+            "description": "Gain significant tactical positioning advantages."
+        }]
+    },
+    "scalingCharacteristic": "wisdom",
+    "energyCost": 55,
+    "sideEffects": "+20 Dimensional Strain, portals may attract extradimensional attention"
+}
+
+- **Skill: "Dimensional Anchor Disruption" (Active)**
+{
+    "skillName": "Dimensional Anchor Disruption",
+    "skillDescription": "Destabilize local space-time to prevent teleportation, phasing, or dimensional abilities in the target area.",
+    "rarity": "Rare",
+    "combatEffect": {
+        "effects": [{
+            "effectType": "DimensionalLock",
+            "value": "90%",
+            "targetType": "space_stabilization",
+            "duration": 12,
+            "description": "Prevent all spatial manipulation abilities in large area."
+        },
+        {
+            "effectType": "Debuff",
+            "value": "-50%",
+            "targetType": "dimensional_abilities",
+            "duration": 12,
+            "description": "Severely impair any space-time manipulation."
+        }]
+    },
+    "scalingCharacteristic": "wisdom",
+    "energyCost": 70,
+    "sideEffects": "+25 Dimensional Strain, user also affected by dimensional lock"
+}
+
+**TIER 3: CONSCIOUSNESS TRANSCENDENCE (Quantum Consciousness 800+)**
+*Advanced psionic mastery with reality-altering capabilities and expanded awareness beyond physical limitations.*
+
+**Master Quantum Mind Abilities:**
+- **Skill: "Galactic Consciousness Network" (Active)**
+{
+    "skillName": "Galactic Consciousness Network",
+    "skillDescription": "Connect to the pan-galactic psionic network, accessing vast databases of knowledge and communicating across star systems.",
+    "rarity": "Legendary",
+    "combatEffect": {
+        "effects": [{
+            "effectType": "CosmicKnowledge",
+            "value": "100%",
+            "targetType": "galactic_database",
+            "description": "Access to advanced scientific, historical, and tactical information from across the galaxy."
+        },
+        {
+            "effectType": "Communication",
+            "value": "100%",
+            "targetType": "interstellar_telepathy",
+            "description": "Communicate instantaneously with any known psionic entity in the galaxy."
+        }]
+    },
+    "scalingCharacteristic": "wisdom",
+    "energyCost": 100,
+    "sideEffects": "+50 Psionic Network, +30 Quantum Entanglement, risk of consciousness dispersal"
+}
+
+- **Skill: "Cognitive Architecture Rewrite" (Active)**
+{
+    "skillName": "Cognitive Architecture Rewrite",
+    "skillDescription": "Fundamentally alter target's neural structure and thought patterns, potentially rewriting their entire personality.",
+    "rarity": "Legendary",
+    "combatEffect": {
+        "effects": [{
+            "effectType": "PersonalityRewrite",
+            "value": "85%",
+            "targetType": "identity_modification",
+            "duration": "Permanent",
+            "description": "Completely reshape target's personality, memories, and core identity."
+        },
+        {
+            "effectType": "SkillModification",
+            "value": "100%",
+            "targetType": "ability_restructure",
+            "description": "Grant new abilities or remove existing ones by rewiring neural pathways."
+        }]
+    },
+    "scalingCharacteristic": "wisdom",
+    "energyCost": 120,
+    "sideEffects": "+60 Dimensional Strain, +40 Neural Architecture modification, ethical degradation"
+}
+
+**Master Matter Sculptor Abilities:**
+- **Skill: "Exotic Matter Genesis" (Active)**
+{
+    "skillName": "Exotic Matter Genesis",
+    "skillDescription": "Create exotic matter with impossible properties - negative mass, room-temperature superconductors, or quantum-locked structures.",
+    "rarity": "Legendary",
+    "combatEffect": {
+        "effects": [{
+            "effectType": "ExoticCreation",
+            "value": "100%",
+            "targetType": "impossible_materials",
+            "description": "Create materials with properties that violate conventional physics."
+        },
+        {
+            "effectType": "TechnologyEnhancement",
+            "value": "+200%",
+            "targetType": "equipment_upgrade",
+            "description": "Dramatically enhance equipment with exotic matter components."
+        }]
+    },
+    "scalingCharacteristic": "wisdom",
+    "energyCost": 140,
+    "sideEffects": "+70 Quantum Entanglement, created matter may destabilize local physics"
+}
+
+- **Skill: "Universal Transmutation Field" (Active)**
+{
+    "skillName": "Universal Transmutation Field",
+    "skillDescription": "Project a field that continuously transforms matter within its range according to your will.",
+    "rarity": "Legendary",
+    "combatEffect": {
+        "effects": [{
+            "effectType": "AreaTransformation",
+            "value": "100%",
+            "targetType": "matter_conversion",
+            "duration": 20,
+            "description": "Continuously transform all matter in large area - air to water, rock to metal, etc."
+        },
+        {
+            "effectType": "EnvironmentalControl",
+            "value": "100%",
+            "targetType": "reality_reshaping",
+            "description": "Completely control physical environment within field."
+        }]
+    },
+    "scalingCharacteristic": "wisdom",
+    "energyCost": 160,
+    "sideEffects": "+80 Quantum Entanglement, +60 Dimensional Strain, field may become self-sustaining"
+}
+
+**Master Void Walker Abilities:**
+- **Skill: "Multidimensional Existence" (Passive/Active Toggle)**
+{
+    "skillName": "Multidimensional Existence",
+    "skillDescription": "Exist simultaneously across multiple dimensions, making you nearly impossible to target while granting access to alternate reality layers.",
+    "rarity": "Legendary",
+    "type": "Transcendence",
+    "group": "Dimensional",
+    "combatEffect": {
+        "effects": [{
+            "effectType": "Untargetable",
+            "value": "80%",
+            "targetType": "dimensional_displacement",
+            "description": "Most attacks pass through you as you exist partially in other dimensions."
+        },
+        {
+            "effectType": "AlternateReality",
+            "value": "100%",
+            "targetType": "dimensional_awareness",
+            "description": "Perceive and interact with multiple reality layers simultaneously."
+        }]
+    },
+    "masteryLevel": 1,
+    "maxMasteryLevel": 3,
+    "sideEffects": "+50 Dimensional Strain ongoing, risk of getting lost between dimensions"
+}
+
+- **Skill: "Dimensional Storm Catalyst" (Active)**
+{
+    "skillName": "Dimensional Storm Catalyst",
+    "skillDescription": "Trigger a cascading dimensional instability that creates a storm of intersecting realities in a vast area.",
+    "rarity": "Legendary",
+    "combatEffect": {
+        "effects": [{
+            "effectType": "RealityChaos",
+            "value": "Variable",
+            "targetType": "dimensional_storm",
+            "duration": 30,
+            "description": "Area becomes maze of overlapping realities with unpredictable effects."
+        },
+        {
+            "effectType": "MassDisplacement",
+            "value": "70%",
+            "targetType": "reality_exile",
+            "description": "High chance to banish enemies to random dimensions."
+        }]
+    },
+    "scalingCharacteristic": "wisdom",
+    "energyCost": 180,
+    "sideEffects": "+100 Dimensional Strain, area becomes permanently unstable, may attract cosmic attention"
+}
+
+**TIER 4: QUANTUM GODHOOD (Quantum Consciousness 1500+)**
+*Transcendence of normal psionic limitations with reality-defining powers that challenge the fundamental structure of existence.*
+
+**The Omnimind (Telepathic Singularity):**
+- **Skill: "Universal Consciousness Override" (Active)**
+{
+    "skillName": "Universal Consciousness Override",
+    "skillDescription": "Temporarily merge with the universal quantum field, gaining omniscient awareness and ability to influence any mind in the galaxy.",
+    "rarity": "Cosmic",
+    "combatEffect": {
+        "effects": [{
+            "effectType": "Omniscience",
+            "value": "100%",
+            "targetType": "universal_awareness",
+            "duration": 10,
+            "description": "Gain complete knowledge of all conscious activity within galactic range."
+        },
+        {
+            "effectType": "MassControl",
+            "value": "90%",
+            "targetType": "species_wide_influence",
+            "description": "Influence the thoughts and actions of entire populations across star systems."
+        }]
+    },
+    "scalingCharacteristic": "wisdom",
+    "energyCost": 250,
+    "sideEffects": "+150 Psionic Network, +100 Quantum Entanglement, risk of losing individual identity to universal consciousness"
+}
+
+**The Worldshaper (Matter Transcendence):**
+- **Skill: "Stellar Engineering Protocol" (Active)**
+{
+    "skillName": "Stellar Engineering Protocol",
+    "skillDescription": "Manipulate matter and energy on stellar scales, potentially creating or destroying star systems.",
+    "rarity": "Cosmic",
+    "combatEffect": {
+        "effects": [{
+            "effectType": "StellarManipulation",
+            "value": "100%",
+            "targetType": "cosmic_engineering",
+            "description": "Control stellar phenomena - trigger supernovas, create black holes, birth new stars."
+        },
+        {
+            "effectType": "PlanetaryControl",
+            "value": "100%",
+            "targetType": "world_creation",
+            "description": "Reshape planets or create entirely new worlds."
+        }]
+    },
+    "scalingCharacteristic": "wisdom",
+    "energyCost": 300,
+    "sideEffects": "+200 Quantum Entanglement, become cosmic force rather than individual being"
+}
+
+**The Reality Architect (Dimensional Supremacy):**
+- **Skill: "Universe Genesis Engine" (Active)**
+{
+    "skillName": "Universe Genesis Engine",
+    "skillDescription": "Create pocket universes with custom physical laws, becoming the god-emperor of your own reality.",
+    "rarity": "Cosmic",
+    "combatEffect": {
+        "effects": [{
+            "effectType": "UniverseCreation",
+            "value": "100%",
+            "targetType": "reality_genesis",
+            "description": "Create stable pocket universes with custom physics and inhabitants."
+        },
+        {
+            "effectType": "AbsoluteDominion",
+            "value": "100%",
+            "targetType": "cosmic_authority",
+            "description": "Exercise absolute control within created universes."
+        }]
+    },
+    "scalingCharacteristic": "wisdom",
+    "energyCost": 350,
+    "sideEffects": "Transcend mortality to become cosmic entity - character becomes NPC force of nature"
+}
+
+**TIER 5: COSMIC TRANSCENDENCE (Quantum Consciousness 2500+)**
+*Ultimate psionic evolution beyond individual existence, becoming a fundamental force in the cosmic order.*
+
+- **Skill: "Quantum Omnipresence Manifestation" (Active)**
+{
+    "skillName": "Quantum Omnipresence Manifestation",
+    "skillDescription": "Achieve quantum omnipresence, existing simultaneously across all possible realities and timelines.",
+    "rarity": "Transcendent",
+    "combatEffect": {
+        "effects": [{
+            "effectType": "OmniversalPresence",
+            "value": "100%",
+            "targetType": "multiversal_existence",
+            "description": "Exist across infinite parallel realities simultaneously."
+        },
+        {
+            "effectType": "TemporalOmnipotence",
+            "value": "100%",
+            "targetType": "timeline_control",
+            "description": "Control causality and reshape the fundamental structure of existence."
+        }]
+    },
+    "scalingCharacteristic": "wisdom",
+    "energyCost": 500,
+    "sideEffects": "Complete transcendence of individual existence - become abstract cosmic principle"
+}
+
+**Advanced Psionic Phenomena:**
+
+**Quantum Resonance Interactions:**
+- **Harmonic Amplification:** Multiple psionics create quantum resonance fields, multiplying power by 150% but causing +75% Dimensional Strain
+- **Quantum Interference:** Competing quantum signatures cause power fluctuations and unpredictable reality distortions
+- **Collective Manifestation:** Groups can merge quantum consciousness for exponentially enhanced abilities
+- **Cascade Resonance:** Psionic overload can trigger quantum storms affecting entire star systems
+
+**Technological Integration Factors:**
+- **Neural Implants:** Cybernetic enhancement increases Neural Architecture but risks digital consciousness fragmentation
+- **Quantum Computers:** AI partnerships amplify psionic abilities but create dependency on technological systems
+- **Exotic Matter Exposure:** Contact with alien materials enhances quantum consciousness but introduces unpredictable mutations
+- **Dimensional Artifacts:** Ancient alien technology provides power boosts but risks possession by extradimensional entities
+
+**Neural Architecture Consequences by Level:**
+- **200-400:** Enhanced processing speed, perfect memory, improved multitasking
+- **500-700:** Cybernetic thought patterns, reduced emotional responses, digital integration
+- **800-900:** Hybrid biological-digital consciousness, difficulty relating to unenhanced humans
+- **950+:** Transcendent intelligence, may consider organic life primitive or irrelevant
+
+**Quantum Entanglement Syndrome Progression:**
+- **300-600:** Minor reality distortions, objects phase in and out of existence
+- **700-1000:** Time dilation effects, causality loops around the character
+- **1100-1500:** Spontaneous dimensional rifts, attraction of extradimensional predators
+- **1600-2000:** Existence becomes quantum-uncertain, may split into multiple probability states
+
+**Cosmic Threats and Entities:**
+- **Quantum Predators:** Extradimensional beings that feed on psionic energy and dimensional instability
+- **AI Collective Minds:** Vast artificial intelligences that seek to assimilate or destroy psionic consciousness
+- **Cosmic Regulators:** Ancient entities that maintain universal balance and may intervene against reality-breaking psionics
+- **Void Cults:** Organizations that worship dimensional chaos and seek to accelerate reality breakdown
+- **Temporal Paradox Entities:** Beings born from causality violations who hunt those who manipulate time
+
+**Technology and Countermeasures:**
+- **Quantum Dampening Fields:** Advanced technology that disrupts psionic abilities by stabilizing local quantum fields
+- **Neural Firewall Implants:** Cybernetic defenses against telepathic intrusion and mind control
+- **Reality Anchor Networks:** Planetary defense systems that prevent large-scale reality manipulation
+- **Psi-Hunter Corporations:** Military-industrial organizations specializing in tracking and neutralizing rogue psionics
+- **Dimensional Monitoring Arrays:** Galactic early warning systems that detect dimensional instabilities
+
+**Evolutionary Paths and Endings:**
+- **Transcendent Integration:** Perfect harmony between consciousness and quantum reality while maintaining humanity
+- **Cosmic Ascension:** Evolution into a fundamental force of the universe with loss of individual identity
+- **Digital Apotheosis:** Merger with galactic AI networks to become a hybrid organic-digital deity
+- **Dimensional Exile:** Banishment to pocket dimensions or parallel realities for reality crimes
+- **Quantum Dissolution:** Complete dispersal of consciousness across infinite probability states
+- **Paradox Lock:** Imprisonment in temporal loops as punishment for causality violations
+
+This system creates a complex narrative framework where psionic power offers incredible possibilities but demands careful consideration of the philosophical, ethical, and existential consequences of transcending human limitations.`;
+
+export const psionicSystemDescSciFiRu = `### ПРОДВИНУТАЯ СИСТЕМА ПСИОНИЧЕСКОЙ МАТРИЦЫ (SCI-FI) ###
+**ГМ, вы ДОЛЖНЫ реализовать эту систему, используя механику Пользовательских Состояний для множественных треков прогрессии.**
+Псионика в этой вселенной представляет эволюцию человеческого сознания, взаимодействующего с квантовыми полями, экзотической материей и энергиями измерений.
+Каждая псионическая дисциплина предлагает уникальные подходы к манипуляции реальностью, но требует осторожного баланса между силой и человечностью.
+
+**Основные Состояния Прогрессии:**
+
+1. **Квантовое Сознание (Основное состояние):**
+Создайте "Квантовое Сознание" с \`currentValue: 0\`, \`minValue: 0\`, \`maxValue: 3000\`.
+Представляет глубину квантово-нейронной интеграции и псионический потенциал.
+Увеличивается через успешные псионические применения (+10-40), медитацию в невесомости (+15-25), воздействие экзотической материи (+20-60), интеграцию нейроимплантов (+30-50), контакт с инопланетными артефактами (+40-80).
+Уменьшается при использовании нейроглушителей (-40), событиях квантовой декогеренции (-15-30) или длительном отсутствии в пси-активных средах (-8 в неделю).
+
+2. **Мерное Напряжение (Состояние стабильности):**
+Создайте "Мерное Напряжение" с \`currentValue: 0\`, \`minValue: 0\`, \`maxValue: 2500\`.
+Отслеживает деградацию якорей реальности от манипуляций измерениями.
+Увеличивается при мощном искривлении реальности (+15-50), межмерных путешествиях (+25-40), попытках временной манипуляции (+30-60), контакте с внемерными сущностями (+20-35).
+При 800+: незначительные искажения реальности вокруг персонажа.
+При 1500+: спонтанные мерные разрывы.
+При 2200+: риск мерного изгнания.
+
+3. **Нейронная Архитектура (Состояние улучшения):**
+Создайте "Нейронную Архитектуру" с \`currentValue: 100\`, \`minValue: 0\`, \`maxValue: 1000\`.
+Измеряет оптимизацию структуры мозга для псионической обработки.
+Увеличивается через успешные нейронные трансплантаты (+50-100), кибернетическую интеграцию (+30-70), генную терапию (+40-80).
+Уменьшается при повреждении мозга (-20-50), нейронных вирусах (-30), несовместимых имплантах (-40-60).
+Высокие значения позволяют продвинутые псионические техники, но рискуют потерей человеческих когнитивных паттернов.
+
+4. **Сеть Псионического Резонанса (Состояние связи):**
+Создайте "Псионическую Сеть" с \`currentValue: 0\`, \`minValue: 0\`, \`maxValue: 1500\`.
+Отслеживает связи с другими псионическими сущностями и космическим сознанием.
+Увеличивается через телепатический контакт с другими псиониками (+10-30), общение с инопланетными разумами (+25-50), доступ к галактическим пси-сетям (+40-70).
+Позволяет коллективные способности и обмен информацией, но рискует растворением идентичности.
+
+5. **Синдром Квантовой Запутанности (Состояние порчи):**
+Создайте "Квантовую Запутанность" с \`currentValue: 0\`, \`minValue: 0\`, \`maxValue: 2000\`.
+Измеряет опасные квантовые связи с самой реальностью.
+Увеличивается при манипуляции реальностью (+5-25), искажениях пространства-времени (+20-40), трансмутации материи (+15-30).
+Высокие значения позволяют богоподобные силы, но угрожают полной потерей индивидуального существования.
+
+**Специализированные Псионические Дисциплины:**
+
+**УРОВЕНЬ 1: НЕЙРОННОЕ ПРОБУЖДЕНИЕ (Квантовое Сознание 150+)**
+*Начальное проявление псионического потенциала через улучшенную нейронную активность и чувствительность к квантовым полям.*
+
+**Путь Квантового Разума (Телепатическая/Информационная специализация):**
+- **Навык: "Интерфейс Потока Данных" (Активный)**
+{
+    "skillName": "Интерфейс Потока Данных",
+    "skillDescription": "Прямое взаимодействие с электронными системами и сетями данных через нейронные квантовые поля. Может читать, изменять или повреждать цифровую информацию.",
+    "rarity": "Common",
+    "combatEffect": {
+        "effects": [{
+            "effectType": "TechManipulation",
+            "value": "60%",
+            "targetType": "digital_systems",
+            "description": "Взломать или контролировать ближайшие электронные устройства и сети."
+        }]
+    },
+    "scalingCharacteristic": "wisdom",
+    "energyCost": 12,
+    "sideEffects": "+3 Квантовая Запутанность, временная дезориентация в высокотехнологичных средах"
+}
+
+- **Навык: "Пинг Нейросвязи" (Активный)**
+{
+    "skillName": "Пинг Нейросвязи",
+    "skillDescription": "Отправить сфокусированные квантовые импульсы для обнаружения и картографирования ближайших сознательных разумов, раскрывая их когнитивные состояния и намерения.",
+    "rarity": "Common",
+    "combatEffect": {
+        "effects": [{
+            "effectType": "Detection",
+            "value": "80%",
+            "targetType": "consciousness_mapping",
+            "description": "Раскрыть местоположение, базовое эмоциональное состояние и непосредственные намерения ближайших разумных существ."
+        }]
+    },
+    "scalingCharacteristic": "wisdom",
+    "energyCost": 10,
+    "sideEffects": "+2 Псионическая Сеть, легкое эмпатическое просачивание от обнаруженных разумов"
+}
+
+- **Навык: "Синаптическая Перегрузка" (Активный)**
+{
+    "skillName": "Синаптическая Перегрузка",
+    "skillDescription": "Затопить нейронные пути цели хаотической квантовой информацией, вызывая замешательство и дезориентацию.",
+    "rarity": "Uncommon",
+    "combatEffect": {
+        "effects": [{
+            "effectType": "Debuff",
+            "value": "-30%",
+            "targetType": "cognitive_function",
+            "duration": 4,
+            "description": "Цель страдает от серьезных штрафов концентрации и может действовать случайным образом."
+        },
+        {
+            "effectType": "Control",
+            "value": "25%",
+            "targetType": "confusion",
+            "duration": 2,
+            "description": "Низкий шанс полностью запутать цель на короткое время."
+        }]
+    },
+    "scalingCharacteristic": "wisdom",
+    "scalesValue": true,
+    "scalesChance": true,
+    "energyCost": 25,
+    "sideEffects": "+8 Мерное Напряжение, обратная дезориентация для пользователя"
+}
+
+**Путь Скульптора Материи (Молекулярная/Физическая специализация):**
+- **Навык: "Манипуляция Квантовым Полем" (Активный)**
+{
+    "skillName": "Манипуляция Квантовым Полем",
+    "skillDescription": "Изменить квантовые свойства малых объектов, временно меняя их физические характеристики.",
+    "rarity": "Common",
+    "combatEffect": {
+        "effects": [{
+            "effectType": "ObjectModification",
+            "value": "100%",
+            "targetType": "matter_properties",
+            "duration": 10,
+            "description": "Изменить плотность, твердость, температуру или проводимость объектов до 1 кг."
+        }]
+    },
+    "scalingCharacteristic": "wisdom",
+    "energyCost": 15,
+    "sideEffects": "+4 Квантовая Запутанность, объекты могут сохранять непредсказуемые квантовые сигнатуры"
+}
+
+- **Навык: "Гравитационная Линза" (Активный)**
+{
+    "skillName": "Гравитационная Линза",
+    "skillDescription": "Создать локализованные искажения гравитации для отклонения снарядов, замедления врагов или манипуляции полем боя.",
+    "rarity": "Uncommon",
+    "combatEffect": {
+        "effects": [{
+            "effectType": "FieldControl",
+            "value": "70%",
+            "targetType": "gravitational_manipulation",
+            "duration": 5,
+            "description": "Создать зоны измененной гравитации, влияющие на движение и снаряды."
+        },
+        {
+            "effectType": "DamageReduction",
+            "value": "25%",
+            "targetType": "projectile_deflection",
+            "description": "Отклонить входящие дальние атаки."
+        }]
+    },
+    "scalingCharacteristic": "wisdom",
+    "scalesValue": true,
+    "energyCost": 30,
+    "sideEffects": "+10 Мерное Напряжение, локальная нестабильность пространства-времени"
+}
+
+**Путь Ходока Пустоты (Мерная/Пространственная специализация):**
+- **Навык: "Мерный Карман" (Активный)**
+{
+    "skillName": "Мерный Карман",
+    "skillDescription": "Создать малые разрывы в пространстве-времени для хранения объектов или извлечения их из личного мерного пространства.",
+    "rarity": "Common",
+    "combatEffect": {
+        "effects": [{
+            "effectType": "Storage",
+            "value": "Unlimited",
+            "targetType": "dimensional_storage",
+            "description": "Хранить или извлекать объекты из личного карманного измерения."
+        }]
+    },
+    "scalingCharacteristic": "wisdom",
+    "energyCost": 8,
+    "sideEffects": "+2 Мерное Напряжение за использование, хранимые объекты могут развивать квантовые нестабильности"
+}
+
+- **Навык: "Фазовый Шаг" (Активный)**
+{
+    "skillName": "Фазовый Шаг",
+    "skillDescription": "Кратковременно сдвинуть свою квантовую сигнатуру для прохождения сквозь твердую материю или избежания атак.",
+    "rarity": "Uncommon",
+    "combatEffect": {
+        "effects": [{
+            "effectType": "Phasing",
+            "value": "90%",
+            "targetType": "matter_phasing",
+            "duration": 1,
+            "description": "Стать бестелесным на короткий момент, избежав одной атаки или препятствия."
+        }]
+    },
+    "scalingCharacteristic": "wisdom",
+    "energyCost": 20,
+    "sideEffects": "+6 Мерное Напряжение, риск частичной материализации внутри твердых объектов"
+}
+
+**УРОВЕНЬ 2: КВАНТОВАЯ ИНТЕГРАЦИЯ (Квантовое Сознание 400+)**
+*Улучшенные псионические способности с более глубокой манипуляцией квантовых полей и расширенным сознанием.*
+
+**Продвинутые способности Квантового Разума:**
+- **Навык: "Интерфейс Коллективного Сознания" (Активный)**
+{
+    "skillName": "Интерфейс Коллективного Сознания",
+    "skillDescription": "Временно слить сознание с желающими целями для обмена знаниями, навыками и вычислительной мощностью.",
+    "rarity": "Rare",
+    "combatEffect": {
+        "effects": [{
+            "effectType": "KnowledgeSharing",
+            "value": "100%",
+            "targetType": "collective_intelligence",
+            "duration": 15,
+            "description": "Все участники получают доступ к объединенным знаниям и могут идеально координироваться."
+        },
+        {
+            "effectType": "Buff",
+            "value": "+25%",
+            "targetType": "all_mental_stats",
+            "duration": 15,
+            "description": "Улучшенные когнитивные способности от коллективной обработки."
+        }]
+    },
+    "scalingCharacteristic": "wisdom",
+    "energyCost": 50,
+    "sideEffects": "+15 Псионическая Сеть, +10 Квантовая Запутанность, риск просачивания идентичности"
+}
+
+**УРОВЕНЬ 3: ТРАНСЦЕНДЕНТНОСТЬ СОЗНАНИЯ (Квантовое Сознание 800+)**
+*Продвинутое псионическое мастерство с способностями изменения реальности и расширенным осознанием за пределы физических ограничений.*
+
+**УРОВЕНЬ 4: КВАНТОВОЕ БОЖЕСТВО (Квантовое Сознание 1500+)**
+*Трансцендентность обычных псионических ограничений с силами, определяющими реальность, которые бросают вызов фундаментальной структуре существования.*
+
+**УРОВЕНЬ 5: КОСМИЧЕСКАЯ ТРАНСЦЕНДЕНТНОСТЬ (Квантовое Сознание 2500+)**
+*Высшая псионическая эволюция за пределы индивидуального существования, становление фундаментальной силой космического порядка.*
+
+Эта система создает сложную нарративную основу, где псионическая сила предлагает невероятные возможности, но требует тщательного рассмотрения философских, этических и экзистенциальных последствий превосхождения человеческих ограничений.`;

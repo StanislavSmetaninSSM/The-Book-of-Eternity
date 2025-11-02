@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { BookOpenIcon, ShieldCheckIcon, BeakerIcon, FingerPrintIcon, CubeIcon, CpuChipIcon, QuestionMarkCircleIcon, AcademicCapIcon, ExclamationTriangleIcon } from '@heroicons/react/24/outline';
 import { useLocalization } from '../context/LocalizationContext';
@@ -103,6 +104,7 @@ export default function HelpGuide(): React.ReactNode {
                     <FormulaBlock titleKey="KeyFormulasCombatStatsTitle" descKey="KeyFormulasCombatStatsDesc" contentKey="KeyFormulasCombatStatsContent" />
                     <FormulaBlock titleKey="KeyFormulasActionChecksTitle" descKey="KeyFormulasActionChecksDesc" contentKey="KeyFormulasActionChecksContent" />
                     <FormulaBlock titleKey="KeyFormulasSkillScalingTitle" descKey="KeyFormulasSkillScalingDesc" contentKey="KeyFormulasSkillScalingContent" />
+                    <FormulaBlock titleKey="KeyFormulasLevelUpTitle" descKey="KeyFormulasLevelUpDesc" contentKey="KeyFormulasLevelUpContent" />
                     <FormulaBlock titleKey="KeyFormulasXPTitle" descKey="KeyFormulasXPDesc" contentKey="KeyFormulasXPContent" />
                 </div>
             </Section>

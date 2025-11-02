@@ -4,6 +4,7 @@ import { SpeakerWaveIcon, StopCircleIcon } from '@heroicons/react/24/solid';
 import { PencilSquareIcon, TrashIcon } from '@heroicons/react/24/outline';
 import { useLocalization } from '../../../context/LocalizationContext';
 import { useSpeech } from '../../../context/SpeechContext';
+import { stripMarkdown } from '../../../utils/textUtils';
 
 interface MemoryCardProps {
     memory: UnlockedMemory;
@@ -13,22 +14,11 @@ interface MemoryCardProps {
     onDelete?: () => void;
 }
 
-// Helper function to strip markdown for cleaner speech
-const stripMarkdown = (text: string) => {
-  return text
-    .replace(/\[([^\]]+)\]\([^\)]+\)/g, '$1')
-    .replace(/!\[[^\]]*\]\([^\)]+\)/g, '')
-    .replace(/(\*\*|__)(.*?)\1/g, '$2')
-    .replace(/(\*|_)(.*?)\1/g, '$2')
-    .replace(/#{1,6}\s/g, '')
-    .replace(/`/g, '');
-};
-
 const MemoryCard: React.FC<MemoryCardProps> = ({ memory, onOpenMemoryModal, isEditable, onEdit, onDelete }) => {
     const { t } = useLocalization();
     const { speak, isSpeaking, currentlySpeakingText } = useSpeech();
 
-    const strippedContent = stripMarkdown(memory.content);
+    const strippedContent = memory.content ? stripMarkdown(memory.content) : '';
     const isThisMemorySpeaking = isSpeaking && currentlySpeakingText === strippedContent;
 
     const handleCardClick = () => {
@@ -75,7 +65,7 @@ const MemoryCard: React.FC<MemoryCardProps> = ({ memory, onOpenMemoryModal, isEd
                                     e.stopPropagation();
                                     if (onDelete) onDelete();
                                 }}
-                                className="p-1 rounded-full text-gray-400 hover:bg-gray-800 hover:text-white opacity-40 group-hover:opacity-100 transition-opacity"
+                                className="p-1 rounded-full text-gray-400 hover:bg-red-900/50 hover:text-red-300 opacity-40 group-hover:opacity-100 transition-opacity"
                                 title={t("Delete Memory")}
                             >
                                 <TrashIcon className="w-5 h-5" />

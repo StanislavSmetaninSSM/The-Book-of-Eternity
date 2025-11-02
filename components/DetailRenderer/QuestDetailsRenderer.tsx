@@ -1,4 +1,5 @@
 
+
 import React from 'react';
 import { Quest, GameSettings } from '../../types';
 import { DetailRendererProps } from './types';
@@ -54,8 +55,8 @@ const QuestDetailsRenderer: React.FC<QuestDetailsProps> = ({ quest, onOpenForget
         <Section title={t("Objectives")} icon={CheckCircleIcon}>
             <ul className="space-y-2">
                 {quest.objectives.map((obj, i) => (
-                    <li key={obj.objectiveId || i} className={`flex items-start gap-3 p-2 rounded-md ${obj.status === 'Completed' ? 'bg-gray-800/50 text-gray-500' : 'text-gray-300'}`}>
-                        {obj.status === 'Completed' ? <CheckCircleIcon className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" /> : <div className="w-5 h-5 flex-shrink-0 mt-0.5 flex items-center justify-center"><div className="w-2 h-2 rounded-full bg-cyan-500"></div></div>}
+                    <li key={obj.objectiveId || i} className={`flex items-center gap-3 p-2 rounded-md ${obj.status === 'Completed' ? 'bg-gray-800/50 text-gray-500' : 'text-gray-300'}`}>
+                        {obj.status === 'Completed' ? <CheckCircleIcon className="w-5 h-5 text-green-500 flex-shrink-0" /> : <div className="w-5 h-5 flex-shrink-0 flex items-center justify-center"><div className="w-2 h-2 rounded-full bg-cyan-500"></div></div>}
                         <div className={`flex-1 ${obj.status === 'Completed' ? 'line-through' : ''}`}>
                              <EditableField 
                                 label={`${t('Objective')} ${i + 1}`}

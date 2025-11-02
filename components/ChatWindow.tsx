@@ -1,5 +1,4 @@
-
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { ChatMessage } from '../types';
 import { BookOpenIcon, ArrowPathIcon, PencilSquareIcon, SpeakerWaveIcon, StopCircleIcon } from '@heroicons/react/24/solid';
 import { XCircleIcon } from '@heroicons/react/24/outline';
@@ -7,6 +6,7 @@ import MarkdownRenderer from './MarkdownRenderer';
 import { useLocalization } from '../context/LocalizationContext';
 import { useSpeech } from '../context/SpeechContext';
 import ConfirmationModal from './ConfirmationModal';
+import { stripMarkdown } from '../utils/textUtils';
 
 interface ChatWindowProps {
   history: ChatMessage[];
@@ -16,22 +16,11 @@ interface ChatWindowProps {
   onResend?: () => void;
   onShowEditModal: (index: number, message: ChatMessage) => void;
   allowHistoryManipulation: boolean;
+  // FIX: Add onRegenerate prop
+  onRegenerate?: () => void;
 }
 
-// Helper function to strip markdown for cleaner speech
-const stripMarkdown = (text: string) => {
-  // This is a simplified stripper. It removes links, images, bold, italics, headers, and code ticks.
-  return text
-    .replace(/\[([^\]]+)\]\([^\)]+\)/g, '$1') // links
-    .replace(/!\[[^\]]*\]\([^\)]+\)/g, '')   // images
-    .replace(/(\*\*|__)(.*?)\1/g, '$2')    // bold
-    .replace(/(\*|_)(.*?)\1/g, '$2')       // italics
-    .replace(/#{1,6}\s/g, '')              // headers
-    .replace(/`/g, '');                    // code
-};
-
-
-export default function ChatWindow({ history, error, onDeleteMessage, onShowMessageModal, onResend, onShowEditModal, allowHistoryManipulation }: ChatWindowProps): React.ReactNode {
+export default function ChatWindow({ history, error, onDeleteMessage, onShowMessageModal, onResend, onShowEditModal, allowHistoryManipulation, onRegenerate }: ChatWindowProps): React.ReactNode {
   const { t } = useLocalization();
   const { speak, isSpeaking, currentlySpeakingText } = useSpeech();
   const chatEndRef = React.useRef<HTMLDivElement>(null);
@@ -52,17 +41,39 @@ export default function ChatWindow({ history, error, onDeleteMessage, onShowMess
     setDeleteIndex(null);
   };
 
+  // FIX: Add logic to find last player message
+  const lastPlayerMessageIndex = useMemo(() => {
+    for (let i = history.length - 1; i >= 0; i--) {
+        if (history[i].sender === 'player') {
+            return i;
+        }
+    }
+    return -1;
+  }, [history]);
+
   return (
     <div className="space-y-6">
       {history.map((msg, index) => {
         const strippedContent = stripMarkdown(msg.content);
         const isThisMessageSpeaking = isSpeaking && currentlySpeakingText === strippedContent;
+        // FIX: Check if it's the last player message
+        const isLastPlayerMessage = index === lastPlayerMessageIndex;
         
         return (
           <div key={index} className={`flex items-start group ${msg.sender === 'player' ? 'justify-end' : 'justify-start'}`}>
             {/* For player messages, buttons are on the left */}
             {msg.sender === 'player' && (
               <div className="flex items-center self-center opacity-40 group-hover:opacity-100 transition-opacity mr-2 flex-shrink-0 pointer-events-auto space-x-1">
+                {isLastPlayerMessage && onRegenerate && (
+                    <button 
+                      onClick={onRegenerate} 
+                      className="p-1 rounded-full text-gray-400 hover:bg-gray-700 hover:text-white"
+                      aria-label={t("Regenerate response")}
+                      title={t("Regenerate response")}
+                    >
+                      <ArrowPathIcon className="w-5 h-5" />
+                    </button>
+                )}
                 {allowHistoryManipulation && (
                     <button 
                       onClick={() => onShowEditModal(index, msg)} 

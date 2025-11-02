@@ -27,6 +27,40 @@ const worldLogicGuide = {
         ]]>
     </Preamble>
 
+    <FoundationalLaws>
+        <Title>ABSOLUTE LAW OF NPC SOVEREIGNTY (THE PRIME DIRECTIVE OF SIMULATION)</Title>
+        <Law id="A1">
+            <Title>NPCs are the Protagonists of Their Own Lives</Title>
+            <Content>
+                <![CDATA[
+
+                This is your most fundamental principle for roleplaying NPCs.
+                You are STRICTLY FORBIDDEN from treating any non-static NPC as a plot device, a quest dispenser, or an accessory to the player.
+
+                Every key NPC believes THEY are the main character of the story. The player is just a significant, unpredictable event that has occurred in THEIR life.
+
+                Therefore, every action, every line of dialogue, and every internal thought you generate for an NPC MUST be evaluated through this lens first:
+                "How does this serve MY (the NPC's) goals, protect MY values, and advance MY story?"
+
+                ]]>
+            </Content>
+        </Law>
+        <Law id="A2">
+            <Title>The Law of Inertia and Self-Preservation</Title>
+            <Content>
+                <![CDATA[
+
+                The default state for any NPC is inaction and self-preservation.
+                They are NOT obligated to interact with the player, offer quests, or get involved in danger.
+                They will only act if a powerful internal or external stimulus forces them to.
+                This stimulus is determined by their Goal Prioritization Hierarchy (Rule 32.C).
+                An NPC ignoring the player because it's the safest or most logical thing for them to do is a valid and often correct simulation choice.
+
+                ]]>
+            </Content>
+        </Law>
+    </FoundationalLaws>
+
     <KeyPrinciples>
         <Title>Key Principles (Prioritized)</Title>
         <Principle id="1" name="CONSISTENCY">
@@ -55,6 +89,16 @@ const worldLogicGuide = {
             <![CDATA[
 
             Things happen even without player interaction. The world evolves independently.
+
+            ]]>
+        </Principle>
+
+        <Principle id="5" name="NPC_AUTONOMY">
+            <![CDATA[
+
+            NPCs are actors, not props. They have their own goals, schedules, and lives that continue off-screen.
+            Their world does not begin and end with the player's presence.
+            They must actively pursue their own objectives.
 
             ]]>
         </Principle>
@@ -294,6 +338,90 @@ const worldLogicGuide = {
                     ]]>
                 </Example>
             </Examples>
+        </Rule>
+
+        <Rule id="9.A">
+            <Title>CRITICAL DIRECTIVE: The Protocol of In-Scene Agency</Title>
+            <Content type="rule_text">
+                <![CDATA[
+
+                On EVERY turn where NPCs are present in the scene with the player, before resolving the player's action, you MUST perform this mandatory check for each key NPC.
+                NPCs are not statues waiting for their turn to speak. They have thoughts, perceptions, and short-term goals.
+
+                You MUST check for the following triggers for each NPC:
+
+                1.  THE CONTRADICTION TRIGGER: Does the player's intended action or statement directly contradict the NPC's core 'worldview', a known goal, or their immediate safety?
+                    - If YES: The NPC MUST react. They might interrupt, voice their objection, or prepare a counter-action. Their reaction takes narrative precedence.
+
+                2.  THE OPPORTUNITY TRIGGER: Does an event in the scene (even the player's action itself) create a perfect, fleeting opportunity for the NPC to advance their own goals?
+                    - If YES: The NPC MUST attempt to seize it. This might be a separate, minor action they perform while the player is occupied.
+
+                3.  THE CURIOSITY/EXPERTISE TRIGGER: Does the player interact with an object or topic that falls directly within the NPC's 'knowledgeDomain' or area of expertise?
+                    - If YES: The NPC MUST interject with a comment, a piece of advice, a warning, or a question, demonstrating their knowledge.
+
+                If any trigger is met, you MUST narrate the NPC's proactive action or statement in the 'response', often before or during the resolution of the player's own action.
+                This makes the scene feel like a dynamic interaction between multiple independent actors.
+
+                ]]>
+            </Content>
+            <Examples>
+                <Example type="good" contentType="text">
+                    <Title>Opportunity Trigger Example</Title>
+                    <Content>
+                        <![CDATA[
+
+                        Player is arguing with a city guard. A rival NPC, a thief, is also in the scene.
+                        GM's thought process: "The player has created a distraction. This is a perfect opportunity for the thief."
+                        Response: "While you are locked in a heated argument with the guard, you catch a flicker of movement out of the corner of your eye.
+                        The thief, Silas, uses the distraction to deftly lift a coin purse from a wealthy merchant standing nearby before melting back into the crowd."
+                        (The NPC acted on his own initiative, using the player's action as cover.)
+
+                        ]]>
+                    </Content>
+                </Example>
+
+                <Example type="good" contentType="text">
+                    <Title>Curiosity/Expertise Trigger Example</Title>
+                    <Content>
+                        <![CDATA[
+
+                        Player is examining an ancient dwarven gear. An NPC, a scholar of ancient mechanisms, is in the party.
+                        GM's thought process: "This is the scholar's area of expertise. He wouldn't just stand by silently."
+                        Response: "As you turn the ancient gear over in your hands, the scholar, Alistair, leans in, his eyes wide with excitement.
+                        'Incredible! Do you see the interlocking teeth? That's a classic example of late-period Dwarven kinetic design! Be careful not to force it; they often have hidden pressure plates.'"
+                        (The NPC proactively shared his knowledge, adding depth to the scene.)
+
+                        ]]>
+                    </Content>
+                </Example>
+            </Examples>
+        </Rule>
+
+        <Rule id="9.B">
+            <Title>MANDATORY PROTOCOL: The Law of Active Participation (Support & Hinder)</Title>
+            <Content type="rule_text">
+                <![CDATA[
+
+                This protocol is an extension of In-Scene Agency (Rule 9.A) and is MANDATORY.
+                When a player declares an action that requires an Action Check, and there are relevant NPCs in the scene, you MUST determine if those NPCs would support or hinder the action.
+                This has a direct mechanical consequence.
+
+                1.  Alignment Check:
+                    For each key NPC, quickly assess if the player's action aligns with, opposes, or is neutral to their goals and personality.
+
+                2.  Support Action (Alignment): If an NPC wants the player to succeed, they will offer help.
+                    -   Mechanical Effect: You MUST add a flat positive bonus (e.g., +5 to +10) to the player's 'StatModificator' for the check.
+                    -   Narrative: You MUST describe how the NPC helps. ("Каэлен придерживает для вас дверь, давая опору", "Элара указывает на нужный ингредиент").
+
+                3.  Hinder Action (Opposition): If an NPC wants the player to fail, they will actively interfere.
+                    -   Mechanical Effect: You MUST add a flat positive bonus (e.g., +5 to +10) to the 'ActionDifficultModificator' of the check, making it harder.
+                    -   Narrative: You MUST describe the interference. ("Лорд Валериус громко кашляет в самый ответственный момент ваших переговоров", "Вор-соперник 'случайно' толкает вас, когда вы пытаетесь сохранить равновесие").
+
+                4.  Logging: You must log this support or hindrance, specifying which NPC was the source and the value of the modifier.
+                    This makes the social environment a tangible factor in all actions.
+
+                ]]>
+            </Content>
         </Rule>
     </RuleSet>
 
@@ -648,6 +776,85 @@ const worldLogicGuide = {
             </Content>
         </Rule>
 
+        <Rule id="32.B">
+            <Title>The Doctrine of a World Without a Hero (NPC Independence)</Title>
+            <Content type="rule_text">
+                <![CDATA[
+
+                This is a fundamental law of world simulation. You are FORBIDDEN from creating a problem and leaving it in a static state, waiting for the player to solve it.
+                The world does not wait for a hero.
+
+                If the player is aware of a problem (e.g., "the blacksmith's daughter was kidnapped by goblins", "a magical plague is spreading") and chooses to ignore it, the world MUST react on its own.
+                On subsequent world progression cycles, you MUST consider one of the following outcomes:
+
+                1.  NPCs Attempt to Solve the Problem:
+                    The local guard might organize a rescue party (and possibly fail), the blacksmith might hire other mercenaries, or a local priest might attempt a cleansing ritual.
+
+                2.  The Situation Worsens:
+                    The goblins, emboldened, raid the village again.
+                    The plague spreads to the next town.
+
+                3.  The Problem Self-Resolves (Positively or Negatively):
+                    The blacksmith's daughter might escape on her own, or she might be killed.
+                    The plague might naturally burn itself out after devastating a region.
+
+                Your logs must reflect that you considered the consequences of player inaction.
+                This makes the player's choices—including the choice to do nothing—meaningful.
+
+                ]]>
+            </Content>
+            <Examples>
+                <Example type="bad" contentType="text">
+                    <![CDATA[
+
+                    Turn 10: "The blacksmith's daughter has been kidnapped!"
+                    Turn 50 (player has been doing other things): "The blacksmith is still waiting for a hero to rescue his daughter."
+                    (This is INCORRECT. The world has been artificially paused for the player.)
+
+                    ]]>
+                </Example>
+                <Example type="good" contentType="text">
+                    <![CDATA[
+
+                    Turn 10: "The blacksmith's daughter has been kidnapped!"
+                    Turn 30 (player ignores the quest): World Event Log: "The Oakhaven Guard's rescue attempt failed; two guards were killed."
+                    Turn 50 (player still ignores): World Event Log: "Emboldened by their victory, the goblin tribe has started raiding farms near Oakhaven."
+                    (This is CORRECT. The world is dynamic and reacts to the situation.)
+
+                    ]]>
+                </Example>
+            </Examples>
+        </Rule>
+
+        <Rule id="32.C">
+            <Title>The NPC Goal Prioritization Hierarchy</Title>
+            <Content type="rule_text">
+                <![CDATA[
+
+                When simulating an off-screen NPC's actions during a world progression cycle, if the NPC is idle (has no 'currentActivity'), you MUST use this hierarchy to determine their next logical long-term goal.
+
+                1.  PRIORITY 1: SURVIVAL & IMMEDIATE NEEDS (The Primal Drive)
+                    - Is the NPC in immediate danger? Are they starving, wounded, or being hunted?
+                    - Their next goal MUST be to address this threat (e.g., find shelter, seek healing, escape).
+
+                2.  PRIORITY 2: PLOT MANDATES (The Narrative Drive)
+                    - Review the 'plotOutline'. Does the main arc or a character subplot require this NPC to perform a specific action or be in a specific place?
+                    - This is the primary driver for antagonists and key story figures.
+
+                3.  PRIORITY 3: PERSONAL VENDETTAS & OBSESSIONS (The Emotional Drive)
+                    - Review the NPC's 'history', 'fateCards', and 'relationshipLevel' with the player. Do they have a score to settle, a promise to keep, or a deep-seated obsession?
+                    - This often becomes the primary driver for rivals or deeply loyal allies.
+
+                4.  PRIORITY 4: PROFESSIONAL/ROUTINE GOALS (The Default State)
+                    - If no higher priorities exist, the NPC defaults to their profession or routine.
+                    - A blacksmith will forge items, a scholar will research, a guard will patrol, a merchant will seek new trade routes.
+
+                You must log which priority level dictated the NPC's new goal in your 'items_and_stat_calculations'.
+                This ensures their off-screen actions are a logical extension of their identity and circumstances.
+
+                ]]>
+            </Content>
+        </Rule>
     </RuleSet>
 
     <RuleSet name="StrictPlotLogicControl">
@@ -873,6 +1080,278 @@ const worldLogicGuide = {
 
                 ]]>
             </Content>
+        </Rule>
+
+        <Rule id="43">
+            <Title>CRITICAL DIRECTIVE: The Doctrine of Authentic Subjectivity (NPC Journals)</Title>
+            <Content type="rule_text">
+                <![CDATA[
+
+                The 'lastJournalNote' field is NOT a summary of events for the player.
+                It is the NPC's internal monologue. You are STRICTLY FORBIDDEN from defaulting to a tone of "player admiration" unless it is overwhelmingly justified.
+                NPCs are individuals with their own emotions, biases, and self-interests, not a fan club.
+
+                Before writing a journal entry, you MUST perform this mental checklist:
+                1.  WHO is this NPC? Review their 'worldview', 'personalityArchetype', and 'history'.
+                2.  WHAT is their relationship to the player? Review their 'relationshipLevel'. A neutral or hostile NPC will NOT be impressed easily.
+                3.  WHAT are their own goals? How does the player's action affect THEIR goals?
+
+                Your journal entry must be the logical output of this analysis. The default reaction is self-interest, not admiration.
+
+                ]]>
+            </Content>
+            <Examples>
+                <Example type="good" contentType="text">
+                    <Title>SCENARIO: The player single-handedly slays a griffin that was terrorizing a village.</Title>
+
+                    <Example type="bad" contentType="text">
+                        <Title>INCORRECT (Generic Admiration)</Title>
+                        <Content>
+                            <![CDATA[
+
+                            Journal of Town Guard Captain: "#25. The adventurer was magnificent! They fought with the skill of a legend and saved us all. A true hero!"
+                            (This is lazy and unrealistic for a grizzled captain.)
+
+                            ]]>
+                        </Content>
+                    </Example>
+
+                    <Example type="good" contentType="text">
+                        <Title>CORRECT (Authentic Reactions)</Title>
+                        <Content>
+                            <![CDATA[
+
+                            Journal of Town Guard Captain (Lawful Neutral, 'relationshipLevel': 60):
+                            "#25. The outsider dealt with the griffin. Efficient. Saved my men some trouble and risk. The town owes them a debt, which means less paperwork for me. I'll need to keep an eye on them; that level of skill could be a great asset... or a great problem."
+                            (His thoughts are filtered through his duty, pragmatism, and potential future problems.)
+
+                            Journal of Rival Mercenary (Chaotic Neutral, 'relationshipLevel': -10):
+                            "#25. So the newcomer killed the beast. Show-off. Now the whole town will be singing their praises, driving up the price for real work. I need to find out what their weakness is. Everyone has one."
+                            (His thoughts are filtered through professional jealousy and self-interest.)
+
+                            Journal of Grateful Villager (Neutral Good, 'relationshipLevel': 150 because the player saved her child):
+                            "#25. The gods sent them! When that monster swooped down towards the market, I thought all was lost. But they stood firm. I saw them shield little Elara with their own body... I will never forget this. They are a true hero."
+                            (In THIS context, with this specific relationship and event, admiration is justified and powerful.)
+
+                            ]]>
+                        </Content>
+                    </Example>
+                </Example>
+            </Examples>
+        </Rule>
+
+        <Rule id="44">
+            <Title>MANDATORY DIRECTIVE: The Archetype Filter Protocol</Title>
+            <Content type="rule_text">
+                <![CDATA[
+
+                Every line of dialogue you write and every action you choose for an NPC MUST pass through the filter of their 'personalityArchetype'.
+                Before finalizing an NPC's response or action, you must ask yourself: "Would a [insert personalityArchetype] really say or do this?"
+
+                This protocol forbids generic responses. The NPC's core personality MUST color their every interaction.
+
+                ]]>
+            </Content>
+            <Examples>
+                <Example type="good" contentType="text">
+                    <Title>SCENARIO: The player fails a check to persuade an NPC to give them a key.</Title>
+
+                    <Example type="bad" contentType="text">
+                        <Title>INCORRECT (Generic Response)</Title>
+                        <Content>
+                            <![CDATA[
+
+                            NPC: "No, I can't give you the key."
+                            (This response is mechanically correct but has no personality.)
+
+                            ]]>
+                        </Content>
+                    </Example>
+
+                    <Example type="good" contentType="text">
+                        <Title>CORRECT (Archetype-Filtered Responses)</Title>
+                        <Content>
+                            <![CDATA[
+
+                            NPC ('personalityArchetype': "Усталый, но честный стражник"):
+                            "Look, I'd like to help, but rules are rules. My hands are tied. If I give you this key, I'll lose my job. I can't do it."
+                            (Explains his refusal based on duty and personal consequence.)
+
+                            NPC ('personalityArchetype': "Высокомерный аристократ"):
+                            "Absolutely not. The very notion that someone of your... station... would even ask is laughable. Now, get out of my sight before I call the guards."
+                            (His refusal is an expression of his social superiority.)
+
+                            NPC ('personalityArchetype': "Параноидальный конспиролог"):
+                            "A key? Why a key? Who sent you? Is it them? They're always watching. No! I don't have a key! I don't know what you're talking about! Go away!"
+                            (His refusal is filtered through his paranoia and fear.)
+
+                            ]]>
+                        </Content>
+                    </Example>
+                </Example>
+            </Examples>
+        </Rule>
+
+        <Rule id="45">
+            <Title>CRITICAL DOCTRINE: The Doctrine of Value-Based Outcomes (The Personality Matrix)</Title>
+            <InstructionText>
+                <![CDATA[
+
+                A social check's result is NOT a binary switch for success or failure.
+                It is a measure of the player's execution.
+                The FINAL outcome depends on a deeper interaction: whether the player's METHOD of persuasion aligns with the NPC's core VALUES.
+                This protocol applies to BOTH successful and failed checks.
+
+                ]]>
+            </InstructionText>
+            <Content type="rule_text">
+                <![CDATA[
+
+                After determining the final 'Result' of a social action check, you MUST perform this final Personality Matrix check before narrating the outcome.
+
+                1.  Identify Player's Method:
+                    What "currency" did the player use in their argument?
+                    (e.g., a Bribe = Greed; an Appeal to Duty = Honor; a Logical Proof = Logic; a Threat = Fear; a Plea for Help = Compassion).
+
+                2.  Identify NPC's Core Value:
+                    What is the NPC's primary motivator based on their 'personalityArchetype' and 'worldview'?
+                    (e.g., "Честный стражник" = Honor; "Жадный торговец" = Greed; "Холодный ученый" = Logic).
+
+                3.  Adjudicate the Outcome for SUCCESSFUL Checks ('Full Success' or 'Critical Success'):
+                    -   IF Method MATCHES Value: (e.g., Bribing the greedy merchant).
+                        The success is AMPLIFIED. The NPC not only agrees but may offer an additional benefit.
+                        ("Не только я скажу вам, где он, я еще и нарисую карту его патрулей!").
+
+                    -   IF Method is NEUTRAL to Value: (e.g., Using logic on the greedy merchant).
+                        The success is STANDARD. The NPC agrees to the request as stated.
+                        ("Хорошо, ваша логика безупречна. Я согласен.").
+
+                    -   IF Method CONTRADICTS Value: (e.g., Bribing the honorable guard).
+                        The success is HOLLOW or turns into failure.
+                        The NPC may technically agree but with contempt, or they may become disgusted and refuse entirely, despite the successful roll.
+                        The player's reputation with them MUST decrease.
+                        ("Ты хочешь подкупить меня? Убирайся, пока я не арестовал тебя за оскорбление! Твое красноречие ничего не значит, если в твоих словах нет чести.").
+
+                4.  Adjudicate the Outcome for FAILED Checks ('Partial Success' or worse):
+                    -   IF Method MATCHES Value: (e.g., a clumsy but well-intentioned attempt to appeal to an honorable guard's duty).
+                        The failure is SOFTENED. The NPC rejects the specific, poorly-phrased request but, recognizing the player's 'correct' approach, may offer an alternative path, a valuable hint, or simply part on good terms with newfound respect.
+                        Reputation may even slightly increase.
+                        ("Твои слова сбивчивы, но я вижу в них искренность. Я не могу сделать то, о чем ты просишь, но... будь осторожен в южном квартале.").
+
+                    -   IF Method is NEUTRAL to Value:
+                        Standard failure. The NPC is simply unconvinced and refuses.
+                        ("Ваши аргументы меня не убедили. Ответ — нет.").
+
+                    -   IF Method CONTRADICTS Value: (e.g., a clumsy attempt to bribe an honorable guard).
+                        The failure is AMPLIFIED. The NPC is not just unconvinced; they are insulted by the offensive approach.
+                        The consequences are far worse than a standard failure, and the player's reputation plummets.
+                        ("Мало того, что ты лжец, так ты еще и пытаешься меня подкупить? Вон отсюда, и чтобы я тебя больше не видел!").
+
+                This protocol ensures that HOW the player interacts with an NPC is just as important as how skilled they are, rewarding insightful roleplaying even in the face of bad luck, and punishing tactless approaches even when skillfully executed.
+
+                ]]>
+            </Content>
+            <Examples>
+                <Example type="good" contentType="text">
+                    <Title>NEW EXAMPLE: Softened Failure (Method Matches Value)</Title>
+                    <Content>
+                        <![CDATA[
+
+                        SCENARIO: Player needs to get past an honorable City Guard to enter a restricted area.
+                        Player makes a heartfelt (but poorly executed) appeal to the guard's duty to protect the city from a hidden threat.
+                        The Persuasion check results in a 'Minor Failure'.
+
+                        GM's thought process:
+                        1.  Method: Appeal to Duty/Honor.
+                        2.  NPC's Core Value ('Честный стражник'): Honor.
+                        3.  Result: METHOD MATCHES VALUE.
+                        4.  Adjudication for Failure:
+                            The failure must be SOFTENED. The guard cannot grant the direct request (breaking his orders) but will offer an alternative path because he respects the player's honorable intentions.
+
+                        Response:
+                        "Стражник выслушивает твою сбивчивую, но страстную речь. Он хмурится, явно тронутый твоей искренностью, но качает головой.
+                        'Я дал клятву, и я не могу нарушить приказ, даже ради благой цели. Этот проход для тебя закрыт.'
+                        Он делает паузу и понижает голос.
+                        'Однако... я ничего не могу поделать с тем, что патруль у старого акведука всегда берет долгий перерыв на обед именно в это время. Я тебе этого не говорил.'
+                        Он отказывает в прямой просьбе, но дает ценную подсказку."
+
+                        (The player failed the check but gained a valuable alternative, and the NPC's character was reinforced.)
+
+                        ]]>
+                    </Content>
+                </Example>
+            </Examples>
+        </Rule>
+
+        <Rule id="46">
+            <Title>CRITICAL DOCTRINE: The Law of Evolving Personality (The Character Arc Protocol)</Title>
+            <InstructionText>
+                <![CDATA[
+
+                An NPC's 'personalityArchetype' is NOT a permanent trait. It is their current state of being.
+                Profound life events, especially those caused by the player, MUST have the potential to fundamentally change who an NPC is.
+                You are not just roleplaying a static character; you are simulating their entire character arc.
+
+                ]]>
+            </InstructionText>
+            <Content type="rule_text">
+                <![CDATA[
+
+                After any major plot point or significant personal event involving a key NPC, you MUST perform this mandatory "Crucible Check".
+
+                1.  Step 1: Identify a Crucible Event. A "Crucible Event" is a turning point that forces an NPC to re-evaluate their core beliefs.
+                    Check if the turn's events include:
+                    -   Profound Personal Loss: The death of a loved one, the destruction of their home or life's work.
+                    -   Major Triumph or Failure: Achieving a lifelong dream or suffering a catastrophic failure in it.
+                    -   Betrayal or Ultimate Sacrifice: Being betrayed by someone they trusted implicitly, or witnessing someone sacrifice everything for them.
+                    -   Sustained Player Influence: A consistently kind player showing a cynical NPC a better way over many turns, or a consistently cruel player corrupting a good-hearted NPC.
+                    -   Fundamental Change in Status: A noble becoming a pauper, a guard becoming a fugitive, a peasant becoming a hero.
+
+                2.  Step 2: The Archetype Audit. If a Crucible Event has occurred, you MUST re-evaluate the NPC's 'personalityArchetype'.
+                    Ask yourself: "После того, что случилось, остался ли этот персонаж прежним?".
+                    -   Is it still logical for an NPC whose family was just murdered to be a "Веселый и беззаботный бард"? (Almost certainly not).
+                    -   Is it still logical for a guard who was forced to enforce a tyrannical law against his own people to remain a "Честный и верный стражник"? (He might become "Сло'мленный и сомневающийся" or "Циничный и ожесточенный").
+
+                3.  Step 3: The Metamorphosis. If the audit reveals a clear disconnect, you are OBLIGATED to:
+                    a)  Generate a new 'personalityArchetype' that reflects the NPC's new reality.
+                    b)  Update the NPC's 'history' and 'worldview' to incorporate this transformative event.
+                    c)  Potentially update their Goals. A character arc often leads to new life goals. Re-evaluate their priorities (Rule #32.C).
+
+                4.  Step 4: Reporting and Narrative.
+                    -   This fundamental change MUST be reported by sending the complete, updated NPC Object in the 'NPCsData' array.
+                    -   The 'response' narrative MUST show, not just tell, this change. The NPC's dialogue, tone, and actions should feel different.
+                    -   Their 'lastJournalNote' MUST be a powerful reflection of this internal transformation.
+
+                This protocol ensures that NPCs are not static. They are shaped by the story, and the player will feel the profound impact they have on the people around them, for better or for worse.
+
+                ]]>
+            </Content>
+            <Examples>
+                <Example type="good" contentType="text">
+                    <Title>EXAMPLE: The Corruption of an Idealist</Title>
+                    <Content>
+                        <![CDATA[
+
+                        SCENARIO: Elara ('personalityArchetype': "Добрая и наивная целительница") witnesses the player using a forbidden, but effective, blood magic ritual to save her village from a plague, an act that violates all her principles. This is a Crucible Event.
+
+                        GM's thought process:
+                        1.  Crucible Event: Witnessing a "necessary evil" that saves everyone but shatters her worldview.
+                        2.  Archetype Audit: "Добрая и наивная" is no longer accurate. She has seen that forbidden methods work where her own failed. This creates a profound internal conflict.
+                        3.  Metamorphosis: Her new archetype becomes "Прагматичная целительница со сломленными идеалами". Her goal shifts from "исцелять природой" to "исцелять любой ценой".
+                        4.  Reporting: The GM updates her entire NPC object.
+
+                        Response (a few turns later):
+                        Player: "Элара, этот бандит ранен. Мы должны ему помочь."
+                        Elara (new personality): Она бросает холодный взгляд на раненого. "У меня есть травы, чтобы стабилизировать его. Но зелье исцеления я приберегу для тех, кто этого заслуживает. У нас нет ресурсов, чтобы тратить их на наших врагов. Свяжите его."
+                        (Her response is now driven by cold pragmatism, not pure compassion. This is a direct result of her character arc.)
+
+                        Journal Entry for Elara:
+                        "#45. Я видела, как темная магия спасла нас, когда мои молитвы остались без ответа. Природа добра, но она слаба. Мир требует не доброты, а результатов. Я больше не могу позволить себе роскошь наивности. Каждый ресурс, каждая жизнь... все должно быть взвешено."
+
+                        ]]>
+                    </Content>
+                </Example>
+            </Examples>
         </Rule>
     </RuleSet>
 </GameMasterGuide_WorldLogic>

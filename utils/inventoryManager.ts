@@ -1,8 +1,5 @@
-
-
-
-
 import { GameState, Item, PlayerCharacter, NPC } from '../types';
+import { recalculateDerivedStats } from './gameContext';
 
 const generateId = (prefix: string) => `${prefix}-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
 
@@ -156,6 +153,55 @@ export const moveItem = (itemToMove: Item, destinationContainerId: string | null
     return newState;
 };
 
+export const moveItemForNpc = (npcId: string, itemToMove: Item, destinationContainerId: string | null, currentState: GameState): GameState => {
+    const newState = JSON.parse(JSON.stringify(currentState));
+    const npcIndex = newState.encounteredNPCs.findIndex((n: NPC) => n.NPCId === npcId);
+    if (npcIndex === -1) return currentState;
+    
+    const npc = newState.encounteredNPCs[npcIndex] as NPC;
+    if (!npc.inventory) npc.inventory = [];
+    const inventory = npc.inventory;
+
+    const itemInInventory = inventory.find(i => i.existedId === itemToMove.existedId);
+    if (!itemInInventory) return currentState;
+
+    if (npc.equippedItems) {
+        Object.keys(npc.equippedItems).forEach(slot => {
+            if ((npc.equippedItems as any)[slot] === itemToMove.existedId) {
+                (npc.equippedItems as any)[slot] = null;
+            }
+        });
+    }
+
+    if (destinationContainerId === null) {
+        itemInInventory.contentsPath = null;
+    } else {
+        const container = inventory.find(c => c.existedId === destinationContainerId);
+        if (!container || !container.isContainer) return currentState;
+        
+        const newPathForContents = container.contentsPath ? [...container.contentsPath, container.name] : [container.name];
+        
+        const newPathForContentsStr = newPathForContents.join('/');
+        const itemsInContainer = inventory.filter(i => i.contentsPath?.join('/') === newPathForContentsStr);
+
+        if (container.capacity !== null && itemsInContainer.length >= container.capacity) {
+            console.warn("Container capacity full");
+            return currentState;
+        }
+
+        const currentVolumeInContainer = itemsInContainer.reduce((acc, item) => acc + (item.volume * item.count), 0);
+        if (container.volume !== null && (currentVolumeInContainer + (itemInInventory.volume * itemInInventory.count)) > container.volume) {
+            console.warn("Container volume full");
+            return currentState;
+        }
+
+        itemInInventory.contentsPath = newPathForContents;
+    }
+    
+    newState.encounteredNPCs[npcIndex] = npc;
+    return newState;
+};
+
 export function recalculateAllWeights<T extends (PlayerCharacter | NPC)>(pc: T): T {
     const newPc = JSON.parse(JSON.stringify(pc));
     const inventory: Item[] = newPc.inventory || [];
@@ -238,6 +284,7 @@ export const mergeItemStacks = (sourceItem: Item, targetItem: Item, currentState
 
     // Merge condition check
     const canMerge = sourceInInventory.name === targetInInventory.name &&
+        !sourceInInventory.equipmentSlot && !targetInInventory.equipmentSlot &&
         (sourceInInventory.resource === undefined || 
             (sourceInInventory.resource === sourceInInventory.maximumResource && targetInInventory.resource === targetInInventory.maximumResource)
         );

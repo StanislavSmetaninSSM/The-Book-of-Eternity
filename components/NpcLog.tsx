@@ -14,31 +14,37 @@ interface NpcLogProps {
   encounteredFactions: Faction[];
   onOpenModal: (title: string, data: any) => void;
   onOpenJournalModal: (npc: NPC) => void;
+  onViewCharacterSheet: (character: NPC) => void;
   imageCache: Record<string, string>;
   onImageGenerated: (prompt: string, base64: string) => void;
   updateNpcSortOrder: (newOrder: string[]) => void;
   forgetNpc: (npcId: string) => void;
   allowHistoryManipulation: boolean;
   gameSettings: GameSettings | null;
+  onOpenImageModal: (displayPrompt: string, originalTextPrompt: string, onClearCustom?: () => void, onUpload?: (base64: string) => void) => void;
+  updateNpcPortrait: (npcId: string, portraitData: { prompt?: string | null; custom?: string | null; }) => void;
 }
 
 const NpcItem: React.FC<{ 
     npc: NPC, 
     faction: Faction | undefined, 
     factionName: string | undefined, 
-    onOpenModal: (title: string, data: any) => void,
+    onViewCharacterSheet: (character: NPC) => void,
     onOpenJournalModal: (npc: NPC) => void, 
     imageCache: Record<string, string>, 
     onImageGenerated: (prompt: string, base64: string) => void,
     isSorting: boolean,
     onDelete: () => void,
     allowHistoryManipulation: boolean,
-    gameSettings: GameSettings | null
-}> = ({ npc, faction, factionName, onOpenModal, onOpenJournalModal, imageCache, onImageGenerated, isSorting, onDelete, allowHistoryManipulation, gameSettings }) => {
+    gameSettings: GameSettings | null;
+    onOpenImageModal: (displayPrompt: string, originalTextPrompt: string, onClearCustom?: () => void, onUpload?: (base64: string) => void) => void;
+    updateNpcPortrait: (npcId: string, portraitData: { prompt?: string | null; custom?: string | null; }) => void;
+}> = ({ npc, faction, factionName, onViewCharacterSheet, onOpenJournalModal, imageCache, onImageGenerated, isSorting, onDelete, allowHistoryManipulation, gameSettings, onOpenImageModal, updateNpcPortrait }) => {
     const { t } = useLocalization();
     const primaryAffiliation = npc.factionAffiliations?.[0];
     const displayFactionName = faction ? faction.name : (factionName || t('Unknown Faction'));
-    const imagePrompt = npc.custom_image_prompt || npc.image_prompt;
+    const displayImagePrompt = npc.custom_image_prompt || npc.image_prompt;
+    const originalImagePrompt = npc.image_prompt;
     
     const getRelationshipTooltip = (level: number) => {
         if (level <= 49) return t('relationship_level_hostility');
@@ -58,6 +64,20 @@ const NpcItem: React.FC<{
         }
         return `[${t('Corrupted Journal Entry')}]`;
     }, [npc.journalEntries, t]);
+    
+    const handleImageClick = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        if (!displayImagePrompt && !originalImagePrompt) return;
+
+        const onUpload = (base64: string) => {
+            updateNpcPortrait(npc.NPCId, { custom: base64 });
+        };
+        const onClearCustom = () => {
+            updateNpcPortrait(npc.NPCId, { custom: null });
+        };
+
+        onOpenImageModal(displayImagePrompt || '', originalImagePrompt || '', onClearCustom, onUpload);
+    };
 
     return (
         <div
@@ -76,7 +96,7 @@ const NpcItem: React.FC<{
                 </button>
             )}
             <button
-                onClick={() => onOpenModal(t("NPC: {name}", { name: npc.name }), npc)}
+                onClick={() => onViewCharacterSheet(npc)}
                 className="w-full flex items-start gap-4"
                 disabled={isSorting}
             >
@@ -85,15 +105,19 @@ const NpcItem: React.FC<{
                         <Bars3Icon className="w-5 h-5" />
                     </div>
                 )}
-                <div className="w-12 h-12 rounded-md overflow-hidden flex-shrink-0 bg-gray-800 flex items-center justify-center">
-                    {imagePrompt ? (
-                        <ImageRenderer prompt={imagePrompt} alt={npc.name} className="w-full h-full object-cover" imageCache={imageCache} onImageGenerated={onImageGenerated} model={gameSettings?.pollinationsImageModel} />
+                <div 
+                    className="w-12 h-12 rounded-md overflow-hidden flex-shrink-0 bg-gray-800 flex items-center justify-center cursor-pointer"
+                    onClick={handleImageClick}
+                >
+                    {displayImagePrompt ? (
+// FIX: Pass the `gameSettings` prop to the `ImageRenderer` component.
+                        <ImageRenderer prompt={displayImagePrompt} alt={npc.name} className="w-full h-full object-cover" imageCache={imageCache} onImageGenerated={onImageGenerated} model={gameSettings?.pollinationsImageModel} gameSettings={gameSettings} />
                     ) : (
                         <UserIcon className="w-8 h-8 text-cyan-400" />
                     )}
                 </div>
                 <div className="flex-1 text-left">
-                    <p className="font-semibold text-gray-200">{npc.name}</p>
+                    <p className="font-semibold text-gray-200">{npc.name} <span className="text-sm font-mono text-cyan-400">({t('Lvl {level}', { level: npc.level || '?' })})</span></p>
                     <p className="text-sm text-gray-400">{t(npc.race as any)} {t(npc.class as any)}</p>
                     {npc.relationshipLevel !== undefined ? (
                         <div title={getRelationshipTooltip(npc.relationshipLevel)}>
@@ -114,7 +138,7 @@ const NpcItem: React.FC<{
             </button>
             {journalPreviewContent && (
                 <div className="mt-3 pt-3 border-t border-gray-700/50">
-                    <h5 className="text-xs font-semibold text-cyan-400/80 mb-1 uppercase tracking-wider">{t('Journal Preview')}</h5>
+                    <h5 className="text-xs font-semibold text-cyan-400/80 mb-1 uppercase tracking-wider">{t('journal_preview')}</h5>
                     <p className="text-sm text-gray-400 italic line-clamp-3 whitespace-pre-wrap">{journalPreviewContent}</p>
                     <button 
                         onClick={(e) => {
@@ -123,7 +147,7 @@ const NpcItem: React.FC<{
                         }} 
                         className="text-xs font-semibold text-cyan-400 hover:underline mt-2"
                     >
-                        {t('Read Full Journal')}
+                        {t('read_full_journal')}
                     </button>
                 </div>
             )}
@@ -141,16 +165,33 @@ const attitudeColorMap: Record<string, string> = {
 };
 
 
-export default function NpcLog({ gameState, npcs, encounteredFactions, onOpenModal, onOpenJournalModal, imageCache, onImageGenerated, updateNpcSortOrder, forgetNpc, allowHistoryManipulation, gameSettings }: NpcLogProps): React.ReactNode {
+export default function NpcLog({ gameState, npcs, encounteredFactions, onOpenModal, onOpenJournalModal, onViewCharacterSheet, imageCache, onImageGenerated, updateNpcSortOrder, forgetNpc, allowHistoryManipulation, gameSettings, onOpenImageModal, updateNpcPortrait }: NpcLogProps): React.ReactNode {
   const { t } = useLocalization();
-  const factionMapById = new Map((encounteredFactions || []).filter(f => f.factionId).map(f => [f.factionId, f]));
-  const factionMapByName = new Map((encounteredFactions || []).map(f => [f.name.toLowerCase(), f]));
+  const factionMapById = useMemo(() => new Map((encounteredFactions || []).filter(f => f && f.factionId).map(f => [f.factionId, f])), [encounteredFactions]);
+  const factionMapByName = useMemo(() => new Map((encounteredFactions || []).filter(f => f && typeof f.name === 'string').map(f => [f.name.toLowerCase(), f])), [encounteredFactions]);
   
   const [isSorting, setIsSorting] = useState(false);
   const [localNpcs, setLocalNpcs] = useState<NPC[]>([]);
   const dragItemIndex = useRef<number | null>(null);
   const dragOverItemIndex = useRef<number | null>(null);
   const [npcToDelete, setNpcToDelete] = useState<NPC | null>(null);
+  const [activeTags, setActiveTags] = useState<string[]>([]);
+
+  const allTags = useMemo(() => {
+      const tagSet = new Set<string>();
+      npcs.forEach(npc => {
+          (npc.tags || []).forEach(tag => tagSet.add(tag));
+      });
+      return Array.from(tagSet).sort((a, b) => a.localeCompare(b));
+  }, [npcs]);
+
+  const toggleTag = (tag: string) => {
+      setActiveTags(prev =>
+          prev.includes(tag)
+              ? prev.filter(t => t !== tag)
+              : [...prev, tag]
+      );
+  };
 
   useEffect(() => {
     const sortOrder = gameState?.npcSortOrder || [];
@@ -165,6 +206,16 @@ export default function NpcLog({ gameState, npcs, encounteredFactions, onOpenMod
     });
     setLocalNpcs(sorted);
   }, [npcs, gameState?.npcSortOrder]);
+
+  const filteredNpcs = useMemo(() => {
+      if (activeTags.length === 0) {
+          return localNpcs;
+      }
+      return localNpcs.filter(npc =>
+          activeTags.every(activeTag => (npc.tags || []).includes(activeTag))
+      );
+  }, [localNpcs, activeTags]);
+
 
   const handleSort = () => {
     if (dragItemIndex.current === null || dragOverItemIndex.current === null) return;
@@ -181,7 +232,7 @@ export default function NpcLog({ gameState, npcs, encounteredFactions, onOpenMod
         const newOrder = localNpcs.map(npc => npc.NPCId).filter(Boolean) as string[];
         updateNpcSortOrder(newOrder);
     }
-    setIsSorting(!isSorting);
+    setIsSorting(prev => !prev);
   };
 
   const handleDeleteConfirm = () => {
@@ -203,15 +254,38 @@ export default function NpcLog({ gameState, npcs, encounteredFactions, onOpenMod
             {isSorting ? t('Done') : t('Sort')}
         </button>
       </div>
-      {localNpcs && localNpcs.length > 0 ? (
+       {allTags.length > 0 && (
+          <div className="p-3 bg-gray-900/30 rounded-lg">
+              <h4 className="text-sm font-semibold text-gray-400 mb-2">{t('Filter by tags:')}</h4>
+              <div className="flex flex-wrap gap-2">
+                  {allTags.map(tag => (
+                      <button
+                          key={tag}
+                          onClick={() => toggleTag(tag)}
+                          className={`px-3 py-1 text-xs font-semibold rounded-full transition-colors border ${
+                              activeTags.includes(tag)
+                                  ? 'bg-cyan-500 text-white border-cyan-400'
+                                  : 'bg-gray-700 text-gray-300 hover:bg-gray-600 border-gray-600'
+                          }`}
+                      >
+                          {tag}
+                      </button>
+                  ))}
+              </div>
+          </div>
+      )}
+      {filteredNpcs && filteredNpcs.length > 0 ? (
         <div className="space-y-3">
-          {localNpcs.map((npc, index) => {
+          {filteredNpcs.map((npc, index) => {
             const primaryAffiliation = npc.factionAffiliations?.[0];
             let faction: Faction | undefined = undefined;
             if (primaryAffiliation) {
-                if (primaryAffiliation.factionId) faction = factionMapById.get(primaryAffiliation.factionId);
-                if (!faction && primaryAffiliation.factionName) faction = factionMapByName.get(primaryAffiliation.factionName.toLowerCase());
-                if (!faction && primaryAffiliation.factionId) faction = factionMapByName.get(primaryAffiliation.factionId.toLowerCase());
+                if (primaryAffiliation.factionId) {
+                    faction = factionMapById.get(primaryAffiliation.factionId);
+                }
+                if (!faction && typeof primaryAffiliation.factionName === 'string') {
+                    faction = factionMapByName.get(primaryAffiliation.factionName.toLowerCase());
+                }
             }
             return (
               <div
@@ -227,7 +301,7 @@ export default function NpcLog({ gameState, npcs, encounteredFactions, onOpenMod
                     npc={npc} 
                     faction={faction} 
                     factionName={primaryAffiliation?.factionName} 
-                    onOpenModal={onOpenModal}
+                    onViewCharacterSheet={onViewCharacterSheet}
                     onOpenJournalModal={onOpenJournalModal} 
                     imageCache={imageCache} 
                     onImageGenerated={onImageGenerated}
@@ -235,6 +309,8 @@ export default function NpcLog({ gameState, npcs, encounteredFactions, onOpenMod
                     onDelete={() => setNpcToDelete(npc)}
                     allowHistoryManipulation={allowHistoryManipulation}
                     gameSettings={gameSettings}
+                    onOpenImageModal={onOpenImageModal}
+                    updateNpcPortrait={updateNpcPortrait}
                 />
               </div>
             )

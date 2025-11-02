@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import { useLocalization } from '../context/LocalizationContext';
 import { PlotOutline } from '../types';
@@ -225,7 +226,7 @@ export default function JsonDebugView({ jsonString, requestJsonString, plotOutli
                 >
                     {t('Formatted')}
                 </button>
-                <button
+                <button 
                     onClick={() => setView('raw')}
                     className={`px-3 py-1 text-xs rounded-md transition-colors ${view === 'raw' ? 'bg-cyan-600 text-white' : 'text-gray-400 hover:bg-gray-700/50'}`}
                 >
@@ -233,23 +234,19 @@ export default function JsonDebugView({ jsonString, requestJsonString, plotOutli
                 </button>
             </div>
         </div>
-        
-        <div className="bg-gray-900/50 rounded-lg flex-1 overflow-auto min-h-0">
-            {stringToShow ? (
-                view === 'formatted' && dataToShow ? (
-                    <PrettyJsonViewer data={dataToShow} />
-                ) : (
-                    <pre className="text-xs text-gray-300 whitespace-pre-wrap break-all p-4">
-                        <code>{stringToShow}</code>
-                    </pre>
-                )
+
+        <div className="flex-1 bg-gray-900/50 rounded-lg p-3 overflow-auto">
+          {dataToShow ? (
+            view === 'formatted' ? (
+              <PrettyJsonViewer data={dataToShow} />
             ) : (
-                <p className="text-sm text-gray-500 text-center p-4">
-                    {jsonViewMode === 'response' 
-                        ? t("No JSON data received yet.") 
-                        : t("No request data available yet.")}
-                </p>
-            )}
+              <pre className="text-xs text-gray-300 whitespace-pre-wrap break-all">{stringToShow}</pre>
+            )
+          ) : stringToShow && view === 'raw' ? (
+              <pre className="text-xs text-gray-300 whitespace-pre-wrap break-all">{stringToShow}</pre>
+          ) : (
+            <p className="text-gray-500 italic">{jsonViewMode === 'response' ? t('No JSON data received yet.') : t('No request data available yet.')}</p>
+          )}
         </div>
       </div>
     </div>

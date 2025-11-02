@@ -1,7 +1,6 @@
-
-
 import React, { useState } from 'react';
-import { Item, PlayerCharacter } from '../types';
+// FIX: Add missing import for GameSettings
+import { Item, PlayerCharacter, GameSettings } from '../types';
 import { useLocalization } from '../context/LocalizationContext';
 import { ArchiveBoxXMarkIcon, ExclamationTriangleIcon, TrashIcon, ArrowDownOnSquareIcon } from '@heroicons/react/24/outline';
 import ImageRenderer from './ImageRenderer';
@@ -14,6 +13,7 @@ interface StashViewProps {
   onDrop: (item: Item) => void;
   imageCache: Record<string, string>;
   onImageGenerated: (prompt: string, base64: string) => void;
+  gameSettings: GameSettings | null;
 }
 
 const qualityColorMap: Record<string, string> = {
@@ -27,7 +27,7 @@ const qualityColorMap: Record<string, string> = {
     'Unique': 'border-yellow-600/80',
 };
 
-const StashView: React.FC<StashViewProps> = ({ stash, playerCharacter, onTake, onDrop, imageCache, onImageGenerated }) => {
+const StashView: React.FC<StashViewProps> = ({ stash, playerCharacter, onTake, onDrop, imageCache, onImageGenerated, gameSettings }) => {
     const { t } = useLocalization();
     const [quantities, setQuantities] = useState<Record<string, string>>({});
 
@@ -66,7 +66,14 @@ const StashView: React.FC<StashViewProps> = ({ stash, playerCharacter, onTake, o
                     return (
                         <div key={item.existedId} className={`bg-gray-900/40 p-3 rounded-lg border-l-4 ${qualityColorMap[item.quality] || 'border-gray-600'} flex items-center gap-4 flex-wrap`}>
                             <div className="w-12 h-12 rounded-md overflow-hidden flex-shrink-0 bg-gray-800">
-                                <ImageRenderer prompt={imagePrompt} alt={item.name} imageCache={imageCache} onImageGenerated={onImageGenerated} />
+                                <ImageRenderer
+                                    prompt={imagePrompt}
+                                    alt={item.name}
+                                    imageCache={imageCache}
+                                    onImageGenerated={onImageGenerated}
+                                    model={gameSettings?.pollinationsImageModel}
+                                    gameSettings={gameSettings}
+                                />
                             </div>
                             <div className="flex-1 min-w-[120px]">
                                 <p className="font-semibold text-gray-200">{item.name} {item.count > 1 ? `(x${item.count})` : ''}</p>

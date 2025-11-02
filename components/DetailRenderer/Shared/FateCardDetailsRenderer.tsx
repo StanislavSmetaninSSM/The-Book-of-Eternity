@@ -1,25 +1,27 @@
 import React from 'react';
-import { FateCard } from '../../../types';
+import { FateCard, GameSettings } from '../../../types';
 import ImageRenderer from '../../ImageRenderer';
 import MarkdownRenderer from '../../MarkdownRenderer';
 import { useLocalization } from '../../../context/LocalizationContext';
 
 interface FateCardDetailsProps {
   card: FateCard;
-  onOpenImageModal?: () => void;
+  onOpenImageModal?: (displayPrompt: string, originalTextPrompt: string, onClearCustom?: () => void, onUpload?: (base64: string) => void) => void;
   imageCache: Record<string, string>;
   onImageGenerated: (prompt: string, base64: string) => void;
-  model?: 'flux' | 'kontext' | 'turbo';
+  // FIX: Added 'gptimage' to the model prop type to match GameSettings.
+  model?: 'flux' | 'turbo' | 'gptimage';
+  gameSettings: GameSettings | null;
 }
 
-const FateCardDetailsRenderer: React.FC<FateCardDetailsProps> = ({ card, onOpenImageModal, imageCache, onImageGenerated, model }) => {
+const FateCardDetailsRenderer: React.FC<FateCardDetailsProps> = ({ card, onOpenImageModal, imageCache, onImageGenerated, model, gameSettings }) => {
     const { t } = useLocalization();
     const effectivePrompt = card.image_prompt || `A detailed fantasy art image of a tarot card representing "${card.name}". ${card.description}`;
 
     return (
     <div className={`p-4 rounded-lg border-l-4 ${card.isUnlocked ? 'border-yellow-500 bg-yellow-900/20' : 'border-gray-600 bg-gray-700/50'}`}>
-        <div className="w-full h-32 rounded-lg overflow-hidden mb-3 bg-gray-900 group relative cursor-pointer" onClick={onOpenImageModal}>
-            <ImageRenderer prompt={effectivePrompt} alt={card.name} width={1024} height={1024} imageCache={imageCache} onImageGenerated={onImageGenerated} model={model} />
+        <div className="w-full h-32 rounded-lg overflow-hidden mb-3 bg-gray-900 group relative cursor-pointer" onClick={() => onOpenImageModal?.(effectivePrompt, card.image_prompt)}>
+            <ImageRenderer prompt={effectivePrompt} originalTextPrompt={card.image_prompt} alt={card.name} width={1024} height={1024} imageCache={imageCache} onImageGenerated={onImageGenerated} model={model} gameSettings={gameSettings} />
             <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                 <p className="text-white font-bold text-lg">{t('Enlarge')}</p>
             </div>

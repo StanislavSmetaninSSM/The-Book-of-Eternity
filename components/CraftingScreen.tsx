@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
-import { PlayerCharacter, Recipe, Item, PassiveSkill } from '../types';
+import { PlayerCharacter, Recipe, PassiveSkill } from '../types';
 import { useLocalization } from '../context/LocalizationContext';
-import { BeakerIcon, CheckCircleIcon, XCircleIcon, ChevronDownIcon, ChevronUpIcon } from '@heroicons/react/24/outline';
+import { BeakerIcon, CheckCircleIcon, XCircleIcon, ChevronDownIcon, ChevronUpIcon, AcademicCapIcon } from '@heroicons/react/24/outline';
 
 interface CraftingScreenProps {
   playerCharacter: PlayerCharacter;
@@ -96,7 +96,25 @@ const RecipeDetails: React.FC<{
 export default function CraftingScreen({ playerCharacter, craftItem }: CraftingScreenProps) {
     const { t } = useLocalization();
 
-    const knownRecipes = playerCharacter.knownRecipes;
+    const groupedRecipes = useMemo(() => {
+        if (!playerCharacter.knownRecipes) return {};
+        
+        return playerCharacter.knownRecipes.reduce((acc, recipe) => {
+            const skillName = recipe.requiredKnowledgeSkill?.skillName || t('No Skill Required');
+            if (!acc[skillName]) {
+                acc[skillName] = [];
+            }
+            acc[skillName].push(recipe);
+            return acc;
+        }, {} as Record<string, Recipe[]>);
+    }, [playerCharacter.knownRecipes, t]);
+
+    const sortedSkillNames = useMemo(() => Object.keys(groupedRecipes).sort((a, b) => {
+        if (a === t('No Skill Required')) return 1;
+        if (b === t('No Skill Required')) return -1;
+        return a.localeCompare(b);
+    }), [groupedRecipes, t]);
+
 
     return (
         <div className="space-y-4">
@@ -105,20 +123,30 @@ export default function CraftingScreen({ playerCharacter, craftItem }: CraftingS
                 {t('Crafting')}
             </h3>
             
-            {knownRecipes && knownRecipes.length > 0 ? (
-                <div className="space-y-2">
-                    {knownRecipes.map(recipe => (
-                        <RecipeDetails 
-                            key={recipe.recipeName} 
-                            recipe={recipe} 
-                            playerCharacter={playerCharacter} 
-                            onCraft={() => craftItem(recipe.recipeName)}
-                        />
+            {sortedSkillNames.length > 0 ? (
+                <div className="space-y-6">
+                    {sortedSkillNames.map(skillName => (
+                        <div key={skillName}>
+                            <h4 className="text-lg font-semibold text-cyan-300/80 mb-3 flex items-center gap-2 border-b-2 border-cyan-500/20 pb-2">
+                                <AcademicCapIcon className="w-5 h-5" />
+                                {skillName}
+                            </h4>
+                            <div className="space-y-2">
+                                {groupedRecipes[skillName].map(recipe => (
+                                    <RecipeDetails 
+                                        key={recipe.recipeName} 
+                                        recipe={recipe} 
+                                        playerCharacter={playerCharacter} 
+                                        onCraft={() => craftItem(recipe.recipeName)}
+                                    />
+                                ))}
+                            </div>
+                        </div>
                     ))}
                 </div>
             ) : (
                 <div className="text-center text-gray-500 p-6 bg-gray-900/20 rounded-lg">
-                    <p>{t('You do not know any recipes yet. You might learn them from books, trainers, or through practice with Knowledge-Based skills.')}</p>
+                    <p>{t('crafting_no_recipes')}</p>
                 </div>
             )}
         </div>

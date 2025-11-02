@@ -7,11 +7,17 @@ export const about = {
     "Support the Project": "Support the Project",
     "about_message_p1": "Any material support is welcome. The author made this game on a voluntary basis.",
     "about_message_p2": "Even a symbolic donation will help the author feel gratitude for the work done.",
-    "Discord Server": "Discord Server",
-    "donations_unavailable": "Donations are temporarily unavailable",
-    "lottarend_discord_description": "This is a Russian-speaking community of neural network game enthusiasts.",
-    "muffin_discord_server": "Mr. Muffin's Discord Server",
-    "muffin_discord_description": "This is Mr. Muffin's server, where this game is discussed."
+    "Discord Server": "AI Games Dev",
+    "muffin_discord_server": "Mr. Muffin's Fan-Community",
+    "support_the_project_description": "You can support the author of the game by leaving a donation at the link below.",
+    "Donate via Boosty": "Donate via Boosty",
+    "Community & Resources": "Community & Resources",
+    "github_description": "View the project source code and contribute.",
+    "lottarend_discord_description": "A server for developing games with neural networks, where everyone can learn to make their own games.",
+    "muffin_discord_description": "A fan community (located on Mr. Muffin's server).",
+    "DonatorsHallOfFame": "Hall of Fame",
+    "donator_muffin": "Mr. Muffin",
+    "donators_motivation": "Support the author and you will be on this list!"
   },
   ru: {
     "About the Project": "О проекте",
@@ -21,10 +27,16 @@ export const about = {
     "Support the Project": "Поддержать проект",
     "about_message_p1": "Любая материальная помощь приветствуется. Автор делал эту игру на безвозмездной основе.",
     "about_message_p2": "Даже символический перевод поможет автору ощутить благодарность за проделанную работу.",
-    "Discord Server": "Discord Сервер",
-    "donations_unavailable": "Донат временно недоступен",
-    "lottarend_discord_description": "Это русскоязычное сообщество любителей нейроигр.",
-    "muffin_discord_server": "Discord сервер Мистера Маффина",
-    "muffin_discord_description": "Это сервер Мистера Маффина, где обсуждают эту игру."
+    "Discord Server": "AI Games Dev",
+    "muffin_discord_server": "Фан-сообщество Мистера Маффина",
+    "support_the_project_description": "Поддержать автора игры можно, оставив донат по ссылке.",
+    "Donate via Boosty": "Донат через Boosty",
+    "Community & Resources": "Сообщество и ресурсы",
+    "github_description": "Посмотреть исходный код проекта и внести свой вклад.",
+    "lottarend_discord_description": "Сервер разработки игр с нейросетью, где каждый может научиться делать свои игры.",
+    "muffin_discord_description": "Фан-сообщество (расположенное на сервере Мистера Маффина).",
+    "DonatorsHallOfFame": "Зал славы",
+    "donator_muffin": "Мистер Маффин",
+    "donators_motivation": "Помоги автору и окажешься в этом списке!"
   }
 };

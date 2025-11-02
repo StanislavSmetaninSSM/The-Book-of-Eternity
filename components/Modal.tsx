@@ -1,7 +1,7 @@
 
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { XMarkIcon, MinusIcon, PlusIcon } from '@heroicons/react/24/solid';
+import { XMarkIcon, MinusIcon, PlusIcon, ArrowsPointingOutIcon, ArrowsPointingInIcon } from '@heroicons/react/24/solid';
 import { useLocalization } from '../context/LocalizationContext';
 
 interface ModalProps {
@@ -11,6 +11,9 @@ interface ModalProps {
   children: React.ReactNode;
   showFontSizeControls?: boolean;
   size?: 'default' | 'fullscreen';
+  onToggleFullScreen?: () => void;
+  isFullScreen?: boolean;
+  closeOnOverlayClick?: boolean;
 }
 
 const FONT_SIZES = [12, 14, 16, 18, 20, 24];
@@ -18,9 +21,9 @@ const FONT_SIZE_CLASSES = ['text-xs', 'text-sm', 'text-base', 'text-lg', 'text-x
 const MIN_WIDTH = 400;
 const MIN_HEIGHT = 300;
 
-const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, showFontSizeControls = false, size = 'default' }) => {
+const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, showFontSizeControls = false, size = 'default', onToggleFullScreen, isFullScreen, closeOnOverlayClick = true }) => {
   const modalRef = useRef<HTMLDivElement>(null);
-  const [dimensions, setDimensions] = useState({ width: 672, height: 'auto' as number | 'auto' }); // 672px is max-w-2xl
+  const [dimensions, setDimensions] = useState({ width: Math.min(1200, window.innerWidth - 80), height: 'auto' as number | 'auto' });
   const [isResizing, setIsResizing] = useState(false);
   const [fontSizeIndex, setFontSizeIndex] = useState(2); // Corresponds to 16px
   const wasResizing = useRef(false);
@@ -74,6 +77,7 @@ const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, showFon
   }, [resize, stopResizing]);
 
   const handleOverlayClick = () => {
+    if (!closeOnOverlayClick) return;
     if (wasResizing.current) {
       wasResizing.current = false;
       return;
@@ -107,7 +111,7 @@ const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, showFon
     : children;
     
   const sizeClasses = {
-    default: 'max-w-2xl max-h-[90vh] rounded-lg',
+    default: 'max-w-7xl max-h-[90vh] rounded-lg',
     fullscreen: 'w-screen h-screen max-w-full max-h-full rounded-none border-0'
   };
 
@@ -157,7 +161,7 @@ const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, showFon
       >
         <header className="flex justify-between items-center p-4 border-b border-gray-700/60 sticky top-0 bg-gray-800/90 rounded-t-lg z-10 flex-shrink-0">
           <h2 className="text-xl font-bold text-cyan-400 narrative-text">{title}</h2>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
             {showFontSizeControls && (
               <div className="flex items-center gap-2">
                 <button
@@ -181,12 +185,17 @@ const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, showFon
                 </button>
               </div>
             )}
+            {onToggleFullScreen && (
+              <button onClick={onToggleFullScreen} className="p-1 rounded-full text-gray-400 hover:bg-gray-700 hover:text-white transition-colors" title={isFullScreen ? t('Collapse') : t('Expand')}>
+                  {isFullScreen ? <ArrowsPointingInIcon className="w-5 h-5" /> : <ArrowsPointingOutIcon className="w-5 h-5" />}
+              </button>
+            )}
             <button onClick={onClose} className="p-1 rounded-full text-gray-400 hover:bg-gray-700 hover:text-white transition-colors" aria-label={t("Close modal")}>
               <XMarkIcon className="w-6 h-6" />
             </button>
           </div>
         </header>
-        <main className={`p-6 overflow-y-auto ${size === 'fullscreen' ? 'flex-1 flex flex-col' : ''}`}>
+        <main className={`p-6 overflow-y-auto flex-1 flex flex-col min-h-0 ${FONT_SIZE_CLASSES[fontSizeIndex]}`}>
           {childrenWithFontSize}
         </main>
         {size === 'default' && (

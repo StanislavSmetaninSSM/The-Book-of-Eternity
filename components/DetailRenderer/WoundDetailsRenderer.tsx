@@ -1,11 +1,10 @@
 
-
 import React, {useState} from 'react';
 import { Wound } from '../../types';
 import { DetailRendererProps } from './types';
 import Section from './Shared/Section';
 import DetailRow from './Shared/DetailRow';
-import EffectDetailsRenderer from './EffectDetailsRenderer';
+import EffectDetailsRenderer from '../DetailRenderer/EffectDetailsRenderer';
 import MarkdownRenderer from '../MarkdownRenderer';
 import { useLocalization } from '../../context/LocalizationContext';
 import {
@@ -23,7 +22,6 @@ const WoundDetailsRenderer: React.FC<WoundDetailsProps> = ({ wound, allowHistory
     const healing = wound.healingState;
     const progressPercentage = healing && healing.progressNeeded > 0 ? (healing.treatmentProgress / healing.progressNeeded) * 100 : 0;
     
-    // Defensive check to prevent crash from malformed AI data where generatedEffects might not be an array.
     const safeGeneratedEffects = Array.isArray(wound.generatedEffects) 
         ? wound.generatedEffects.filter(effect => effect) 
         : [];
@@ -86,6 +84,17 @@ const WoundDetailsRenderer: React.FC<WoundDetailsProps> = ({ wound, allowHistory
                         <div className="space-y-3">
                             {safeGeneratedEffects.map((effect, i) => <EffectDetailsRenderer key={i} effect={effect} />)}
                         </div>
+                    </Section>
+                )}
+                 {allowHistoryManipulation && forgetActiveWound && wound.woundId && (
+                    <Section title={t("Actions")} icon={CogIcon}>
+                        <button
+                            onClick={() => setIsForgetConfirmOpen(true)}
+                            className="w-full flex items-center justify-center gap-2 px-4 py-2 text-sm font-semibold text-red-300 bg-red-600/20 rounded-md hover:bg-red-600/40 transition-colors"
+                        >
+                            <TrashIcon className="w-5 h-5" />
+                            {t("Forget Active Wound")}
+                        </button>
                     </Section>
                 )}
             </div>

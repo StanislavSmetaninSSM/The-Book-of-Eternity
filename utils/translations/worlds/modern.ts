@@ -1,5 +1,3 @@
-
-
 export const urbanMythWorld = {
   name: "Urban Myth",
   description: "A world of ancient conspiracies, alien engineers, and hidden truths beneath the veneer of reality.",
@@ -9,12 +7,12 @@ export const urbanMythWorld = {
     'Human': { 
       description: "The dominant species, diverse in all aspects. +1 to Trade, Persuasion, Intelligence, Luck, and Perception.", 
       bonuses: { trade: 1, persuasion: 1, intelligence: 1, luck: 1, perception: 1 },
-      availableClasses: ['Corporate Exec', 'Detective', 'Diplomat', 'Fixer', 'Hacker', 'Journalist', 'Mafioso', 'Paramedic', 'Police Officer', 'Soldier', 'Student', 'Spy', 'Truth-Seeker', 'Private Investigator', 'Professor', 'Taxi Driver', 'Bartender', 'Urban Explorer', 'Antiquarian', 'Forensic Scientist', 'Priest', 'Artist', 'Construction Worker', 'Librarian', 'Mechanic', 'Street Kid', 'Occultist', 'Conspiracy Theorist', 'Urban Druid', 'Bouncer', 'Security Guard', 'Politician\'s Aide', 'Parapsychologist']
+      availableClasses: ['Corporate Exec', 'Detective', 'Diplomat', 'Fixer', 'Hacker', 'Journalist', 'Mafioso', 'Paramedic', 'Police Officer', 'Soldier', 'Student', 'Spy', 'Truth-Seeker', 'Private Investigator', 'Professor', 'Taxi Driver', 'Bartender', 'Urban Explorer', 'Antiquarian', 'Forensic Scientist', 'Priest', 'Artist', 'Construction Worker', 'Librarian', 'Mechanic', 'Street Kid', 'Occultist', 'Conspiracy Theorist', 'Urban Druid', 'Bouncer', 'Security Guard', 'Politician\'s Aide', 'Parapsychologist', 'Death Note Detective']
     },
     'The Awakened': { 
       description: "Descendants of a secret bloodline touched by the 'Prometheus' engineer, Enki. They lack the genetic 'veil' that clouds the perception of most of humanity, allowing them to sense the hidden structures of reality and the 'null-space' beyond. +3 Wisdom, +2 Luck.", 
       bonuses: { wisdom: 3, luck: 2 },
-      availableClasses: ['Psion', 'Truth-Seeker', 'Sorcerer', 'Urban Shaman', 'Profiler']
+      availableClasses: ['Psion', 'Truth-Seeker', 'Sorcerer', 'Urban Shaman', 'Profiler', 'Death Note Detective']
     },
     'Adamu Clone': { 
       description: "A bio-engineered human based on the primordial 'Adamu' template, created by the Anunnaki as a perfect worker. Possessing immense strength and resilience, you have broken free from your programmed purpose and now seek your own destiny in a world that sees you as a product. +3 Strength, +2 Constitution.", 
@@ -39,7 +37,7 @@ export const urbanMythWorld = {
     'Agent': { 
       description: "A genetically or technologically altered human agent of a clandestine organization, possessing a commanding presence and an unnerving gaze. +3 Persuasion, +2 Perception.", 
       bonuses: { persuasion: 3, perception: 2 },
-      availableClasses: ['Field Operative', 'Infiltrator', 'Spy', 'Whisper', 'Controller']
+      availableClasses: ['Field Operative', 'Infiltrator', 'Spy', 'Whisper', 'Controller', 'Death Note Detective']
     },
     'Doppelgänger': { 
       description: "A being with the uncanny ability to perfectly replicate others, a master of infiltration and social engineering. +3 Attractiveness, +2 Persuasion.", 
@@ -94,12 +92,22 @@ export const urbanMythWorld = {
     'The Shifted': { 
       description: "A human from a nearly identical reality, but with key differences. They are haunted by 'glitches'—memories of a world that is almost, but not quite, this one. This gives them a strange insight and an uncanny ability to notice discrepancies. +3 Wisdom, +2 Perception.", 
       bonuses: { wisdom: 3, perception: 2 },
-      availableClasses: ['The Glitch', 'Truth-Seeker', 'Profiler', 'Detective']
+      availableClasses: ['The Glitch', 'Truth-Seeker', 'Profiler', 'Detective', 'Death Note Detective']
     },
     'The Grey': { 
       description: "An alien species operating in the shadows of human society for decades. Physically frail, they possess enormous intellects and advanced psionic capabilities, focusing on research, abduction, and information gathering. Their motives are inscrutable. +4 Intelligence, +1 Wisdom.", 
       bonuses: { intelligence: 4, wisdom: 1 },
       availableClasses: ['The Observer', 'Psion', 'Bio-Hacker', 'Hacker']
+    },
+    'Shinigami': {
+      description: "A god of death from another realm, bound to observe and guide the flow of mortal lives. You exist beyond normal human perception, able to phase between the material and spiritual worlds. Your very essence is tied to death itself, giving you an otherworldly understanding of mortality. +3 Perception, +2 Wisdom.",
+      bonuses: { perception: 3, wisdom: 2 },
+      availableClasses: ['Observer', 'Reaper', 'Gambler', 'Rogue Shinigami']
+    },
+    'Death Note User': {
+      description: "A human who has obtained a Death Note, a supernatural artifact that grants the power to kill anyone whose name you write in it. This immense power has fundamentally changed you, whether awakening a god complex or burdening you with the weight of ultimate responsibility. You walk the line between justice and madness. +3 Intelligence, +2 Faith.",
+      bonuses: { intelligence: 3, faith: 2 },
+      availableClasses: ['Kira', 'Chosen of Death', 'Eyes Dealer', 'Light Bringer', 'Fallen User']
     },
   },
   classes: {
@@ -155,5 +163,19 @@ export const urbanMythWorld = {
     'Security Guard': { description: "A night watchman at a museum, lab, or corporate office who often encounters strange phenomena during the quiet hours. Bonus: +2 Perception, +1 Constitution.", bonuses: { perception: 2, constitution: 1 } },
     'Politician\'s Aide': { description: "A low-level staffer who learns the truly ugly secrets behind the city's political machine. Bonus: +2 Persuasion, +1 Intelligence.", bonuses: { persuasion: 2, intelligence: 1 } },
     'Parapsychologist': { description: "A researcher who attempts to scientifically study paranormal and psychic phenomena, often using bizarre equipment and attracting strange entities. Bonus: +2 Intelligence, +1 Faith.", bonuses: { intelligence: 2, faith: 1 } },
+    
+    // Death Note inspired classes for Shinigami
+    'Observer': { description: "A detached watcher who sees the threads of fate and the inevitability of death. You prefer to observe rather than directly interfere, understanding the cosmic balance. Bonus: +2 Perception, +1 Wisdom.", bonuses: { perception: 2, wisdom: 1 } },
+    'Reaper': { description: "An active agent of death who seeks to maintain the natural order. You are drawn to those whose time has come, ensuring the cycle continues as intended. Bonus: +2 Faith, +1 Perception.", bonuses: { faith: 2, perception: 1 } },
+    'Gambler': { description: "A bored deity who finds entertainment in the chaos of mortal affairs. You enjoy placing wagers on human behavior and outcomes, often manipulating events for your amusement. Bonus: +2 Luck, +1 Intelligence.", bonuses: { luck: 2, intelligence: 1 } },
+    'Rogue Shinigami': { description: "A death god who has abandoned their duties and seeks to experience mortal pleasures. You understand both worlds but belong to neither, walking a dangerous path. Bonus: +1 Dexterity, +1 Persuasion, +1 Luck.", bonuses: { dexterity: 1, persuasion: 1, luck: 1 } },
+    
+    // Death Note inspired classes for Death Note Users
+    'Kira': { description: "You are a human who has obtained a Death Note, a supernatural artifact that grants the power to kill anyone whose name you write in it. This immense power has awakened a god complex within you, driving you to reshape the world according to your vision of justice. You see yourself as judge, jury, and executioner of a corrupt world. Bonus: +2 Intelligence, +1 Persuasion.", bonuses: { intelligence: 2, persuasion: 1 } },
+    'Death Note Detective': { description: "A brilliant investigator who has discovered the existence of supernatural forces and Death Notes. You dedicate your life to understanding and stopping those who would misuse such power. Your analytical mind and moral compass guide you through the darkness. Bonus: +2 Intelligence, +1 Perception.", bonuses: { intelligence: 2, perception: 1 } },
+    'Chosen of Death': { description: "You have been selected by a Shinigami to receive their Death Note, marking you as an instrument of fate. Whether you embrace this role or struggle against it defines your path. The weight of deciding who lives and dies rests in your hands. Bonus: +1 Intelligence, +1 Faith, +1 Wisdom.", bonuses: { intelligence: 1, faith: 1, wisdom: 1 } },
+    'Eyes Dealer': { description: "You possess the Shinigami Eyes, allowing you to see people's names and lifespans floating above their heads. This forbidden knowledge comes at the cost of half your own lifespan, but grants you unparalleled insight into mortality. Bonus: +2 Perception, +1 Luck.", bonuses: { perception: 2, luck: 1 } },
+    'Light Bringer': { description: "A idealistic zealot who believes that through the power of death, a perfect world can be created. You see the Death Note not as a curse, but as a divine tool to cleanse society of its impurities. Bonus: +2 Faith, +1 Intelligence.", bonuses: { faith: 2, intelligence: 1 } },
+    'Fallen User': { description: "Someone who once wielded a Death Note but has lost access to it, either through choice or circumstance. You retain fragmented memories of supernatural power and the burden it carried. Your experience with ultimate power has left you changed forever. Bonus: +1 Wisdom, +1 Constitution, +1 Persuasion.", bonuses: { wisdom: 1, constitution: 1, persuasion: 1 } },
   }
 };

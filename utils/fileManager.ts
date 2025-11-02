@@ -1,4 +1,3 @@
-
 import { SaveFile, DBSaveSlotInfo } from "../types";
 
 type TFunction = (key: string, replacements?: Record<string, string | number>) => string;
@@ -153,7 +152,7 @@ export function loadConfigurationFromFile(t: TFunction): Promise<any | null> {
             if (contents) {
               const data = JSON.parse(contents);
               // Basic validation for config file
-              if (data && data.universe && data.playerName !== undefined && !data.gameContext && !data.gameState) {
+              if (data && data.formData && !data.gameContext && !data.gameState) {
                 resolve(data);
               } else {
                 alert(t('Invalid configuration file format.'));

@@ -1,0 +1,26 @@
+export const shinigamiLoc = {
+    en: {
+        'Shinigami': "Shinigami",
+        "You are a god of death from another realm, bound to observe and guide the flow of mortal lives. You exist beyond normal human perception, able to phase between the material and spiritual worlds. Your very essence is tied to death itself, giving you an otherworldly understanding of mortality. Bonus: +2 Perception, +1 Wisdom.": "You are a god of death from another realm, bound to observe and guide the flow of mortal lives. You exist beyond normal human perception, able to phase between the material and spiritual worlds. Your very essence is tied to death itself, giving you an otherworldly understanding of mortality. Bonus: +2 Perception, +1 Wisdom.",
+        'Observer': "Observer",
+        "A detached watcher who sees the threads of fate and the inevitability of death. You prefer to observe rather than directly interfere, understanding the cosmic balance. Bonus: +2 Perception, +1 Wisdom.": "A detached watcher who sees the threads of fate and the inevitability of death. You prefer to observe rather than directly interfere, understanding the cosmic balance. Bonus: +2 Perception, +1 Wisdom.",
+        'Reaper': "Reaper",
+        "An active agent of death who seeks to maintain the natural order. You are drawn to those whose time has come, ensuring the cycle continues as intended. Bonus: +2 Faith, +1 Perception.": "An active agent of death who seeks to maintain the natural order. You are drawn to those whose time has come, ensuring the cycle continues as intended. Bonus: +2 Faith, +1 Perception.",
+        'Gambler': "Gambler",
+        "A bored deity who finds entertainment in the chaos of mortal affairs. You enjoy placing wagers on human behavior and outcomes, often manipulating events for your amusement. Bonus: +2 Luck, +1 Intelligence.": "A bored deity who finds entertainment in the chaos of mortal affairs. You enjoy placing wagers on human behavior and outcomes, often manipulating events for your amusement. Bonus: +2 Luck, +1 Intelligence.",
+        'Rogue Shinigami': "Rogue Shinigami",
+        "A death god who has abandoned their duties and seeks to experience mortal pleasures. You understand both worlds but belong to neither, walking a dangerous path. Bonus: +1 Dexterity, +1 Persuasion, +1 Luck.": "A death god who has abandoned their duties and seeks to experience mortal pleasures. You understand both worlds but belong to neither, walking a dangerous path. Bonus: +1 Dexterity, +1 Persuasion, +1 Luck.",
+    },
+    ru: {
+        'Shinigami': "Синигами",
+        "You are a god of death from another realm, bound to observe and guide the flow of mortal lives. You exist beyond normal human perception, able to phase between the material and spiritual worlds. Your very essence is tied to death itself, giving you an otherworldly understanding of mortality. Bonus: +2 Perception, +1 Wisdom.": "Вы — бог смерти из иного мира, обязанный наблюдать и направлять поток смертных жизней. Вы существуете за пределами обычного человеческого восприятия, способны переходить между материальным и духовным мирами. Ваша сущность связана с самой смертью, даря вам потустороннее понимание смертности. Бонус: +2 к Восприятию, +1 к Мудрости.",
+        'Observer': "Наблюдатель",
+        "A detached watcher who sees the threads of fate and the inevitability of death. You prefer to observe rather than directly interfere, understanding the cosmic balance. Bonus: +2 Perception, +1 Wisdom.": "Отстраненный наблюдатель, который видит нити судьбы и неизбежность смерти. Вы предпочитаете наблюдать, а не вмешиваться напрямую, понимая космическое равновесие. Бонус: +2 к Восприятию, +1 к Мудрости.",
+        'Reaper': "Жнец",
+        "An active agent of death who seeks to maintain the natural order. You are drawn to those whose time has come, ensuring the cycle continues as intended. Bonus: +2 Faith, +1 Perception.": "Активный агент смерти, стремящийся поддерживать естественный порядок. Вас тянет к тем, чье время пришло, обеспечивая продолжение цикла как задумано. Бонус: +2 к Вере, +1 к Восприятию.",
+        'Gambler': "Игрок",
+        "A bored deity who finds entertainment in the chaos of mortal affairs. You enjoy placing wagers on human behavior and outcomes, often manipulating events for your amusement. Bonus: +2 Luck, +1 Intelligence.": "Скучающее божество, находящее развлечение в хаосе смертных дел. Вы любите делать ставки на человеческое поведение и исходы, часто манипулируя событиями ради забавы. Бонус: +2 к Удаче, +1 к Интеллекту.",
+        'Rogue Shinigami': "Синигами-отступник",
+        "A death god who has abandoned their duties and seeks to experience mortal pleasures. You understand both worlds but belong to neither, walking a dangerous path. Bonus: +1 Dexterity, +1 Persuasion, +1 Luck.": "Бог смерти, оставивший свои обязанности и стремящийся испытать смертные удовольствия. Вы понимаете оба мира, но не принадлежите ни одному, идя опасным путем. Бонус: +1 к Ловкости, +1 к Убеждению, +1 к Удаче.",
+    }
+};

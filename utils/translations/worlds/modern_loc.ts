@@ -1,5 +1,3 @@
-
-
 import { humanLoc } from './modern/human_loc';
 import { awakenedLoc } from './modern/awakened_loc';
 import { adamuCloneLoc } from './modern/adamu_clone_loc';
@@ -19,6 +17,8 @@ import { werewolfLoc } from './modern/werewolf_loc';
 import { yetiLoc } from './modern/yeti_loc';
 import { shiftedLoc } from './modern/shifted_loc';
 import { greyLoc } from './modern/grey_loc';
+import { shinigamiLoc } from './modern/shinigami_loc';
+import { deathNoteLoc } from './modern/death_note_loc';
 
 const modernBaseLoc = {
   en: {
@@ -60,6 +60,10 @@ const modernBaseLoc = {
     "A human from a nearly identical reality, but with key differences. They are haunted by 'glitches'—memories of a world that is almost, but not quite, this one. This gives them a strange insight and an uncanny ability to notice discrepancies. +3 Wisdom, +2 Perception.": "A human from a nearly identical reality, but with key differences. They are haunted by 'glitches'—memories of a world that is almost, but not quite, this one. This gives them a strange insight and an uncanny ability to notice discrepancies. +3 Wisdom, +2 Perception.",
     "The Grey": "The Grey",
     "An alien species operating in the shadows of human society for decades. Physically frail, they possess enormous intellects and advanced psionic capabilities, focusing on research, abduction, and information gathering. Their motives are inscrutable. +4 Intelligence, +1 Wisdom.": "An alien species operating in the shadows of human society for decades. Physically frail, they possess enormous intellects and advanced psionic capabilities, focusing on research, abduction, and information gathering. Their motives are inscrutable. +4 Intelligence, +1 Wisdom.",
+    "Shinigami": "Shinigami",
+    "A god of death from another realm, bound to observe and guide the flow of mortal lives. You exist beyond normal human perception, able to phase between the material and spiritual worlds. Your very essence is tied to death itself, giving you an otherworldly understanding of mortality. +3 Perception, +2 Wisdom.": "A god of death from another realm, bound to observe and guide the flow of mortal lives. You exist beyond normal human perception, able to phase between the material and spiritual worlds. Your very essence is tied to death itself, giving you an otherworldly understanding of mortality. +3 Perception, +2 Wisdom.",
+    "Death Note User": "Death Note User",
+    "A human who has obtained a Death Note, a supernatural artifact that grants the power to kill anyone whose name you write in it. This immense power has fundamentally changed you, whether awakening a god complex or burdening you with the weight of ultimate responsibility. You walk the line between justice and madness. +3 Intelligence, +2 Faith.": "A human who has obtained a Death Note, a supernatural artifact that grants the power to kill anyone whose name you write in it. This immense power has fundamentally changed you, whether awakening a god complex or burdening you with the weight of ultimate responsibility. You walk the line between justice and madness. +3 Intelligence, +2 Faith.",
   },
   ru: {
     "Human": "Человек",
@@ -97,9 +101,13 @@ const modernBaseLoc = {
     "Yeti": "Йети",
     "A relict hominid, a surviving branch of an ancient lineage. Incredibly strong and resilient, adapted to harsh, remote environments. Elusive and misunderstood, often mistaken for a myth. They possess a simple, profound wisdom of the natural world. +4 Strength, +1 Constitution.": "Реликтовый гоминид, уцелевшая ветвь древнего рода. Невероятно сильный и выносливый, приспособленный к суровым, удаленным условиям. Неуловим и неправильно понят, часто принимаемый за миф. Обладает простой, но глубокой мудростью природы. +4 к Силе, +1 к Телосложению.",
     "The Shifted": "Сдвинутый",
-    "A human from a nearly identical reality, but with key differences. They are haunted by 'glitches'—memories of a world that is almost, but not quite, this one. This gives them a strange insight and an uncanny ability to notice discrepancies. +3 Wisdom, +2 Perception.": "Человек из почти идентичной реальности, но с ключевыми отличиями. Его преследуют «сбои» — воспоминания о мире, который почти, но не совсем, такой же, как этот. Это дает ему странную проницательность и поразительную способность замечать несоответствия. +3 к Мудрости, +2 к Восприятию.",
+    "A human from a nearly identical reality, but with key differences. They are haunted by 'glitches'—memories of a world that is almost, but not quite, this one. This gives them a strange insight and a uncanny ability to notice discrepancies. +3 Wisdom, +2 Perception.": "Человек из почти идентичной реальности, но с ключевыми отличиями. Его преследуют «сбои» — воспоминания о мире, который почти, но не совсем, такой же, как этот. Это дает ему странную проницательность и поразительную способность замечать несоответствия. +3 к Мудрости, +2 к Восприятию.",
     "The Grey": "Серый",
     "An alien species operating in the shadows of human society for decades. Physically frail, they possess enormous intellects and advanced psionic capabilities, focusing on research, abduction, and information gathering. Their motives are inscrutable. +4 Intelligence, +1 Wisdom.": "Инопланетный вид, десятилетиями действующий в тени человеческого общества. Физически хрупкие, они обладают огромным интеллектом и продвинутыми псионическими способностями, сосредоточенными на исследованиях, похищениях и сборе информации. Их мотивы непостижимы. +4 к Интеллекту, +1 к Мудрости.",
+    "Shinigami": "Синигами",
+    "A god of death from another realm, bound to observe and guide the flow of mortal lives. You exist beyond normal human perception, able to phase between the material and spiritual worlds. Your very essence is tied to death itself, giving you an otherworldly understanding of mortality. +3 Perception, +2 Wisdom.": "Бог смерти из иного мира, обязанный наблюдать и направлять поток смертных жизней. Вы существуете за пределами обычного человеческого восприятия, способны переходить между материальным и духовным мирами. Ваша сущность связана с самой смертью, даря вам потустороннее понимание смертности. +3 к Восприятию, +2 к Мудрости.",
+    "Death Note User": "Пользователь Тетради Смерти",
+    "A human who has obtained a Death Note, a supernatural artifact that grants the power to kill anyone whose name you write in it. This immense power has fundamentally changed you, whether awakening a god complex or burdening you with the weight of ultimate responsibility. You walk the line between justice and madness. +3 Intelligence, +2 Faith.": "Человек, получивший Тетрадь Смерти, сверхъестественный артефакт, дающий силу убить любого, чье имя вы в неё запишете. Эта огромная власть кардинально изменила вас, либо пробудив комплекс бога, либо обременив весом абсолютной ответственности. Вы балансируете между справедливостью и безумием. +3 к Интеллекту, +2 к Вере.",
   }
 };
 
@@ -125,6 +133,8 @@ export const modernLoc = {
     ...yetiLoc.en,
     ...shiftedLoc.en,
     ...greyLoc.en,
+    ...shinigamiLoc.en,
+    ...deathNoteLoc.en,
   },
   ru: {
     ...modernBaseLoc.ru,
@@ -147,5 +157,7 @@ export const modernLoc = {
     ...yetiLoc.ru,
     ...shiftedLoc.ru,
     ...greyLoc.ru,
+    ...shinigamiLoc.ru,
+    ...deathNoteLoc.ru,
   }
 };

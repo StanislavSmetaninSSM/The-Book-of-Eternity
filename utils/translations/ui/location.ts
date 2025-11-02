@@ -1,4 +1,3 @@
-
 export const location = {
   en: {
     // Location Details & Map
@@ -12,7 +11,6 @@ export const location = {
     "State": "State",
     "Forget Location": "Forget Location",
     "You cannot forget your current location.": "You cannot forget your current location.",
-    "Are you sure you want to forget this location? This will remove it from your map and logs.": "Are you sure you want to forget this location? This will remove it from your map and logs.",
     "No current location data available to display the map.": "No current location data available to display the map.",
     "No locations discovered yet.": "No locations discovered yet.",
     "No map data available.": "No map data available.",
@@ -54,7 +52,6 @@ export const location = {
     // Location Connections
     "Road": "Road",
     "Path": "Path",
-    "Corridor": "Corridor",
     "Secret Passage": "Secret Passage",
     "Stairs Up": "Stairs Up",
     "Stairs Down": "Stairs Down",
@@ -76,7 +73,6 @@ export const location = {
     "Travel": "Travel",
     "Crafting": "Crafting",
     "Trade": "Trade",
-    "Estimated Difficulty": "Estimated Difficulty",
     
     // Difficulty Profile
     "Difficulty Profile": "Difficulty Profile",
@@ -95,11 +91,12 @@ export const location = {
     "Hard": "Hard",
     "Very Hard": "Very Hard",
     "Deadly": "Deadly",
+    "For Insiders / Allies": "For Insiders / Allies",
+    "For Outsiders / Enemies": "For Outsiders / Enemies",
+    "Estimated Difficulty": "Estimated Difficulty",
 
     // World Panel
     "World State": "World State",
-    "Time": "Time",
-    "Weather": "Weather",
     "Global Flags": "Global Flags",
     "Edit Time": "Edit Time",
     "The state of the world is calm and unchanged.": "The state of the world is calm and unchanged.",
@@ -130,7 +127,47 @@ export const location = {
     "Delete Range": "Delete Range",
     "Delete Event Range": "Delete Event Range",
     "delete_event_range_confirm": "Are you sure you want to permanently delete all world events from turn {start} to {end}? This action cannot be undone.",
-    "invalid_turn_range": "Invalid turn range. Please ensure 'From' is a number less than or equal to 'To'."
+    "invalid_turn_range": "Invalid turn range. Please ensure 'From' is a number less than or equal to 'To'.",
+    "delete_flag_title": "Delete Flag \"{name}\"",
+    "delete_flag_confirm": "Are you sure you want to permanently delete the flag \"{name}\"? This action cannot be undone.",
+    "Delete Event": "Delete Event",
+    "Are you sure you want to permanently delete the event: \"{headline}\"?": "Are you sure you want to permanently delete the event: \"{headline}\"?",
+    "Global Flag": "Global Flag",
+    "Unknown Location": "Unknown Location",
+
+    // Storage
+    "Storages": "Storages",
+    "access_denied": "Access Denied",
+    "no_storages_in_location": "There are no special storages in this location.",
+    "Manage Storage": "Manage Storage",
+    "Storage Contents": "Storage Contents",
+    "Your Inventory": "Your Inventory",
+    "The storage is too full to add this item.": "The storage is too full to add this item.",
+    "The storage does not have enough volume for this item.": "The storage does not have enough volume for this item.",
+    "Access Management": "Access Management",
+    "Grant": "Grant",
+    "Revoke": "Revoke",
+    "Owner": "Owner",
+    "Authorized Users": "Authorized Users",
+    "No one else has access.": "No one else has access.",
+    "Information": "Information",
+    "Back to Menu": "Back to Menu",
+    "Challenge": "Challenge",
+    "Events": "Events",
+    "System": "System",
+    "Type": "Type",
+    "System Information": "System Information",
+    "Actions": "Actions",
+    "Image Prompt": "Image Prompt",
+    "Location Menu": "Location Menu",
+
+    // Threats
+    "Threats": "Threats",
+    "Intensity": "Intensity",
+    "Delete Threat": "Delete Threat",
+    "no_active_threats": "There are no active threats in this location.",
+    "delete_threat_title": "Delete Threat",
+    "delete_threat_confirm": "Are you sure you want to delete the threat '{name}'? This action cannot be undone."
   },
   ru: {
     // Location Details & Map
@@ -143,17 +180,16 @@ export const location = {
     "Connections": "Связи",
     "State": "Состояние",
     "Forget Location": "Забыть локацию",
-    "You cannot forget your current location.": "Вы не можете забыть текущую локацию.",
-    "Are you sure you want to forget this location? This will remove it from your map and logs.": "Вы уверены, что хотите забыть эту локацию? Это удалит ее с вашей карты и из журналов.",
+    "You cannot forget your current location.": "Вы не можете забыть свою текущую локацию.",
     "No current location data available to display the map.": "Нет данных о текущей локации для отображения карты.",
-    "No locations discovered yet.": "Пока не открыто ни одной локации.",
-    "No map data available.": "Нет данных для отображения карты.",
+    "No locations discovered yet.": "Ещё не открыто ни одной локации.",
+    "No map data available.": "Нет данных для карты.",
     "Environment": "Окружение",
     "Location Type": "Тип локации",
     "Biome": "Биом",
     "Indoor Type": "Тип помещения",
-    "outdoor": "Снаружи",
-    "indoor": "Внутри",
+    "outdoor": "На открытом воздухе",
+    "indoor": "В помещении",
     "TemperateForest": "Умеренный лес",
     "Desert": "Пустыня",
     "ArcticTundra": "Арктическая тундра",
@@ -182,11 +218,10 @@ export const location = {
     "Read Full Log": "Читать полный журнал",
     "Events Log": "Журнал событий",
     "Event": "Событие",
-
+    
     // Location Connections
     "Road": "Дорога",
     "Path": "Тропа",
-    "Corridor": "Коридор",
     "Secret Passage": "Тайный проход",
     "Stairs Up": "Лестница наверх",
     "Stairs Down": "Лестница вниз",
@@ -208,8 +243,7 @@ export const location = {
     "Travel": "Путешествие",
     "Crafting": "Ремесло",
     "Trade": "Торговля",
-    "Estimated Difficulty": "Примерная сложность",
-    
+
     // Difficulty Profile
     "Difficulty Profile": "Профиль сложности",
     "Combat": "Бой",
@@ -227,11 +261,12 @@ export const location = {
     "Hard": "Сложно",
     "Very Hard": "Очень сложно",
     "Deadly": "Смертельно",
-
+    "For Insiders / Allies": "Для своих / союзников",
+    "For Outsiders / Enemies": "Для чужих / врагов",
+    "Estimated Difficulty": "Примерная сложность",
+    
     // World Panel
     "World State": "Состояние мира",
-    "Time": "Время",
-    "Weather": "Погода",
     "Global Flags": "Глобальные флаги",
     "Edit Time": "Изменить время",
     "The state of the world is calm and unchanged.": "Состояние мира спокойно и неизменно.",
@@ -262,6 +297,46 @@ export const location = {
     "Delete Range": "Удалить диапазон",
     "Delete Event Range": "Удалить диапазон событий",
     "delete_event_range_confirm": "Вы уверены, что хотите навсегда удалить все мировые события с хода {start} по ход {end}? Это действие необратимо.",
-    "invalid_turn_range": "Неверный диапазон ходов. Пожалуйста, убедитесь, что начальный ход является числом, меньшим или равным конечному."
+    "invalid_turn_range": "Неверный диапазон ходов. Пожалуйста, убедитесь, что начальный ход является числом, меньшим или равным конечному.",
+    "delete_flag_title": "Удалить флаг \"{name}\"",
+    "delete_flag_confirm": "Вы уверены, что хотите навсегда удалить флаг \"{name}\"? Это действие необратимо.",
+    "Delete Event": "Удалить событие",
+    "Are you sure you want to permanently delete the event: \"{headline}\"?": "Вы уверены, что хотите навсегда удалить событие: \"{headline}\"?",
+    "Global Flag": "Глобальный флаг",
+    "Unknown Location": "Неизвестная локация",
+    
+    // Storage
+    "Storages": "Хранилища",
+    "access_denied": "Доступ запрещен",
+    "no_storages_in_location": "В этой локации нет особых хранилищ.",
+    "Manage Storage": "Управлять хранилищем",
+    "Storage Contents": "Содержимое хранилища",
+    "Your Inventory": "Ваш инвентарь",
+    "The storage is too full to add this item.": "В хранилище слишком много предметов, чтобы добавить этот.",
+    "The storage does not have enough volume for this item.": "В хранилище недостаточно места для этого предмета.",
+    "Access Management": "Управление доступом",
+    "Grant": "Дать доступ",
+    "Revoke": "Забрать доступ",
+    "Owner": "Владелец",
+    "Authorized Users": "Авторизованные пользователи",
+    "No one else has access.": "Ни у кого больше нет доступа.",
+    "Information": "Информация",
+    "Back to Menu": "Назад в меню",
+    "Challenge": "Испытание",
+    "Events": "События",
+    "System": "Система",
+    "Type": "Тип",
+    "System Information": "Системная информация",
+    "Actions": "Действия",
+    "Image Prompt": "Промпт изображения",
+    "Location Menu": "Меню локации",
+
+    // Threats
+    "Threats": "Угрозы",
+    "Intensity": "Интенсивность",
+    "Delete Threat": "Удалить угрозу",
+    "no_active_threats": "В этой локации нет активных угроз.",
+    "delete_threat_title": "Удалить угрозу",
+    "delete_threat_confirm": "Вы уверены, что хотите удалить угрозу '{name}'? Это действие необратимо."
   }
 };

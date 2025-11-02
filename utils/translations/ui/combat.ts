@@ -55,6 +55,10 @@ export const combat = {
     "Inventory": "Inventory",
     "Threat {level}": "Threat {level}",
     "effectiveLevelTooltip": "Effective Level (EL): A measure of this unit's combat power for this specific encounter, scaled based on party strength and location difficulty. It is not a character level.",
+    "simultaneous_action_cancelled": "[System] The simultaneous combat round has been cancelled by the host.",
+    "Expand Combat View": "Expand Combat View",
+    "Collapse Combat View": "Collapse Combat View",
+    "Targets": "Targets",
   },
   ru: {
     // Combat UI
@@ -115,5 +119,9 @@ export const combat = {
     "Inventory": "Инвентарь",
     "Threat {level}": "УГР {level}",
     "effectiveLevelTooltip": "Эффективный Уровень (ЭУ): Показатель боевой мощи этого юнита в данном столкновении, масштабированный в зависимости от силы группы и сложности локации. Это не уровень персонажа.",
+    "simultaneous_action_cancelled": "[Система] Одновременный боевой раунд был отменен хостом.",
+    "Expand Combat View": "Развернуть бой",
+    "Collapse Combat View": "Свернуть бой",
+    "Targets": "Цели",
   }
 };

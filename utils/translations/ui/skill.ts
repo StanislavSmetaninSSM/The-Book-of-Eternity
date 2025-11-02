@@ -38,6 +38,7 @@ export const skill = {
     "No active skills known.": "No active skills known.",
     "Passive Skills": "Passive Skills",
     "No passive skills known.": "No passive skills known.",
+    "Filter by tags:": "Filter by tags:",
 
     // Passive Skill Types/Groups
     "KnowledgeBased": "Knowledge-Based",
@@ -59,6 +60,13 @@ export const skill = {
     "EnergyUnit": "E",
     "TurnUnit": "T",
     "CooldownAbbr": "CD",
+    
+    // New
+    "Delete Skill": "Delete Skill",
+    "Delete Active Skill": "Delete Active Skill",
+    "Are you sure you want to delete the active skill \"{name}\"?": "Are you sure you want to delete the active skill \"{name}\"? This action cannot be undone.",
+    "Delete Passive Skill": "Delete Passive Skill",
+    "Are you sure you want to delete the passive skill \"{name}\"?": "Are you sure you want to delete the passive skill \"{name}\"? This action cannot be undone.",
   },
   ru: {
     // Skill Details
@@ -100,6 +108,7 @@ export const skill = {
     "Passive Skills": "Пассивные навыки",
     "No passive skills known.": "Нет известных пассивных навыков.",
     "Mastery Level": "Уровень мастерства",
+    "Filter by tags:": "Фильтр по тегам:",
 
     // Passive Skill Types/Groups
     "KnowledgeBased": "Основанный на знаниях",
@@ -121,5 +130,12 @@ export const skill = {
     "EnergyUnit": "Э",
     "TurnUnit": "Х",
     "CooldownAbbr": "КД",
+
+    // New
+    "Delete Skill": "Удалить навык",
+    "Delete Active Skill": "Удалить активный навык",
+    "Are you sure you want to delete the active skill \"{name}\"?": "Вы уверены, что хотите удалить активный навык «{name}»? Это действие нельзя будет отменить.",
+    "Delete Passive Skill": "Удалить пассивный навык",
+    "Are you sure you want to delete the passive skill \"{name}\"?": "Вы уверены, что хотите удалить пассивный навык «{name}»? Это действие нельзя будет отменить.",
   }
 };

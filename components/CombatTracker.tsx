@@ -1,8 +1,6 @@
-
-
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { EnemyCombatObject, AllyCombatObject, NPC, Item, ActiveSkill, PassiveSkill, CombatAction, PlayerCharacter, Wound, CombatActionEffect, GameSettings } from '../types';
-import { ShieldExclamationIcon, BoltIcon, ShieldCheckIcon, SunIcon, CloudIcon, DocumentTextIcon, SparklesIcon, ArchiveBoxIcon, Cog6ToothIcon, InformationCircleIcon } from '@heroicons/react/24/outline';
+import { ShieldExclamationIcon, BoltIcon, ShieldCheckIcon, SunIcon, CloudIcon, DocumentTextIcon, SparklesIcon, ArchiveBoxIcon, Cog6ToothIcon, InformationCircleIcon, ArrowsPointingOutIcon, ArrowsPointingInIcon } from '@heroicons/react/24/outline';
 import { FireIcon } from '@heroicons/react/24/solid';
 import ImageRenderer from './ImageRenderer';
 import { useLocalization } from '../context/LocalizationContext';
@@ -60,28 +58,52 @@ interface CombatantCardProps {
     combatant: Combatant;
     fullNpcData: NPC | null;
     onOpenDetailModal: (title: string, data: any) => void;
+    onViewCharacterSheet: (character: PlayerCharacter | NPC) => void;
     imageCache: Record<string, string>;
     onImageGenerated: (prompt: string, base64: string) => void;
-    onOpenImageModal: (prompt: string) => void;
+    onOpenImageModal: (displayPrompt: string, originalTextPrompt: string, onClearCustom?: () => void, onUpload?: (base64: string) => void) => void;
     gameSettings: GameSettings | null;
+    editNpcData?: (npcId: string, field: keyof NPC, value: any) => void;
 }
 
 
-const CombatantCard: React.FC<CombatantCardProps> = ({ combatant, fullNpcData, onOpenDetailModal, imageCache, onImageGenerated, onOpenImageModal, gameSettings }) => {
+const CombatantCard: React.FC<CombatantCardProps> = ({ combatant, fullNpcData, onOpenDetailModal, onViewCharacterSheet, imageCache, onImageGenerated, onOpenImageModal, gameSettings, editNpcData }) => {
     const isGroup = combatant.isGroup;
     const isDefeated = isGroup ? (combatant.count ?? 0) <= 0 : parseInt(combatant.currentHealth ?? '0') <= 0;
     
     const { t } = useLocalization();
 
-    const imagePrompt = useMemo(() => {
-        // Strictly prioritize the full NPC card's prompt to ensure consistency.
-        // If the full NPC data is available, use its prompts.
-        // Otherwise, fall back to the generic combatant prompt.
+    const handleCardClick = useCallback(() => {
+        if (fullNpcData) {
+            onViewCharacterSheet(fullNpcData);
+        }
+    }, [fullNpcData, onViewCharacterSheet]);
+
+    const displayImagePrompt = useMemo(() => {
         if (fullNpcData) {
             return fullNpcData.custom_image_prompt || fullNpcData.image_prompt;
         }
         return combatant.image_prompt;
     }, [fullNpcData, combatant.image_prompt]);
+
+    const originalImagePrompt = useMemo(() => {
+        return fullNpcData?.image_prompt || combatant.image_prompt;
+    }, [fullNpcData, combatant.image_prompt]);
+
+    const handleOpenImageWithCallbacks = useCallback((e: React.MouseEvent) => {
+        e.stopPropagation();
+        if (!displayImagePrompt || !originalImagePrompt) return;
+    
+        let onClearCustom: (() => void) | undefined;
+        let onUpload: ((base64: string) => void) | undefined;
+    
+        if (fullNpcData && editNpcData) {
+            onClearCustom = () => editNpcData(fullNpcData.NPCId, 'custom_image_prompt', null);
+            onUpload = (base64: string) => editNpcData(fullNpcData.NPCId, 'custom_image_prompt', base64);
+        }
+    
+        onOpenImageModal(displayImagePrompt, originalImagePrompt, onClearCustom, onUpload);
+    }, [displayImagePrompt, originalImagePrompt, fullNpcData, editNpcData, onOpenImageModal]);
 
     const level = useMemo(() => {
         if (fullNpcData && fullNpcData.level !== undefined) {
@@ -159,10 +181,14 @@ const CombatantCard: React.FC<CombatantCardProps> = ({ combatant, fullNpcData, o
     const [activeTab, setActiveTab] = useState(TABS[0] || 'CombatantStats');
 
     return (
-        <div className={`bg-gray-900/40 rounded-lg p-3 border border-gray-700/50 transition-opacity ${isDefeated ? 'opacity-50' : ''}`}>
+        <div 
+            className={`bg-gray-900/40 rounded-lg p-3 border border-gray-700/50 transition-all ${isDefeated ? 'opacity-50' : ''} ${fullNpcData ? 'cursor-pointer hover:border-cyan-400/50' : ''}`}
+            onClick={handleCardClick}
+            title={fullNpcData ? t('View Full NPC Details') : ''}
+        >
             <div className="flex justify-between items-start gap-3">
-                 <div className="w-16 h-16 rounded-md overflow-hidden flex-shrink-0 bg-gray-800 cursor-pointer" onClick={() => imagePrompt && onOpenImageModal(imagePrompt)}>
-                    <ImageRenderer prompt={imagePrompt} alt={combatant.name} imageCache={imageCache} onImageGenerated={onImageGenerated} model={gameSettings?.pollinationsImageModel} />
+                 <div className="w-16 h-16 rounded-md overflow-hidden flex-shrink-0 bg-gray-800 cursor-pointer" onClick={handleOpenImageWithCallbacks}>
+                    <ImageRenderer prompt={displayImagePrompt} alt={combatant.name} imageCache={imageCache} onImageGenerated={onImageGenerated} model={gameSettings?.pollinationsImageModel} width={1024} height={1024} gameSettings={gameSettings} />
                 </div>
                 <div className="flex-1">
                     <div className="flex justify-between items-start">
@@ -207,13 +233,13 @@ const CombatantCard: React.FC<CombatantCardProps> = ({ combatant, fullNpcData, o
                                 <span>HP</span>
                                 <span>{combatant.currentHealth} / {combatant.maxHealth}</span>
                             </div>
-                            <div className="w-full bg-gray-700 rounded-full h-2.5">
+                            <div className="w-full bg-gray-700 rounded-full h-3">
                                 {(() => {
                                     const percentage = (parseInt(combatant.currentHealth) / parseInt(combatant.maxHealth)) * 100;
                                     let colorClass = 'bg-green-500';
                                     if (percentage < 35) colorClass = 'bg-red-500';
                                     else if (percentage < 75) colorClass = 'bg-yellow-500';
-                                    return <div className={`${colorClass} h-2.5 rounded-full transition-all duration-500`} style={{ width: `${percentage}%` }}></div>
+                                    return <div className={`${colorClass} h-3 rounded-full transition-all duration-500`} style={{ width: `${percentage}%` }}></div>
                                 })()}
                             </div>
                         </div>
@@ -226,7 +252,7 @@ const CombatantCard: React.FC<CombatantCardProps> = ({ combatant, fullNpcData, o
                 {TABS.map(tab => (
                     <button 
                         key={tab}
-                        onClick={() => setActiveTab(tab)}
+                        onClick={(e) => { e.stopPropagation(); setActiveTab(tab); }}
                         className={`w-full rounded-md py-2 text-xs font-medium leading-5 transition flex items-center justify-center gap-1.5 ${activeTab === tab ? 'bg-gray-700 text-cyan-400 shadow' : 'text-gray-300 hover:bg-gray-700/50'}`}
                     >
                         {t(tab as any)}
@@ -241,7 +267,7 @@ const CombatantCard: React.FC<CombatantCardProps> = ({ combatant, fullNpcData, o
                         {(actions ?? []).map((action, i) => (
                              <button 
                                 key={i} 
-                                onClick={() => onOpenDetailModal(t("Combat Action: {name}", { name: action.actionName }), action)} 
+                                onClick={(e) => { e.stopPropagation(); onOpenDetailModal(t("Combat Action: {name}", { name: action.actionName }), action); }}
                                 className="w-full text-left text-xs bg-gray-800/60 p-2 rounded hover:bg-gray-700/80 transition-colors"
                             >
                                 <p className="font-semibold text-gray-200">{action.actionName}</p>
@@ -271,7 +297,7 @@ const CombatantCard: React.FC<CombatantCardProps> = ({ combatant, fullNpcData, o
                         {hasWounds && (
                              <Section title={t('Wounds')} icon={ShieldExclamationIcon}>
                                 {woundsToDisplay.map((wound, index) => (
-                                    <button key={wound.woundId || index} onClick={() => onOpenDetailModal(t("Wound: {name}", { name: wound.woundName }), wound)} className="w-full text-left bg-gray-900/60 p-3 rounded-md border border-red-800/50 flex items-start gap-3 hover:border-red-600 transition-colors">
+                                    <button key={wound.woundId || index} onClick={(e) => { e.stopPropagation(); onOpenDetailModal(t("Wound: {name}", { name: wound.woundName }), wound); }} className="w-full text-left bg-gray-900/60 p-3 rounded-md border border-red-800/50 flex items-start gap-3 hover:border-red-600 transition-colors">
                                         <ShieldExclamationIcon className="w-5 h-5 mt-0.5 text-red-500 flex-shrink-0" />
                                         <div className="flex-1">
                                             <div className="flex justify-between items-baseline">
@@ -310,7 +336,7 @@ const CombatantCard: React.FC<CombatantCardProps> = ({ combatant, fullNpcData, o
                 {activeTab === 'Skills' && (
                     <Section title={t('Skills')} icon={ShieldCheckIcon}>
                         {(passiveSkills ?? []).map((skill, i) => (
-                            <button key={i} onClick={() => onOpenDetailModal(t("Passive Skill: {name}", { name: skill.skillName }), skill)} className="w-full text-left bg-gray-800/60 p-2 rounded hover:bg-gray-700/80 transition-colors">
+                            <button key={i} onClick={(e) => { e.stopPropagation(); onOpenDetailModal(t("Passive Skill: {name}", { name: skill.skillName }), skill); }} className="w-full text-left bg-gray-800/60 p-2 rounded hover:bg-gray-700/80 transition-colors">
                                 <p className="font-semibold text-gray-200">{skill.skillName}</p>
                                 <p className="text-xs text-gray-400 italic line-clamp-2">{skill.skillDescription}</p>
                             </button>
@@ -323,7 +349,7 @@ const CombatantCard: React.FC<CombatantCardProps> = ({ combatant, fullNpcData, o
                         {(inventory ?? []).length > 0 ? (
                             <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
                                 {(inventory ?? []).map((item, i) => (
-                                    <button key={item.existedId || i} onClick={() => onOpenDetailModal(t("Item: {name}", { name: item.name }), item)} className={`w-full text-left p-2 rounded-md border-l-4 ${qualityColorMap[item.quality] || 'border-gray-500'} bg-gray-800/60 shadow-sm hover:bg-gray-700/80 hover:border-cyan-400 transition-colors`}>
+                                    <button key={item.existedId || i} onClick={(e) => { e.stopPropagation(); onOpenDetailModal(t("Item: {name}", { name: item.name }), item); }} className={`w-full text-left p-2 rounded-md border-l-4 ${qualityColorMap[item.quality] || 'border-gray-500'} bg-gray-800/60 shadow-sm hover:bg-gray-700/80 hover:border-cyan-400 transition-colors`}>
                                         <span className={`font-semibold text-xs ${qualityColorMap[item.quality]?.split(' ')[0] || 'text-gray-200'}`}>
                                             {item.name} {item.count > 1 ? `(x${item.count})` : ''}
                                         </span>
@@ -348,15 +374,20 @@ interface CombatTrackerProps {
     playerCharacter: PlayerCharacter;
     setAutoCombatSkill: (skillName: string | null) => void;
     onOpenDetailModal: (title: string, data: any) => void;
+    onViewCharacterSheet: (character: PlayerCharacter | NPC) => void;
     onSendMessage: (message: string) => void;
     isLoading: boolean;
     imageCache: Record<string, string>;
     onImageGenerated: (prompt: string, base64: string) => void;
-    onOpenImageModal: (prompt: string) => void;
+    onOpenImageModal: (displayPrompt: string, originalTextPrompt: string, onClearCustom?: () => void, onUpload?: (base64: string) => void) => void;
+    onExpand?: () => void;
+    isFullScreen?: boolean;
+    onCollapse?: () => void;
     gameSettings: GameSettings | null;
+    editNpcData?: (npcId: string, field: keyof NPC, value: any) => void;
 }
 
-export default function CombatTracker({ enemies, allies, combatLog, allNpcs, playerCharacter, setAutoCombatSkill, onOpenDetailModal, onSendMessage, isLoading, imageCache, onImageGenerated, onOpenImageModal, gameSettings }: CombatTrackerProps): React.ReactNode {
+export default function CombatTracker({ enemies, allies, combatLog, allNpcs, playerCharacter, setAutoCombatSkill, onOpenDetailModal, onViewCharacterSheet, onSendMessage, isLoading, imageCache, onImageGenerated, onOpenImageModal, gameSettings, onExpand, isFullScreen, onCollapse, editNpcData }: CombatTrackerProps): React.ReactNode {
     const { t } = useLocalization();
     const hasCombatants = (enemies && enemies.length > 0) || (allies && allies.length > 0);
     const hasLog = combatLog && combatLog.length > 0;
@@ -387,12 +418,26 @@ export default function CombatTracker({ enemies, allies, combatLog, allNpcs, pla
 
     return (
         <div className="space-y-6">
+            {isFullScreen && onCollapse && (
+                <div className="flex justify-end">
+                    <button onClick={onCollapse} className="p-2 text-gray-400 rounded-full hover:bg-gray-700 hover:text-white" title={t('Collapse Combat View')}>
+                        <ArrowsPointingInIcon className="w-6 h-6" />
+                    </button>
+                </div>
+            )}
             {hasCombatants && playerCharacter && (
                  <div>
-                    <h3 className="text-xl font-bold text-cyan-400 mb-3 narrative-text flex items-center gap-2">
-                        <Cog6ToothIcon className="w-6 h-6" />
-                        {t('Auto-Combat Skill')}
-                    </h3>
+                    <div className="flex justify-between items-center mb-3">
+                        <h3 className="text-xl font-bold text-cyan-400 narrative-text flex items-center gap-2">
+                            <Cog6ToothIcon className="w-6 h-6" />
+                            {t('Auto-Combat Skill')}
+                        </h3>
+                        {!isFullScreen && onExpand && (
+                            <button onClick={onExpand} className="p-2 text-gray-400 rounded-full hover:bg-gray-700 hover:text-white" title={t('Expand Combat View')}>
+                                <ArrowsPointingOutIcon className="w-5 h-5" />
+                            </button>
+                        )}
+                    </div>
                     <div className="bg-gray-900/40 p-3 rounded-lg">
                         <label htmlFor="auto-combat-select" className="block text-sm text-gray-400 mb-2">
                             {t('Select a skill to use for general attack commands.')}
@@ -431,7 +476,7 @@ export default function CombatTracker({ enemies, allies, combatLog, allNpcs, pla
                             return (
                                 <div key={enemy.NPCId || `enemy-${index}`} className="flex items-start gap-2 group">
                                     <div className="flex-1">
-                                        <CombatantCard combatant={enemy} fullNpcData={fullNpcData} onOpenDetailModal={onOpenDetailModal} imageCache={imageCache} onImageGenerated={onImageGenerated} onOpenImageModal={onOpenImageModal} gameSettings={gameSettings} />
+                                        <CombatantCard combatant={enemy} fullNpcData={fullNpcData} onOpenDetailModal={onOpenDetailModal} onViewCharacterSheet={onViewCharacterSheet} imageCache={imageCache} onImageGenerated={onImageGenerated} onOpenImageModal={onOpenImageModal} gameSettings={gameSettings} editNpcData={editNpcData} />
                                     </div>
                                     {!isDefeated && (
                                         <button
@@ -462,7 +507,7 @@ export default function CombatTracker({ enemies, allies, combatLog, allNpcs, pla
                              if (!fullNpcData && ally.name) {
                                  fullNpcData = allNpcs.find(npc => npc.name === ally.name) || null;
                              }
-                            return <CombatantCard key={ally.NPCId || `ally-${index}`} combatant={ally} fullNpcData={fullNpcData} onOpenDetailModal={onOpenDetailModal} imageCache={imageCache} onImageGenerated={onImageGenerated} onOpenImageModal={onOpenImageModal} gameSettings={gameSettings} />
+                            return <CombatantCard key={ally.NPCId || `ally-${index}`} combatant={ally} fullNpcData={fullNpcData} onOpenDetailModal={onOpenDetailModal} onViewCharacterSheet={onViewCharacterSheet} imageCache={imageCache} onImageGenerated={onImageGenerated} onOpenImageModal={onOpenImageModal} gameSettings={gameSettings} editNpcData={editNpcData} />
                         })}
                     </div>
                 </div>

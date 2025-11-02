@@ -6,6 +6,7 @@ import { useSpeech } from '../../../context/SpeechContext';
 import { SpeakerWaveIcon, StopCircleIcon } from '@heroicons/react/24/solid';
 import { TrashIcon } from '@heroicons/react/24/outline';
 import ConfirmationModal from '../../ConfirmationModal';
+import { stripMarkdown } from '../../../utils/textUtils';
 
 interface JournalModalProps {
   isOpen: boolean;
@@ -17,20 +18,10 @@ interface JournalModalProps {
   onDeleteOldest?: (count: number) => void;
   onDeleteEntry?: (index: number) => void;
   onClearAll?: () => void;
+  onAddEntry?: (newContent: string) => void;
 }
 
-// Helper function to strip markdown for cleaner speech
-const stripMarkdown = (text: string) => {
-  return text
-    .replace(/\[([^\]]+)\]\([^\)]+\)/g, '$1')
-    .replace(/!\[[^\]]*\]\([^\)]+\)/g, '')
-    .replace(/(\*\*|__)(.*?)\1/g, '$2')
-    .replace(/(\*|_)(.*?)\1/g, '$2')
-    .replace(/#{1,6}\s/g, '')
-    .replace(/`/g, '');
-};
-
-const JournalModal: React.FC<JournalModalProps> = ({ isOpen, onClose, journalEntries, npcName, isEditable, onSaveEntry, onDeleteOldest, onDeleteEntry, onClearAll }) => {
+const JournalModal: React.FC<JournalModalProps> = ({ isOpen, onClose, journalEntries, npcName, isEditable, onSaveEntry, onDeleteOldest, onDeleteEntry, onClearAll, onAddEntry }) => {
   const { t } = useLocalization();
   const { speak, isSpeaking, currentlySpeakingText } = useSpeech();
   
@@ -38,6 +29,7 @@ const JournalModal: React.FC<JournalModalProps> = ({ isOpen, onClose, journalEnt
   const [isDeleteOldestConfirmOpen, setIsDeleteOldestConfirmOpen] = useState(false);
   const [isClearAllConfirmOpen, setIsClearAllConfirmOpen] = useState(false);
   const [deleteCount, setDeleteCount] = useState('10');
+  const [newEntry, setNewEntry] = useState('');
 
   const handleDeleteEntryConfirm = () => {
     if (entryToDelete !== null && onDeleteEntry) {
@@ -61,6 +53,13 @@ const JournalModal: React.FC<JournalModalProps> = ({ isOpen, onClose, journalEnt
     setIsClearAllConfirmOpen(false);
   };
 
+  const handleAddEntry = () => {
+    if (newEntry.trim() && onAddEntry) {
+        onAddEntry(newEntry);
+        setNewEntry('');
+    }
+  };
+
 
   return (
     <>
@@ -71,6 +70,24 @@ const JournalModal: React.FC<JournalModalProps> = ({ isOpen, onClose, journalEnt
         showFontSizeControls={true}
       >
         <div className="space-y-4">
+          {isEditable && onAddEntry && (
+            <div className="bg-gray-900/40 p-3 rounded-lg border border-cyan-700/50">
+              <h4 className="text-sm font-semibold text-cyan-400 mb-2">{t('Add New Entry')}</h4>
+              <textarea
+                  value={newEntry}
+                  onChange={(e) => setNewEntry(e.target.value)}
+                  className="w-full bg-gray-700/50 border border-gray-600 rounded-md p-2 text-gray-200 focus:ring-1 focus:ring-cyan-500 transition text-sm min-h-[80px]"
+                  placeholder={t('Write your new entry here...')}
+              />
+              <button
+                  onClick={handleAddEntry}
+                  disabled={!newEntry.trim()}
+                  className="w-full mt-2 px-4 py-2 text-sm font-bold text-white rounded-md transition-colors bg-cyan-600 hover:bg-cyan-500 disabled:bg-gray-600 disabled:cursor-not-allowed"
+              >
+                  {t('Add Entry')}
+              </button>
+            </div>
+          )}
           {journalEntries.map((entry, index) => {
              if (typeof entry !== 'string') {
               return (

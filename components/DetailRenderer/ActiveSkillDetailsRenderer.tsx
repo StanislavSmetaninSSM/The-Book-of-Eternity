@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useCallback, useState } from 'react';
 import { ActiveSkill, PlayerCharacter } from '../../types';
 import { DetailRendererProps } from './types';
 import Section from './Shared/Section';
@@ -7,7 +7,7 @@ import CombatActionDetails from './Shared/CombatActionDetails';
 import MarkdownRenderer from '../MarkdownRenderer';
 import { useLocalization } from '../../context/LocalizationContext';
 import {
-    InformationCircleIcon, TagIcon, BoltIcon, ClockIcon, ArrowPathIcon, LinkIcon, WrenchScrewdriverIcon, Cog6ToothIcon, BeakerIcon
+    InformationCircleIcon, TagIcon, BoltIcon, ClockIcon, ArrowPathIcon, LinkIcon, WrenchScrewdriverIcon, Cog6ToothIcon, BeakerIcon, XCircleIcon
 } from '@heroicons/react/24/outline';
 import { qualityColorMap } from './utils';
 
@@ -15,11 +15,41 @@ interface ActiveSkillDetailsProps extends Omit<DetailRendererProps, 'data'> {
   skill: ActiveSkill & { owner?: 'player' | 'npc' };
 }
 
-const ActiveSkillDetailsRenderer: React.FC<ActiveSkillDetailsProps> = ({ skill, playerCharacter, setAutoCombatSkill }) => {
+const ActiveSkillDetailsRenderer: React.FC<ActiveSkillDetailsProps> = ({ skill, playerCharacter, setAutoCombatSkill, onEditPlayerData, allowHistoryManipulation }) => {
     const { t } = useLocalization();
     const isCurrentlyAuto = playerCharacter?.autoCombatSkill === skill.skillName;
     const canBeAuto = !!skill.combatEffect && (skill.combatEffect.isActivatedEffect === undefined || skill.combatEffect.isActivatedEffect === true);
     const isPlayerSkill = skill.owner !== 'npc';
+    const [newTag, setNewTag] = useState('');
+
+    const handleAddTag = useCallback(() => {
+        if (newTag.trim() && onEditPlayerData && playerCharacter) {
+            const currentTags = skill.tags || [];
+            const lowercasedTag = newTag.trim().toLowerCase();
+            if (!currentTags.map(t => t.toLowerCase()).includes(lowercasedTag)) {
+                const newSkillsArray = playerCharacter.activeSkills.map(s => 
+                    s.skillName === skill.skillName 
+                        ? { ...s, tags: [...currentTags, newTag.trim()] } 
+                        : s
+                );
+                onEditPlayerData('activeSkills', newSkillsArray);
+            }
+            setNewTag('');
+        }
+    }, [newTag, skill, playerCharacter, onEditPlayerData]);
+
+    const handleRemoveTag = useCallback((tagToRemove: string) => {
+        if (onEditPlayerData && playerCharacter) {
+            const newSkillsArray = playerCharacter.activeSkills.map(s => {
+                if (s.skillName === skill.skillName) {
+                    const newTags = (s.tags || []).filter(t => t !== tagToRemove);
+                    return { ...s, tags: newTags };
+                }
+                return s;
+            });
+            onEditPlayerData('activeSkills', newSkillsArray);
+        }
+    }, [skill, playerCharacter, onEditPlayerData]);
 
     const skillMastery = useMemo(() => {
         if (!playerCharacter) return null;
@@ -130,6 +160,34 @@ const ActiveSkillDetailsRenderer: React.FC<ActiveSkillDetailsProps> = ({ skill, 
                 >
                     {isCurrentlyAuto ? t("Clear Auto-Combat Skill") : t("Set as Auto-Combat Skill")}
                 </button>
+            </Section>
+        )}
+        {allowHistoryManipulation && isPlayerSkill && (
+            <Section title={t("Tags")} icon={TagIcon}>
+                <div className="flex flex-wrap gap-2 items-center">
+                    {(skill.tags || []).length > 0 ? (skill.tags || []).map(tag => (
+                        <div key={tag} className="flex items-center gap-1 bg-cyan-500/20 text-cyan-300 text-xs font-semibold px-2.5 py-1 rounded-full">
+                            <span>{tag}</span>
+                            <button onClick={() => handleRemoveTag(tag)} className="text-cyan-400 hover:text-white transition-colors">
+                                <XCircleIcon className="w-4 h-4" />
+                            </button>
+                        </div>
+                    )) : (
+                        <p className="text-xs text-gray-500 italic">{t('No tags assigned.')}</p>
+                    )}
+                </div>
+                <form onSubmit={(e) => { e.preventDefault(); handleAddTag(); }} className="flex gap-2 mt-3">
+                    <input
+                        type="text"
+                        value={newTag}
+                        onChange={(e) => setNewTag(e.target.value)}
+                        placeholder={t("Add a tag...")}
+                        className="flex-1 bg-gray-800/60 border border-gray-600 rounded-md py-1 px-2 text-sm text-gray-200 focus:ring-1 focus:ring-cyan-500 transition"
+                    />
+                    <button type="submit" className="px-4 py-1 text-xs font-semibold text-white bg-cyan-600 rounded-md hover:bg-cyan-500 transition-colors">
+                        {t("Add")}
+                    </button>
+                </form>
             </Section>
         )}
     </div>

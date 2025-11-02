@@ -1,5 +1,4 @@
-
-import { Item, Quest, NPC, Location, PlayerCharacter, Faction, GameSettings, Wound, UnlockedMemory } from '../../types';
+import { Item, Quest, NPC, Location, PlayerCharacter, Faction, GameSettings, Wound, UnlockedMemory, WorldEvent, CompletedActivity, LocationStorage, Project, ActiveThreat } from '../../types';
 
 export interface WoundDetailsProps extends Omit<DetailRendererProps, 'data'> {
     wound: Wound & { characterType?: 'player' | 'npc', characterId?: string | null };
@@ -12,12 +11,13 @@ export interface DetailRendererProps {
     onDeleteOldestNpcJournalEntries?: (npcId: string, count: number) => void;
     onDeleteNpcJournalEntry?: (npcId: string, entryIndex: number) => void;
     onCloseModal?: () => void;
-    onOpenImageModal?: (prompt: string, onRegenerate?: (newPrompt: string) => void) => void;
+    onOpenImageModal?: (prompt: string, originalTextPrompt: string, onClearCustom?: () => void, onUpload?: (base64: string) => void) => void;
     onForgetLocation?: (locationId: string) => void;
     onForgetQuest?: (questId: string) => void;
     playerCharacter: PlayerCharacter | null;
     setAutoCombatSkill?: (skillName: string | null) => void;
     onOpenDetailModal: (title: string, data: any) => void;
+    onOpenJournalModal?: (npc: NPC) => void;
     onShowMessageModal?: (title: string, content: string) => void;
     disassembleItem?: (item: Item) => void;
     disassembleNpcItem?: (npcId: string, item: Item) => void;
@@ -37,6 +37,7 @@ export interface DetailRendererProps {
     forgetHealedWound: (characterType: 'player' | 'npc', characterId: string | null, woundId: string) => void;
     forgetActiveWound: (characterType: 'player' | 'npc', characterId: string | null, woundId: string) => void;
     clearAllHealedWounds: (characterType: 'player' | 'npc', characterId: string | null) => void;
+    allLocations?: Location[];
     visitedLocations?: Location[];
     deleteNpcCustomState?: (npcId: string, stateId: string) => void;
     deleteCustomState?: (stateId: string) => void;
@@ -50,6 +51,23 @@ export interface DetailRendererProps {
     handleMoveItemForNpc?: (npcId: string, item: Item, containerId: string | null) => void;
     handleSplitItemForNpc?: (npcId: string, item: Item, quantity: number) => void;
     handleMergeItemsForNpc?: (npcId: string, sourceItem: Item, targetItem: Item) => void;
+    updateItemSortOrder?: (newOrder: string[]) => void;
+    updateItemSortSettings?: (criteria: PlayerCharacter['itemSortCriteria'], direction: PlayerCharacter['itemSortDirection']) => void;
     updateNpcItemSortOrder?: (npcId: string, newOrder: string[]) => void;
     updateNpcItemSortSettings?: (npcId: string, criteria: PlayerCharacter['itemSortCriteria'], direction: PlayerCharacter['itemSortDirection']) => void;
+    allNpcs?: NPC[];
+    allFactions?: Faction[];
+    updatePlayerPortrait?: (playerId: string, portraitData: { prompt?: string | null; custom?: string | null; }) => void;
+    updateNpcPortrait?: (npcId: string, portraitData: { prompt?: string | null; custom?: string | null; }) => void;
+    clearAllCompletedFactionProjects?: (factionId: string) => void;
+    deleteFactionProject?: (factionId: string, projectId: string) => void;
+    deleteFactionCustomState?: (factionId: string, stateId: string) => void;
+    clearAllCompletedNpcActivities?: (npcId: string) => void;
+    onDeleteCurrentActivity?: (npcId: string) => void;
+    onDeleteCompletedActivity?: (npcId: string, activity: CompletedActivity) => void;
+    onViewCharacterSheet?: (character: PlayerCharacter | NPC) => void;
+    onOpenTextReader: (title: string, content: string) => void;
+    onOpenStorage: (locationId: string, storage: LocationStorage) => void;
+    placeAsStorage?: (item: Item) => void;
+    deleteLocationThreat?: (locationId: string, threatId: string) => void;
 }

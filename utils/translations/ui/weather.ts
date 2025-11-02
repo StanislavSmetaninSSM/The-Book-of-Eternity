@@ -1,3 +1,4 @@
+
 export const weather = {
   en: {
     'Blizzard': 'Blizzard',
