@@ -102,7 +102,7 @@ const initialFormData = {
   doNotUseWorldEvents: false,
   pollinationsImageModel: 'flux' as 'flux' | 'turbo' | 'gptimage',
   useNanoBananaPrimary: false,
-  useNanoBananaFallback: false,
+  useNanoBananaFallback: true,
   useCultivationSystem: false,
   cultivationSystemDescription: cultivationSystemDescEn,
   useMagicSystem: false,
@@ -872,6 +872,29 @@ export default function StartScreen({ onStartLocal, onStartHost, onJoinGame, onL
                 }
             }
         }
+
+        const addDefaultCalendarRecursively = (obj: any, defaultCalendar: any) => {
+            if (typeof obj !== 'object' || obj === null || Array.isArray(obj)) return;
+
+            // Heuristic to identify a "world" object
+            if (obj.name && obj.description && typeof obj.races === 'object' && typeof obj.classes === 'object') {
+                if (!obj.calendar) {
+                    console.log(`Adding default calendar to world: ${obj.name}`);
+                    obj.calendar = JSON.parse(JSON.stringify(defaultCalendar));
+                }
+            }
+
+            // Always recurse deeper, unless it's a leaf node or a calendar itself
+            for (const key in obj) {
+                if (key !== 'calendar' && Object.prototype.hasOwnProperty.call(obj, key)) {
+                    addDefaultCalendarRecursively(obj[key], defaultCalendar);
+                }
+            }
+        };
+        
+        const defaultCalendar = gameData.fantasy.calendar;
+        addDefaultCalendarRecursively(newGameData, defaultCalendar);
+        
         setCustomGameData(newGameData);
         setFormData({ ...initialFormData, ...loadedData.formData });
     }

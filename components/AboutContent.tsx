@@ -45,13 +45,14 @@ const AboutContent: React.FC = () => {
                     </a>
                 </div>
 
-                <div className="bg-purple-900/40 p-4 rounded-lg text-center space-y-3 border border-purple-700/50">
-                    <h4 className="font-bold text-purple-400 flex items-center justify-center gap-2 text-lg">
+                <div className="bg-gray-900/40 p-4 rounded-lg text-center space-y-3 border border-purple-700/50">
+                    <h4 className="font-bold text-gray-400 flex items-center justify-center gap-2 text-lg">
                         <StarIcon className="w-5 h-5"/> {t('DonatorsHallOfFame')}
                     </h4>
                     <div className="flex flex-wrap justify-center gap-x-4 gap-y-2">
                         <p className="font-semibold text-purple-400">{t('donator_muffin')}</p>
-                        <p className="font-semibold" style={{ color: '#Ff00ff' }}>𝑾𝒆𝒘𝒆𝒔𝒉𝒌𝒂</p>
+                        <p className="font-semibold" style={{ color: '#Ff00ff' }}>Weweshka</p>
+                        <p className="font-semibold" style={{ color: '#208020' }}>Xenomorf</p>
                     </div>
                     <p className="text-xs text-gray-400 italic pt-2">{t('donators_motivation')}</p>
                 </div>

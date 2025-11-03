@@ -1,4 +1,5 @@
 
+
 //DO NOT USE ./components/{componentName}
 //USE ./{componentName} since we are already INSIDE components folder
 //DO NOT DELETE THESE COMMENTS!
@@ -341,14 +342,18 @@ export function useGameLogic({ language, setLanguage }: UseGameLogicProps) {
 
         // --- NETWORK STATE RESET ON LOAD ---
         if (!isNetworkSync) {
-             if (loadedGameState.networkRole === 'host' || loadedGameState.networkRole === 'player' || loadedGameState.networkRole === 'spectator') {
-                console.log(`Loaded a network game save (role: ${loadedGameState.networkRole}). Resetting to local game state.`);
+            if (loadedGameState.networkRole === 'host' || loadedGameState.networkRole === 'player' || loadedGameState.networkRole === 'spectator' || !loadedGameState.networkRole) {
+                if (loadedGameState.networkRole && loadedGameState.networkRole !== 'none') {
+                    console.log(`Loaded a network game save (role: ${loadedGameState.networkRole}). Resetting to local game state.`);
+                } else if (!loadedGameState.networkRole) {
+                    console.log(`Old save file missing network role, resetting to local game state.`);
+                }
                 loadedGameState.networkRole = 'none';
                 loadedGameState.myPeerId = null;
                 loadedGameState.hostPeerId = null;
                 loadedGameState.peers = [];
                 loadedGameState.isConnectedToHost = true; // It's a local game now
-
+        
                 if (gameContextRef.current) {
                     gameContextRef.current.networkRole = 'none';
                     gameContextRef.current.peers = [];
@@ -569,7 +574,7 @@ export function useGameLogic({ language, setLanguage }: UseGameLogicProps) {
             loadedSettings.pollinationsImageModel = 'flux';
         }
         if (loadedSettings.useNanoBananaFallback === undefined) {
-            loadedSettings.useNanoBananaFallback = false;
+            loadedSettings.useNanoBananaFallback = true;
         }
         if (loadedSettings.useNanoBananaPrimary === undefined) {
             loadedSettings.useNanoBananaPrimary = false;

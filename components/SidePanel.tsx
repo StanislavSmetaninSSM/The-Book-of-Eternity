@@ -1,6 +1,7 @@
 
 //DO NOT USE ./components/{componentName}
 //USE ./{componentName} since we are already INSIDE components folder
+//DO NOT DELETE THESE COMMENTS!
 
 import React, { useState, useMemo } from 'react';
 // FIX: Corrected import paths for local components.
@@ -117,7 +118,7 @@ interface SidePanelProps {
   onDeleteNpcMemory: (npcId: string, memoryId: string) => void;
   clearNpcJournalsNow: () => void;
   addPlayer: (creationData: any) => void;
-  // FIX: Added playerId to updatePlayerPortrait signature to match the implementation in useGameLogic.
+  // FIX: Added 'playerId' parameter to match the function signature from useGameLogic.
   updatePlayerPortrait: (playerId: string, portraitData: { prompt?: string | null; custom?: string | null; }) => void;
   allNpcs?: NPC[];
   allFactions?: Faction[];
