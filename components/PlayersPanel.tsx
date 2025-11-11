@@ -1,7 +1,5 @@
-
 import React, { useState, useMemo } from 'react';
-// FIX: Changed import from 'Peer' to 'PeerInfo' to match the renamed interface in types.ts, resolving a name collision.
-import { PlayerCharacter, GameSettings, PeerInfo, NetworkRole, NPC } from '../types';
+import { PlayerCharacter, GameSettings, PeerInfo, NetworkRole, NPC, ImageCacheEntry } from '../types';
 import { useLocalization } from '../context/LocalizationContext';
 import { UserIcon, PlusCircleIcon, DocumentDuplicateIcon, ArrowRightOnRectangleIcon, TrashIcon } from '@heroicons/react/24/outline';
 import PlayerCreationModal from './PlayerCreationModal';
@@ -19,13 +17,11 @@ interface PlayersPanelProps {
     passTurnToPlayer: (playerIndex: number) => void;
     allowHistoryManipulation: boolean;
     assignCharacterToPeer: (characterId: string, newPeerId: string | null) => void;
-// FIX: Changed type from 'Peer[]' to 'PeerInfo[]' to match the renamed interface in types.ts.
     peers: PeerInfo[];
     networkRole: NetworkRole;
-    imageCache: Record<string, string>;
-    onImageGenerated: (prompt: string, base64: string) => void;
-    // FIX: Added missing updatePlayerPortrait prop to fix type error.
-    updatePlayerPortrait: (playerId: string, portraitData: { prompt?: string | null; custom?: string | null; }) => void;
+    imageCache: Record<string, ImageCacheEntry>;
+    onImageGenerated: (prompt: string, src: string, sourceProvider: ImageCacheEntry['sourceProvider'], sourceModel?: string) => void;
+    updatePlayerPortrait?: (playerId: string, portraitData: { prompt?: string | null; custom?: string | null; }) => void;
 }
 
 const PlayersPanel: React.FC<PlayersPanelProps> = ({ playerCharacter, players, gameSettings, onAddPlayer, onViewCharacterSheet, removePlayer, passTurnToPlayer, allowHistoryManipulation, assignCharacterToPeer, peers, networkRole, imageCache, onImageGenerated, updatePlayerPortrait }) => {
@@ -82,9 +78,9 @@ const PlayersPanel: React.FC<PlayersPanelProps> = ({ playerCharacter, players, g
                                 >
                                     <div className="w-12 h-12 rounded-full overflow-hidden bg-gray-700 flex-shrink-0 border-2 border-gray-600">
                                         {player.portrait ? (
-// FIX: Pass 'gameSettings' prop to ImageRenderer
                                             <ImageRenderer
                                                 prompt={player.portrait}
+                                                originalTextPrompt={player.image_prompt}
                                                 alt={player.name}
                                                 imageCache={imageCache}
                                                 onImageGenerated={onImageGenerated}

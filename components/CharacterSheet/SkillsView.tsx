@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { PlayerCharacter, NPC, ActiveSkill, PassiveSkill } from '../../types';
 import { useLocalization } from '../../context/LocalizationContext';
@@ -54,12 +53,10 @@ const SkillsView: React.FC<SkillsViewProps> = ({
     const dragPassiveSkillName = useRef<string | null>(null);
     const dragOverPassiveSkillName = useRef<string | null>(null);
 
-    // FIX: Add type guard `isPlayer` before accessing `activeSkillSortOrder` which only exists on `PlayerCharacter`.
     const sortedActiveSkills = useMemo(() => {
         const skills = character.activeSkills || [];
-        if (!isPlayer) return skills;
+        if (!isPlayer || !(character as PlayerCharacter).activeSkillSortOrder) return skills;
         const pc = character as PlayerCharacter;
-        if (!pc.activeSkillSortOrder) return skills;
         const orderMap = new Map(pc.activeSkillSortOrder.map((name, index) => [name, index]));
         return [...skills].sort((a, b) => {
             const aIndex = orderMap.get(a.skillName);
@@ -71,12 +68,10 @@ const SkillsView: React.FC<SkillsViewProps> = ({
         });
     }, [character, isPlayer]);
 
-    // FIX: Add type guard `isPlayer` before accessing `passiveSkillSortOrder` which only exists on `PlayerCharacter`.
     const sortedPassiveSkills = useMemo(() => {
         const skills = character.passiveSkills || [];
-        if (!isPlayer) return skills;
+        if (!isPlayer || !(character as PlayerCharacter).passiveSkillSortOrder) return skills;
         const pc = character as PlayerCharacter;
-        if (!pc.passiveSkillSortOrder) return skills;
         const orderMap = new Map(pc.passiveSkillSortOrder.map((name, index) => [name, index]));
         return [...skills].sort((a, b) => {
             const aIndex = orderMap.get(a.skillName);
@@ -265,7 +260,7 @@ const SkillsView: React.FC<SkillsViewProps> = ({
                                             </span>
                                             <div className="text-xs space-x-3 flex items-center text-gray-400">
                                                 {masteryData && (
-                                                    <span className="font-semibold whitespace-nowrap flex items-center gap-1.5">{t('mastery_level')}: <span className="text-cyan-300 font-bold text-sm">{masteryData.currentMasteryLevel ?? '?'}/{masteryData.maxMasteryLevel ?? '?'}</span></span>
+                                                    <span className="font-semibold whitespace-nowrap flex items-center gap-1.5">{t('mastery_level')}: <span className="text-cyan-300 font-bold text-sm">{masteryData.currentMasteryLevel ?? '?'}</span></span>
                                                 )}
                                                 {skill.energyCost && <span className="flex items-center gap-1"><BoltIcon className="w-3 h-3 text-blue-400"/>{skill.energyCost} {t('EnergyUnit')}</span>}
                                                 {skill.cooldownTurns != null && <span className="flex items-center gap-1"><ClockIcon className="w-3 h-3 text-purple-400"/>{t('CooldownAbbr')}: {skill.cooldownTurns}{t('TurnUnit')}</span>}

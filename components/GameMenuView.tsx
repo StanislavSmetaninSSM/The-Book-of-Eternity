@@ -1,29 +1,13 @@
-
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
-import { ArrowDownTrayIcon, ArrowUpTrayIcon, ClockIcon, CpuChipIcon, WrenchScrewdriverIcon, InformationCircleIcon, TrashIcon, CloudArrowDownIcon, ExclamationTriangleIcon, BookOpenIcon, UserGroupIcon, WifiIcon, CheckIcon, ClipboardDocumentIcon, ArrowPathIcon, PaintBrushIcon } from '@heroicons/react/24/outline';
-// FIX: Add NetworkChatMessage to import from types.
-import { GameSettings, DBSaveSlotInfo, GameState, PeerInfo, NetworkRole, NetworkChatMessage } from '../types';
+import { ArrowDownTrayIcon, ArrowUpTrayIcon, ClockIcon, CpuChipIcon, WrenchScrewdriverIcon, InformationCircleIcon, TrashIcon, CloudArrowDownIcon, ExclamationTriangleIcon, BookOpenIcon, UserGroupIcon, WifiIcon, CheckIcon, ClipboardDocumentIcon, ArrowPathIcon, PaintBrushIcon, ArrowUpIcon, ArrowDownIcon } from '@heroicons/react/24/outline';
+import { GameSettings, DBSaveSlotInfo, GameState, PeerInfo, NetworkRole, NetworkChatMessage, ImageGenerationSource } from '../types';
 import { useLocalization } from '../context/LocalizationContext';
 import ConfirmationModal from './ConfirmationModal';
 import AboutContent from './AboutContent';
 import Modal from './Modal';
 import { UniverseCustomizer } from './UniverseCustomizer';
 import { gameData as defaultGameData } from '../utils/localizationGameData';
-import { cultivationSystemDescEn, cultivationSystemDescRu } from '../utils/translations/presetRules/fantasy/cultivation';
-import { magicSystemDescEn, magicSystemDescRu } from '../utils/translations/presetRules/fantasy/magic';
-import { priesthoodSystemDescEn, priesthoodSystemDescRu } from '../utils/translations/presetRules/fantasy/priesthood';
-import { hungerSystemDescEn, hungerSystemDescRu } from '../utils/translations/presetRules/post_apocalypse/hunger';
-import { thirstSystemDescEn, thirstSystemDescRu } from '../utils/translations/presetRules/post_apocalypse/thirst';
-import { radiationSystemDescEn, radiationSystemDescRu } from '../utils/translations/presetRules/post_apocalypse/radiation';
-import { psionicSystemDescEn, psionicSystemDescRu } from '../utils/translations/presetRules/post_apocalypse/psionic';
-import { psionicSystemDescSciFiEn, psionicSystemDescSciFiRu } from '../utils/translations/presetRules/sci_fi/psionic';
-import { urbanMagicSystemDescEn, urbanMagicSystemDescRu } from '../utils/translations/presetRules/modern/null_space_magic';
-import { fameSystemDescEn, fameSystemDescRu } from '../utils/translations/presetRules/history/fame';
-import { oldMagicDescEn, oldMagicDescRu } from '../utils/translations/presetRules/myths/old_magic';
-import { divineFavorDescEn, divineFavorDescRu } from '../utils/translations/presetRules/myths/divine_favor';
-import { deathNoteSystemDescEn, deathNoteSystemDescRu } from '../utils/translations/presetRules/modern/death_note_system';
 import { initializeAndPreviewSound } from '../utils/soundManager';
-// FIX: Removed duplicate import of UniverseCustomizer.
 import { weather as weatherTranslations } from '../utils/translations/ui/weather';
 import MarkdownRenderer from './MarkdownRenderer';
 
@@ -52,7 +36,6 @@ interface GameMenuViewProps {
     disconnect: () => void;
     isMyTurn: boolean;
     requestSyncFromHost: () => void;
-    // FIX: Add network chat props to the interface.
     networkChatHistory: NetworkChatMessage[];
     sendNetworkChatMessage: (content: string) => void;
 }
@@ -156,6 +139,81 @@ const NetworkChatView: React.FC<{
     );
 };
 
+const ImagePipelineManager: React.FC<{
+    pipeline: ImageGenerationSource[];
+    onPipelineChange: (newPipeline: ImageGenerationSource[]) => void;
+    t: TFunction;
+}> = ({ pipeline, onPipelineChange, t }) => {
+    const ALL_PROVIDERS: ImageGenerationSource[] = [
+        { provider: 'pollinations', model: 'flux' },
+        { provider: 'nanobanana' },
+        { provider: 'imagen' },
+    ];
+
+    const availableToAdd = useMemo(() => {
+        const currentProviders = new Set(pipeline.map(p => p.provider));
+        return ALL_PROVIDERS.filter(p => !currentProviders.has(p.provider));
+    }, [pipeline]);
+
+    const move = (index: number, direction: 'up' | 'down') => {
+        const newPipeline = [...pipeline];
+        const targetIndex = direction === 'up' ? index - 1 : index + 1;
+        if (targetIndex < 0 || targetIndex >= newPipeline.length) return;
+        [newPipeline[index], newPipeline[targetIndex]] = [newPipeline[targetIndex], newPipeline[index]];
+        onPipelineChange(newPipeline);
+    };
+
+    const remove = (index: number) => {
+        onPipelineChange(pipeline.filter((_, i) => i !== index));
+    };
+
+    const add = (source: ImageGenerationSource) => {
+        onPipelineChange([...pipeline, source]);
+    };
+
+    const getDisplayName = (source: ImageGenerationSource) => {
+        switch(source.provider) {
+            case 'pollinations': return 'Pollinations.ai (Flux)';
+            case 'nanobanana': return 'Nano Banana (Gemini)';
+            case 'imagen': return 'Imagen (Google)';
+            default: return 'Unknown';
+        }
+    };
+
+    return (
+        <div className="p-4 bg-gray-900/30 rounded-lg border border-gray-700/50 space-y-4">
+            <h4 className="font-semibold text-gray-300">{t("Image Generation Pipeline")}</h4>
+            <p className="text-xs text-gray-400">{t("image_pipeline_desc")}</p>
+            <div className="space-y-2">
+                {pipeline.map((source, index) => (
+                    <div key={index} className="flex items-center gap-2 p-2 bg-gray-800/50 rounded-md">
+                        <span className="font-mono text-cyan-400 mr-2">{index + 1}.</span>
+                        <span className="flex-1 text-gray-200">{getDisplayName(source)}</span>
+                        <div className="flex items-center gap-1">
+                            <button onClick={() => move(index, 'up')} disabled={index === 0} className="p-1 rounded-full text-gray-400 hover:bg-gray-700 disabled:opacity-50"><ArrowUpIcon className="w-4 h-4" /></button>
+                            <button onClick={() => move(index, 'down')} disabled={index === pipeline.length - 1} className="p-1 rounded-full text-gray-400 hover:bg-gray-700 disabled:opacity-50"><ArrowDownIcon className="w-4 h-4" /></button>
+                            <button onClick={() => remove(index)} className="p-1 rounded-full text-red-400 hover:bg-red-900/50"><TrashIcon className="w-4 h-4" /></button>
+                        </div>
+                    </div>
+                ))}
+            </div>
+            {availableToAdd.length > 0 && (
+                <div className="pt-2 border-t border-gray-700/50">
+                    <h5 className="text-sm font-semibold text-gray-400 mb-2">{t('Add to Pipeline')}</h5>
+                    <div className="flex gap-2">
+                        {availableToAdd.map(source => (
+                            <button key={source.provider} onClick={() => add(source)} className="px-3 py-1.5 text-xs font-semibold text-green-300 bg-green-500/10 rounded-md hover:bg-green-500/20 transition-colors">
+                                + {getDisplayName(source)}
+                            </button>
+                        ))}
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+};
+
+
 export default function GameMenuView({ 
     onSave, 
     onLoad, 
@@ -214,12 +272,10 @@ export default function GameMenuView({
         const { baseInfo } = gameSettings.gameWorldInformation;
         if (!baseInfo) return { universe: null, selectedEra: null };
     
-        // If metadata exists, use it. This is the ideal case for newer saves.
         if (baseInfo.universe) {
             return { universe: baseInfo.universe, selectedEra: baseInfo.selectedEra };
         }
     
-        // Fallback for old saves: Search for the world by its name in the default data.
         for (const uniKey of Object.keys(defaultGameData)) {
             const uniData = (defaultGameData as any)[uniKey];
             if (uniKey === 'history' || uniKey === 'myths') {
@@ -228,15 +284,13 @@ export default function GameMenuView({
                         return { universe: uniKey, selectedEra: eraKey };
                     }
                 }
-            } else if (uniKey !== 'custom') { // Don't match the empty 'custom' object
+            } else if (uniKey !== 'custom') {
                 if (uniData.name === baseInfo.name) {
                     return { universe: uniKey, selectedEra: null };
                 }
             }
         }
         
-        // If still not found, it must be a custom world.
-        // We derive its key from its name, which is the convention used on creation.
         const customEraKey = baseInfo.name?.toLowerCase().replace(/\s+/g, '_');
         return { universe: 'custom', selectedEra: customEraKey };
     
@@ -343,8 +397,16 @@ export default function GameMenuView({
         )
     }
 
-    const { adultMode, allowHistoryManipulation, keepLatestNpcJournals, latestNpcJournalsCount, cooperativeGameType, multiplePersonalitiesSettings, autoPassTurnInCoop, showPartyStatusPanel, aiProvider, modelName, isCustomModel, geminiThinkingBudget, useDynamicThinkingBudget, doNotUseWorldEvents, useGoogleSearch } = gameSettings;
+    const { adultMode, allowHistoryManipulation, keepLatestNpcJournals, latestNpcJournalsCount, cooperativeGameType, multiplePersonalitiesSettings, autoPassTurnInCoop, showPartyStatusPanel, aiProvider, modelName, isCustomModel, geminiThinkingBudget, useDynamicThinkingBudget, doNotUseWorldEvents, useGoogleSearch, hardMode, impossibleMode } = gameSettings;
     
+    const handleDifficultyChange = (difficulty: 'normal' | 'hard' | 'impossible') => {
+        updateGameSettings({
+            hardMode: difficulty === 'hard' || difficulty === 'impossible',
+            impossibleMode: difficulty === 'impossible'
+        });
+    };
+    const currentDifficulty = impossibleMode ? 'impossible' : (hardMode ? 'hard' : 'normal');
+
     const minBudget = 0;
     const maxBudget = 2048;
     const budget = geminiThinkingBudget ?? 128;
@@ -388,15 +450,6 @@ export default function GameMenuView({
             aiProvider: provider,
             modelName: provider === 'gemini' ? 'gemini-2.5-flash' : gameSettings.openRouterModelName,
             isCustomModel: provider === 'gemini' ? gameSettings.isCustomModel : false,
-        });
-    };
-
-    const currentDifficulty = gameSettings.impossibleMode ? 'impossible' : (gameSettings.hardMode ? 'hard' : 'normal');
-    
-    const handleDifficultyChange = (difficulty: 'normal' | 'hard' | 'impossible') => {
-        updateGameSettings({
-            hardMode: difficulty === 'hard' || difficulty === 'impossible',
-            impossibleMode: difficulty === 'impossible'
         });
     };
     
@@ -582,6 +635,49 @@ export default function GameMenuView({
             </fieldset>
             
             <fieldset disabled={!isGameActive || isLoading} className="space-y-4">
+                <h3 className="text-xl font-bold text-cyan-400 mb-2 narrative-text">{t("Game Rules")}</h3>
+                <div className="p-4 bg-gray-900/30 rounded-lg border border-cyan-500/20 space-y-4">
+                    <div>
+                        <label className="block text-sm font-medium text-gray-300 mb-2">{t("Difficulty")}</label>
+                        <div className="flex gap-2 p-1 bg-gray-900/50 rounded-lg">
+                            <button type="button" onClick={() => handleDifficultyChange('normal')} className={`flex-1 p-2 rounded-md text-center text-sm font-semibold transition-all ${currentDifficulty === 'normal' ? 'bg-cyan-600 text-white ring-2 ring-cyan-400' : 'bg-gray-800 text-gray-400 hover:bg-gray-700'}`}>{t('Normal')}</button>
+                            <button type="button" onClick={() => handleDifficultyChange('hard')} className={`flex-1 p-2 rounded-md text-center text-sm font-semibold transition-all ${currentDifficulty === 'hard' ? 'bg-cyan-600 text-white ring-2 ring-cyan-400' : 'bg-gray-800 text-gray-400 hover:bg-gray-700'}`}>{t('Hard')}</button>
+                            <button type="button" onClick={() => handleDifficultyChange('impossible')} className={`flex-1 p-2 rounded-md text-center text-sm font-semibold transition-all ${currentDifficulty === 'impossible' ? 'bg-cyan-600 text-white ring-2 ring-cyan-400' : 'bg-gray-800 text-gray-400 hover:bg-gray-700'}`}>{t('Impossible')}</button>
+                        </div>
+                        <p className="text-xs text-gray-400 mt-2 text-center">{t(`${currentDifficulty}_mode_description` as any)}</p>
+                    </div>
+                    <div className="flex items-center justify-between p-3 bg-gray-900/30 rounded-lg border border-yellow-500/20">
+                        <div>
+                            <label className="font-medium text-yellow-300">{t("Adult Mode (21+)")}</label>
+                            <p className="text-xs text-gray-400">{t("Enables less restrictive, player-driven narrative content.")}</p>
+                        </div>
+                        <div onClick={handleAdultModeClick} className="relative inline-flex items-center cursor-pointer">
+                            <input type="checkbox" className="sr-only peer" checked={!!adultMode} readOnly tabIndex={-1} />
+                            <div className="w-11 h-6 bg-gray-600 rounded-full peer peer-focus-within:ring-2 peer-focus-within:ring-yellow-500 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-yellow-600"></div>
+                        </div>
+                    </div>
+                    
+                    <ToggleSwitch label={t("Allow History Manipulation")} description={t("allowHistoryManipulationDescription")} name="allowHistoryManipulation" checked={allowHistoryManipulation} onChange={(e) => updateGameSettings({ allowHistoryManipulation: e.target.checked })} />
+                    <ToggleSwitch label={t('Disable World Events')} description={t('disable_world_events_desc')} name="doNotUseWorldEvents" checked={!!doNotUseWorldEvents} onChange={(e) => updateGameSettings({ doNotUseWorldEvents: e.target.checked })} />
+                    <div className="flex items-center justify-between p-3 bg-gray-900/30 rounded-lg">
+                        <div>
+                            <label htmlFor="notificationSound" className="font-medium text-gray-300 flex items-center gap-2">
+                                {t("Notification Sound")}
+                                <span className="text-gray-400 hover:text-white cursor-pointer" title={t("notificationSoundTooltip")}>
+                                    <InformationCircleIcon className="w-4 h-4" />
+                                </span>
+                            </label>
+                            <p className="text-xs text-gray-400">{t("Play a sound when the GM's response is ready.")}</p>
+                        </div>
+                        <label htmlFor="notificationSound-ingame" className="relative inline-flex items-center cursor-pointer">
+                            <input type="checkbox" id="notificationSound-ingame" name="notificationSound" checked={!!gameSettings.notificationSound} onChange={(e) => updateGameSettings({ notificationSound: e.target.checked })} className="sr-only peer" />
+                            <div className="w-11 h-6 bg-gray-600 rounded-full peer peer-focus-within:ring-2 peer-focus-within:ring-cyan-500 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-cyan-600"></div>
+                        </label>
+                    </div>
+                </div>
+            </fieldset>
+            
+            <fieldset disabled={!isGameActive || isLoading} className="space-y-4">
                 <h3 className="text-xl font-bold text-cyan-400 mb-2 narrative-text">{t("Cooperative Settings")}</h3>
                 <div className="p-4 bg-gray-900/30 rounded-lg border border-cyan-500/20 space-y-4">
                      <div className="flex items-center justify-between p-3 bg-gray-900/30 rounded-lg">
@@ -661,40 +757,6 @@ export default function GameMenuView({
                     </div>
                 </div>
             </fieldset>
-
-            <fieldset disabled={!isGameActive || isLoading} className="space-y-4">
-                <h3 className="text-xl font-bold text-cyan-400 mb-2 narrative-text">{t("Game Rules")}</h3>
-                <div className="p-4 bg-gray-900/30 rounded-lg border border-cyan-500/20 space-y-4">
-                    <div className="flex items-center justify-between p-3 bg-gray-900/30 rounded-lg border border-yellow-500/20">
-                        <div>
-                            <label className="font-medium text-yellow-300">{t("Adult Mode (21+)")}</label>
-                            <p className="text-xs text-gray-400">{t("Enables less restrictive, player-driven narrative content.")}</p>
-                        </div>
-                        <div onClick={handleAdultModeClick} className="relative inline-flex items-center cursor-pointer">
-                            <input type="checkbox" className="sr-only peer" checked={!!adultMode} readOnly tabIndex={-1} />
-                            <div className="w-11 h-6 bg-gray-600 rounded-full peer peer-focus-within:ring-2 peer-focus-within:ring-yellow-500 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-yellow-600"></div>
-                        </div>
-                    </div>
-                    
-                    <ToggleSwitch label={t("Allow History Manipulation")} description={t("allowHistoryManipulationDescription")} name="allowHistoryManipulation" checked={allowHistoryManipulation} onChange={(e) => updateGameSettings({ allowHistoryManipulation: e.target.checked })} />
-                    <ToggleSwitch label={t('Disable World Events')} description={t('disable_world_events_desc')} name="doNotUseWorldEvents" checked={!!doNotUseWorldEvents} onChange={(e) => updateGameSettings({ doNotUseWorldEvents: e.target.checked })} />
-                    <div className="flex items-center justify-between p-3 bg-gray-900/30 rounded-lg">
-                        <div>
-                            <label htmlFor="notificationSound" className="font-medium text-gray-300 flex items-center gap-2">
-                                {t("Notification Sound")}
-                                <span className="text-gray-400 hover:text-white cursor-pointer" title={t("notificationSoundTooltip")}>
-                                    <InformationCircleIcon className="w-4 h-4" />
-                                </span>
-                            </label>
-                            <p className="text-xs text-gray-400">{t("Play a sound when the GM's response is ready.")}</p>
-                        </div>
-                        <label htmlFor="notificationSound-ingame" className="relative inline-flex items-center cursor-pointer">
-                            <input type="checkbox" id="notificationSound-ingame" name="notificationSound" checked={!!gameSettings.notificationSound} onChange={(e) => updateGameSettings({ notificationSound: e.target.checked })} className="sr-only peer" />
-                            <div className="w-11 h-6 bg-gray-600 rounded-full peer peer-focus-within:ring-2 peer-focus-within:ring-cyan-500 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-cyan-600"></div>
-                        </label>
-                    </div>
-                </div>
-            </fieldset>
             
             <fieldset disabled={!isGameActive || isLoading} className="space-y-4">
                  <h3 className="text-xl font-bold text-cyan-400 mb-2 narrative-text flex items-center gap-2"><CpuChipIcon className="w-6 h-6" />{t("AI Settings")}</h3>
@@ -724,7 +786,6 @@ export default function GameMenuView({
                         <div>
                             <label htmlFor="modelName-ingame" className="block text-sm font-medium text-gray-300 mb-2">{t("AI Model")}</label>
                             <select id="modelName-ingame" value={isCustomModel ? 'CUSTOM' : modelName} onChange={(e) => handleModelChange(e.target.value)} className="w-full bg-gray-700/50 border border-gray-600 rounded-md p-3 text-gray-200 focus:ring-2 focus:ring-cyan-500 transition">
-                                {/* USER REQUEST: DO NOT REMOVE gemini-2.5-pro. */}
                                 <option value="gemini-2.5-pro">{t('Pro')} ({t('Superior Quality')})</option>
                                 <option value="gemini-2.5-flash">{t('Flash')} ({t('Best Speed/Quality')})</option>
                                 <option value="CUSTOM">{t("Custom...")}</option>
@@ -812,42 +873,21 @@ export default function GameMenuView({
                         </div>
                     </div>
                 )}
-                 <fieldset className="p-4 bg-gray-900/30 rounded-lg border border-gray-700/50 space-y-4">
-                    <h4 className="font-semibold text-gray-300">{t("Image Generation Settings")}</h4>
-                    <ToggleSwitch 
-                        label={t("use_nano_banana_primary")} 
-                        description={t("use_nano_banana_primary_desc")} 
-                        name="useNanoBananaPrimary" 
-                        checked={!!gameSettings.useNanoBananaPrimary} 
-                        onChange={(e) => updateGameSettings({ useNanoBananaPrimary: e.target.checked })} 
-                    />
-                    <div>
-                        <label htmlFor="pollinations-model" className="block text-sm font-medium text-gray-300 mb-2">{t("Image Generation Model (Pollinations.ai)")}</label>
-                        <select
-                            id="pollinations-model"
-                            value={gameSettings.pollinationsImageModel}
-                            onChange={(e) => updateGameSettings({ pollinationsImageModel: e.target.value as any })}
-                            className="w-full bg-gray-700/50 border border-gray-600 rounded-md py-2 px-3 text-gray-200 focus:ring-1 focus:ring-cyan-500 transition"
-                            disabled={!!gameSettings.useNanoBananaPrimary}
-                        >
-                            <option value="flux">{t('Flux (Default)')}</option>
-                            <option value="turbo">{t('Turbo')}</option>
-                            <option value="gptimage">{t('GPT Image')}</option>
-                        </select>
-                        <p className="text-xs text-gray-400 mt-2">{t('pollinations_model_desc')}</p>
-                    </div>
-                    <ToggleSwitch 
-                        label={t("use_nano_banana_fallback")} 
-                        description={t("use_nano_banana_fallback_desc")} 
-                        name="useNanoBananaFallback" 
-                        checked={!!gameSettings.useNanoBananaFallback} 
-                        onChange={(e) => updateGameSettings({ useNanoBananaFallback: e.target.checked })}
-                        disabled={!!gameSettings.useNanoBananaPrimary}
-                    />
-                </fieldset>
+                <ImagePipelineManager 
+                    pipeline={gameSettings.imageGenerationModelPipeline || []}
+                    onPipelineChange={(newPipeline) => updateGameSettings({ imageGenerationModelPipeline: newPipeline })}
+                    t={t}
+                />
+                <ToggleSwitch
+                    label={t("show_image_source_info_label")}
+                    description={t("show_image_source_info_desc")}
+                    name="showImageSourceInfo"
+                    checked={!!gameSettings.showImageSourceInfo}
+                    onChange={(e) => updateGameSettings({ showImageSourceInfo: e.target.checked })}
+                />
                 </div>
             </fieldset>
-
+            
             <fieldset disabled={!isGameActive || isLoading} className="space-y-4">
                  <h3 className="text-xl font-bold text-cyan-400 mb-2 narrative-text flex items-center gap-2"><BookOpenIcon className="w-6 h-6" /> {t('Narrative Overrides')}</h3>
                  <div className="p-4 bg-gray-900/30 rounded-lg border border-gray-700/50 space-y-4">

@@ -1,6 +1,5 @@
-
 import React, { useMemo } from 'react';
-import { PlayerCharacter, NPC, Item, GameSettings } from '../../types';
+import { PlayerCharacter, NPC, Item, GameSettings, ImageCacheEntry } from '../../types';
 import { useLocalization } from '../../context/LocalizationContext';
 import ItemCard from './Shared/ItemCard';
 import { ArchiveBoxIcon as ArchiveBoxSolidIcon } from '@heroicons/react/24/solid';
@@ -21,8 +20,8 @@ interface InventoryViewProps {
     equippedItemIds: Set<string | null>;
     onOpenDetailModal: (title: string, data: any) => void;
     gameSettings: any;
-    imageCache: Record<string, string>;
-    onImageGenerated: (p: string, b: string) => void;
+    imageCache: Record<string, ImageCacheEntry>;
+    onImageGenerated: (prompt: string, src: string, sourceProvider: ImageCacheEntry['sourceProvider'], sourceModel?: string) => void;
     onOpenImageModal: (displayPrompt: string, originalTextPrompt: string, onClearCustom?: () => void, onUpload?: (base64: string) => void) => void;
 }
 

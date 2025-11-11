@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { WorldState, WorldStateFlag, WorldEvent, NPC, Faction, Location, GameSettings } from '../types';
+// FIX: Add missing import for ImageCacheEntry
+import { WorldState, WorldStateFlag, WorldEvent, NPC, Faction, Location, GameSettings, ImageCacheEntry } from '../types';
 import { useLocalization } from '../context/LocalizationContext';
 import { 
     GlobeAltIcon, FlagIcon, TrashIcon, PencilSquareIcon, CheckIcon, XMarkIcon, 
@@ -33,8 +34,10 @@ interface WorldPanelProps {
     deleteWorldEventsByTurnRange: (startTurn: number, endTurn: number) => void;
     onShowMessageModal: (title: string, content: string) => void;
     gameSettings: GameSettings | null;
-    imageCache: Record<string, string>;
-    onImageGenerated: (prompt: string, base64: string) => void;
+    // FIX: Changed type from Record<string, string> to Record<string, ImageCacheEntry>
+    imageCache: Record<string, ImageCacheEntry>;
+    // FIX: Changed signature to match parent component
+    onImageGenerated: (prompt: string, src: string, sourceProvider: ImageCacheEntry['sourceProvider'], sourceModel?: string) => void;
     onOpenImageModal: (prompt: string, originalTextPrompt: string, onClearCustom?: () => void, onUpload?: (base64: string) => void) => void;
 }
 
@@ -99,8 +102,10 @@ const WorldEventCard: React.FC<{
     onDelete: (event: WorldEvent) => void;
     allowHistoryManipulation: boolean;
     onOpenDetailModal: (title: string, data: any) => void;
-    imageCache: Record<string, string>;
-    onImageGenerated: (prompt: string, base64: string) => void;
+    // FIX: Changed type from Record<string, string> to Record<string, ImageCacheEntry>
+    imageCache: Record<string, ImageCacheEntry>;
+    // FIX: Changed signature to match parent component
+    onImageGenerated: (prompt: string, src: string, sourceProvider: ImageCacheEntry['sourceProvider'], sourceModel?: string) => void;
     gameSettings: GameSettings | null;
     onOpenImageModal: (prompt: string, originalTextPrompt: string) => void;
 }> = ({ event, onDelete, allowHistoryManipulation, onOpenDetailModal, imageCache, onImageGenerated, gameSettings, onOpenImageModal }) => {
@@ -154,7 +159,6 @@ const WorldEventCard: React.FC<{
                         alt={event.headline}
                         imageCache={imageCache || {}}
                         onImageGenerated={onImageGenerated}
-                        model={gameSettings?.pollinationsImageModel}
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                         gameSettings={gameSettings}
                     />

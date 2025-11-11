@@ -1,6 +1,7 @@
 
 
 
+
 import React, { useState } from 'react';
 import Modal from '../../Modal';
 import EditableField from './EditableField';
@@ -9,6 +10,7 @@ import { useSpeech } from '../../../context/SpeechContext';
 import { SpeakerWaveIcon, StopCircleIcon } from '@heroicons/react/24/solid';
 import { TrashIcon } from '@heroicons/react/24/outline';
 import ConfirmationModal from '../../ConfirmationModal';
+import { stripMarkdown } from '../../../utils/textUtils';
 
 interface TextContentModalProps {
   isOpen: boolean;
@@ -24,15 +26,15 @@ interface TextContentModalProps {
 }
 
 // Helper function to strip markdown for cleaner speech
-const stripMarkdown = (text: string) => {
+const stripMarkdownLocal = (text: string | null) => {
   if (typeof text !== 'string') return '';
   return text
-    .replace(/\[([^\]]+)\]\([^\)]+\)/g, '$1')
-    .replace(/!\[[^\]]*\]\([^\)]+\)/g, '')
-    .replace(/(\*\*|__)(.*?)\1/g, '$2')
-    .replace(/(\*|_)(.*?)\1/g, '$2')
-    .replace(/#{1,6}\s/g, '')
-    .replace(/`/g, '');
+    .replace(/\[([^\]]+)\]\([^\)]+\)/g, '$1')   // links
+    .replace(/!\[[^\]]*\]\([^\)]+\)/g, '')   // images
+    .replace(/(\*\*|__)(.*?)\1/g, '$2')    // bold
+    .replace(/(\*|_)(.*?)\1/g, '$2')       // italics
+    .replace(/#{1,6}\s/g, '')              // headers
+    .replace(/`/g, '');                    // code
 };
 
 const TextContentModal: React.FC<TextContentModalProps> = ({ isOpen, onClose, entries, itemName, isEditable, onSaveEntry, onDeleteOldest, onDeleteEntry, onClearAll, onAddEntry }) => {
@@ -116,7 +118,7 @@ const TextContentModal: React.FC<TextContentModalProps> = ({ isOpen, onClose, en
               );
             }
 
-            const strippedEntry = stripMarkdown(entry);
+            const strippedEntry = stripMarkdownLocal(entry);
             const isThisEntrySpeaking = isSpeaking && currentlySpeakingText === strippedEntry;
 
             return (
@@ -203,7 +205,7 @@ const TextContentModal: React.FC<TextContentModalProps> = ({ isOpen, onClose, en
         onConfirm={handleDeleteOldestConfirm}
         title={t("Delete Oldest Entries")}
       >
-        <p>{t("Are you sure you want to delete the {count} oldest journal entries for {name}?", { count: deleteCount, name: itemName })}</p>
+        <p>{t("Are you sure you want to delete the {count} oldest text entries for {name}?", { count: deleteCount, name: itemName })}</p>
       </ConfirmationModal>
       <ConfirmationModal
         isOpen={isClearAllConfirmOpen}
@@ -211,7 +213,7 @@ const TextContentModal: React.FC<TextContentModalProps> = ({ isOpen, onClose, en
         onConfirm={handleClearAllConfirm}
         title={t("Clear All Entries")}
       >
-        <p>{t("Are you sure you want to delete all journal entries for {name}? This cannot be undone.", { name: itemName })}</p>
+        <p>{t("Are you sure you want to delete all text content for this item? This cannot be undone.", { name: itemName })}</p>
       </ConfirmationModal>
     </>
   );

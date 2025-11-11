@@ -25,6 +25,7 @@ interface ConditionsViewProps {
     clearAllHealedWounds: (characterType: 'player' | 'npc', characterId: string | null) => void;
     onDeleteCustomState: (stateId: string) => void;
     onDeleteNpcCustomState?: (npcId: string, stateId: string) => void;
+    onDeleteActiveEffect: (characterType: 'player' | 'npc', characterId: string | null, effectId: string) => void;
 }
 
 const ConditionsView: React.FC<ConditionsViewProps> = ({
@@ -36,7 +37,8 @@ const ConditionsView: React.FC<ConditionsViewProps> = ({
     forgetActiveWound,
     clearAllHealedWounds,
     onDeleteCustomState,
-    onDeleteNpcCustomState
+    onDeleteNpcCustomState,
+    onDeleteActiveEffect
 }) => {
     const { t } = useLocalization();
     const [confirmClear, setConfirmClear] = useState(false);
@@ -44,22 +46,21 @@ const ConditionsView: React.FC<ConditionsViewProps> = ({
     const [confirmForgetActive, setConfirmForgetActive] = useState<Wound | null>(null);
     const [healedWoundsCollapsed, setHealedWoundsCollapsed] = useState(true);
     const [confirmDeleteState, setConfirmDeleteState] = useState<CustomState | null>(null);
+    const [confirmDeleteEffect, setConfirmDeleteEffect] = useState<Effect | null>(null);
     
     const effects = isPlayer ? (character as PlayerCharacter).activePlayerEffects : (character as NPC).activeEffects || [];
     const wounds = isPlayer ? (character as PlayerCharacter).playerWounds : (character as NPC).wounds || [];
     const customStates = isPlayer ? (character as PlayerCharacter).playerCustomStates : (character as NPC).customStates || [];
-    const activeWounds = (wounds ?? []).filter(w => w.healingState.currentState !== 'Healed');
-    const healedWounds = (wounds ?? []).filter(w => w.healingState.currentState === 'Healed');
+    const activeWounds = (wounds ?? []).filter(w => w.healingState && w.healingState.currentState !== 'Healed');
+    const healedWounds = (wounds ?? []).filter(w => w.healingState && w.healingState.currentState === 'Healed');
     
     const handleClearAllHealedWounds = () => {
-        // FIX: Add type assertion to character to access NPCId
         clearAllHealedWounds(isPlayer ? 'player' : 'npc', isPlayer ? null : (character as NPC).NPCId);
         setConfirmClear(false);
     };
     
     const handleForgetWound = () => {
         if (confirmForget && confirmForget.woundId) {
-            // FIX: Add type assertion to character to access NPCId
             forgetHealedWound(isPlayer ? 'player' : 'npc', isPlayer ? null : (character as NPC).NPCId, confirmForget.woundId);
         }
         setConfirmForget(null);
@@ -67,7 +68,6 @@ const ConditionsView: React.FC<ConditionsViewProps> = ({
     
     const handleForgetActiveWound = () => {
         if (confirmForgetActive && confirmForgetActive.woundId) {
-            // FIX: Add type assertion to character to access NPCId
             forgetActiveWound(isPlayer ? 'player' : 'npc', isPlayer ? null : (character as NPC).NPCId, confirmForgetActive.woundId);
         }
         setConfirmForgetActive(null);
@@ -79,10 +79,16 @@ const ConditionsView: React.FC<ConditionsViewProps> = ({
         if (isPlayer) {
             onDeleteCustomState(stateIdentifier);
         } else if (onDeleteNpcCustomState) {
-            // FIX: Add type assertion to character to access NPCId
             onDeleteNpcCustomState((character as NPC).NPCId, stateIdentifier);
         }
         setConfirmDeleteState(null);
+    };
+
+    const handleDeleteEffectConfirm = () => {
+        if (confirmDeleteEffect && confirmDeleteEffect.effectId) {
+            onDeleteActiveEffect(isPlayer ? 'player' : 'npc', isPlayer ? null : (character as NPC).NPCId, confirmDeleteEffect.effectId);
+        }
+        setConfirmDeleteEffect(null);
     };
 
     return (
@@ -92,45 +98,60 @@ const ConditionsView: React.FC<ConditionsViewProps> = ({
                     <SectionHeader title={t('Active Effects')} icon={SunIcon} />
                     <div className="space-y-3 text-gray-300">
                         {(effects ?? []).length > 0 ? (effects ?? []).map((effect, index) => {
-                            if (effect.effectType === 'WoundReference' && effect.sourceWoundId) {
-                                let linkedWound = wounds.find(w => w.woundId === effect.sourceWoundId);
+                            const isWoundRef = effect.effectType === 'WoundReference' && effect.sourceWoundId;
+                            let linkedWound: Wound | undefined;
+                            if (isWoundRef) {
+                                linkedWound = wounds.find(w => w.woundId === effect.sourceWoundId);
                                 if (!linkedWound && effect.sourceSkill) {
                                     linkedWound = wounds.find(w => w.woundName === effect.sourceSkill);
                                 }
-                                if (linkedWound) {
-                                    const cleanWound = {
-                                        type: 'wound',
-                                        characterType: isPlayer ? 'player' : 'npc',
-                                        // FIX: Cast character to NPC to safely access NPCId.
-                                        characterId: isPlayer ? null : (character as NPC).NPCId,
-                                        ...linkedWound
-                                    };
-                                    return (
-                                        <button key={index} onClick={() => onOpenDetailModal(t("Wound: {name}", { name: linkedWound!.woundName }), cleanWound)} className="w-full text-left p-3 rounded-md text-sm flex items-start gap-3 hover:scale-105 transition-transform bg-purple-900/40 text-purple-300">
-                                            <ShieldExclamationIcon className="w-5 h-5 mt-0.5 text-purple-400 flex-shrink-0" />
-                                            <div className="flex-1">
-                                                <div className="flex justify-between">
-                                                    <span className="font-semibold">{t('Wound')}</span>
-                                                    {effect.duration < 999 && <span className="text-xs">{t('turns_left_count', { duration: effect.duration })}</span>}
-                                                </div>
-                                                <p>{effect.description}</p>
-                                            </div>
-                                        </button>
-                                    );
-                                }
                             }
+                            
                             return (
-                                <button key={index} onClick={() => onOpenDetailModal(t("Effect: {name}", { name: effect.sourceSkill || t('Effect') }), effect)} className={`w-full text-left p-3 rounded-md text-sm flex items-start gap-3 hover:scale-105 transition-transform ${effect.effectType.includes('Buff') ? 'bg-green-900/40 text-green-300' : 'bg-red-900/40 text-red-300'}`}>
-                                    {effect.effectType.includes('Buff') ? <SunIcon className="w-5 h-5 mt-0.5 text-green-400 flex-shrink-0" /> : <CloudIcon className="w-5 h-5 mt-0.5 text-red-400 flex-shrink-0" />}
-                                    <div className="flex-1">
-                                        <div className="flex justify-between">
-                                            <span className="font-semibold">{effect.sourceSkill || t('Effect')}</span>
-                                            {effect.duration < 999 && <span className="text-xs">{t('turns_left_count', { duration: effect.duration })}</span>}
+                                <div key={effect.effectId || index} className="relative group">
+                                    <button
+                                        onClick={() => {
+                                            if (linkedWound) {
+                                                const cleanWound = {
+                                                    type: 'wound',
+                                                    characterType: isPlayer ? 'player' : 'npc' as 'player' | 'npc',
+                                                    characterId: isPlayer ? null : (character as NPC).NPCId,
+                                                    ...linkedWound
+                                                };
+                                                onOpenDetailModal(t("Wound: {name}", { name: linkedWound.woundName }), cleanWound);
+                                            } else {
+                                                onOpenDetailModal(t("Effect: {name}", { name: effect.sourceSkill || t('Effect') }), effect);
+                                            }
+                                        }}
+                                        className={`w-full text-left p-3 rounded-md text-sm flex items-start gap-3 hover:scale-105 transition-transform ${
+                                            isWoundRef ? 'bg-purple-900/40 text-purple-300' :
+                                            effect.effectType.includes('Buff') ? 'bg-green-900/40 text-green-300' : 'bg-red-900/40 text-red-300'
+                                        }`}
+                                    >
+                                        {isWoundRef 
+                                            ? <ShieldExclamationIcon className="w-5 h-5 mt-0.5 text-purple-400 flex-shrink-0" />
+                                            : (effect.effectType.includes('Buff') ? <SunIcon className="w-5 h-5 mt-0.5 text-green-400 flex-shrink-0" /> : <CloudIcon className="w-5 h-5 mt-0.5 text-red-400 flex-shrink-0" />)
+                                        }
+                                        <div className="flex-1">
+                                            <div className="flex justify-between">
+                                                <span className="font-semibold">{linkedWound ? t('Wound') : (effect.sourceSkill || t('Effect'))}</span>
+                                                {effect.duration < 999 && <span className="text-xs">{t('turns_left_count', { duration: effect.duration })}</span>}
+                                            </div>
+                                            <p>{effect.description}</p>
                                         </div>
-                                        <p>{effect.description}</p>
-                                    </div>
-                                </button>
+                                    </button>
+                                    {isAdminEditable && effect.effectId && (
+                                        <button
+                                            onClick={(e) => { e.stopPropagation(); setConfirmDeleteEffect(effect); }}
+                                            className="absolute top-2 right-2 p-1 text-gray-400 rounded-full hover:bg-red-900/50 hover:text-red-300 transition-colors opacity-0 group-hover:opacity-100"
+                                            title={t('Delete Effect')}
+                                        >
+                                            <TrashIcon className="w-4 h-4" />
+                                        </button>
+                                    )}
+                                </div>
                             );
+
                         }) : <p className="text-sm text-gray-500 text-center p-2">{t('You are free of temporary effects.')}</p>}
                     </div>
                 </div>
@@ -138,24 +159,24 @@ const ConditionsView: React.FC<ConditionsViewProps> = ({
                     <SectionHeader title={t('Wounds')} icon={ShieldExclamationIcon} />
                     <div className="space-y-3 text-gray-300">
                         {(activeWounds.length > 0) ? (activeWounds.map((wound, index) => (
-                            <div key={wound.woundId || index} className="w-full bg-gray-900/60 rounded-md border border-red-800/50 flex items-center justify-between gap-3 group">
+                            <div key={wound.woundId || index} className="relative group w-full bg-gray-900/60 rounded-md border border-red-800/50">
                                 <button 
                                     onClick={() => onOpenDetailModal(t("Wound: {name}", { name: wound.woundName }), { type: 'wound', characterType: isPlayer ? 'player' : 'npc', characterId: isPlayer ? null : (character as NPC).NPCId, ...wound })}
-                                    className="flex-1 text-left p-3 flex items-start gap-3"
+                                    className="w-full text-left p-3 flex items-start gap-3"
                                 >
                                     <ShieldExclamationIcon className="w-5 h-5 mt-0.5 text-red-500 flex-shrink-0" />
                                     <div className="flex-1">
                                         <div className="flex justify-between items-baseline">
-                                            <span className="font-semibold text-red-400">{wound.woundName}</span>
-                                            <span className="text-xs text-red-500 bg-red-900/50 px-2 py-0.5 rounded-full">{t(wound.severity as any)}</span>
+                                             <span className="font-semibold text-red-400">{wound.woundName}</span>
+                                             <span className="text-xs text-red-500 bg-red-900/50 px-2 py-0.5 rounded-full">{t(wound.severity as any)}</span>
                                         </div>
-                                        <p className="text-sm text-gray-400 italic mt-1 line-clamp-2">{wound.descriptionOfEffects}</p>
+                                         <p className="text-sm text-gray-400 italic mt-1 line-clamp-2">{wound.descriptionOfEffects}</p>
                                     </div>
                                 </button>
                                 {isAdminEditable && (
                                     <button
                                         onClick={(e) => { e.stopPropagation(); setConfirmForgetActive(wound); }}
-                                        className="p-1 mr-2 text-gray-400 rounded-full hover:bg-red-900/50 hover:text-red-300 transition-colors flex-shrink-0 opacity-0 group-hover:opacity-100"
+                                        className="absolute top-2 right-2 p-1 text-gray-400 rounded-full hover:bg-red-900/50 hover:text-red-300 transition-colors opacity-0 group-hover:opacity-100"
                                         title={t('Forget Active Wound')}
                                     >
                                         <TrashIcon className="w-4 h-4" />
@@ -176,11 +197,11 @@ const ConditionsView: React.FC<ConditionsViewProps> = ({
                         {!healedWoundsCollapsed && (
                             <div className="space-y-3 animate-fade-in-down">
                                 {healedWounds.map((wound, index) => (
-                                    <div key={wound.woundId || index} className="w-full bg-gray-900/60 p-3 rounded-md border border-green-800/50 flex items-center justify-between gap-3">
-                                        <button onClick={() => onOpenDetailModal(t("Wound: {name}", { name: wound.woundName }), {type: 'wound', ...wound})} className="flex-1 text-left">
+                                    <div key={wound.woundId || index} className="relative group w-full bg-gray-900/60 p-3 rounded-md border border-green-800/50">
+                                        <button onClick={() => onOpenDetailModal(t("Wound: {name}", { name: wound.woundName }), {type: 'wound', ...wound})} className="w-full text-left">
                                             <span className="font-semibold text-green-400/80 hover:text-green-300 transition-colors">{wound.woundName}</span>
                                         </button>
-                                        <button onClick={() => setConfirmForget(wound)} className="p-1 text-gray-400 rounded-full hover:bg-red-900/50 hover:text-red-300 transition-colors flex-shrink-0" title={t('Forget Wound')}>
+                                        <button onClick={(e) => { e.stopPropagation(); setConfirmForget(wound); }} className="absolute top-2 right-2 p-1 text-gray-400 rounded-full hover:bg-red-900/50 hover:text-red-300 transition-colors opacity-0 group-hover:opacity-100" title={t('Forget Wound')}>
                                             <TrashIcon className="w-4 h-4" />
                                         </button>
                                     </div>
@@ -198,12 +219,22 @@ const ConditionsView: React.FC<ConditionsViewProps> = ({
                     <SectionHeader title={t('States')} icon={ExclamationTriangleIcon} />
                     <div className="space-y-3 text-gray-300">
                         {(customStates ?? []).length > 0 ? (customStates ?? []).map((state) => (
-                            <div key={state.stateId || state.stateName} className="flex items-center gap-2 group">
-                                <div className="flex-1">
-                                    <StatBar value={state.currentValue} max={state.maxValue} min={state.minValue} color="bg-purple-500" label={t(state.stateName as any)} icon={ExclamationTriangleIcon} onClick={() => onOpenDetailModal(t("CustomState: {name}", { name: state.stateName }), { ...state, type: 'customState' })} />
-                                </div>
+                            <div key={state.stateId || state.stateName} className="relative group">
+                                <StatBar
+                                    value={state.currentValue}
+                                    max={state.maxValue}
+                                    min={state.minValue}
+                                    color="bg-purple-500"
+                                    label={t(state.stateName as any)}
+                                    icon={ExclamationTriangleIcon}
+                                    onClick={() => onOpenDetailModal(t("CustomState: {name}", { name: state.stateName }), { ...state, type: 'customState' })}
+                                />
                                 {isAdminEditable && (
-                                    <button onClick={() => setConfirmDeleteState(state)} className="p-1 text-gray-500 rounded-full hover:bg-red-900/50 hover:text-red-300 transition-colors flex-shrink-0 opacity-0 group-hover:opacity-100" title={t('Delete State')}>
+                                    <button
+                                        onClick={(e) => { e.stopPropagation(); setConfirmDeleteState(state); }}
+                                        className="absolute top-1 right-1 p-1 text-gray-400 rounded-full hover:bg-red-900/50 hover:text-red-300 transition-colors opacity-0 group-hover:opacity-100"
+                                        title={t('Delete State')}
+                                    >
                                         <TrashIcon className="w-4 h-4" />
                                     </button>
                                 )}
@@ -224,6 +255,14 @@ const ConditionsView: React.FC<ConditionsViewProps> = ({
             </ConfirmationModal>
             <ConfirmationModal isOpen={!!confirmDeleteState} onClose={() => setConfirmDeleteState(null)} onConfirm={handleDeleteCustomState} title={t('delete_state_title', { name: confirmDeleteState?.stateName ?? '' })}>
                 <p>{t('delete_state_confirm', { name: confirmDeleteState?.stateName ?? '' })}</p>
+            </ConfirmationModal>
+            <ConfirmationModal
+                isOpen={!!confirmDeleteEffect}
+                onClose={() => setConfirmDeleteEffect(null)}
+                onConfirm={handleDeleteEffectConfirm}
+                title={t('Delete Effect')}
+            >
+                <p>{t('Are you sure you want to permanently delete the effect "{name}"?', { name: confirmDeleteEffect?.description ?? '' })}</p>
             </ConfirmationModal>
         </>
     );

@@ -1,3 +1,5 @@
+
+
 import React, { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import { Location, LocationData, PlayerCharacter, AdjacencyMapEntry, Faction, LocationStorage, DifficultyProfile } from '../../types';
 import { DetailRendererProps } from './types';
@@ -27,7 +29,6 @@ interface LocationDetailsProps extends Omit<DetailRendererProps, 'data'> {
   location: Location;
   onOpenForgetConfirm: () => void;
   playerCharacter: PlayerCharacter | null;
-  // FIX: Made 'onOpenStorage' required to match the base 'DetailRendererProps' interface, resolving the TypeScript error.
   onOpenStorage: (locationId: string, storage: LocationStorage) => void;
   initialView?: string;
 }
@@ -304,7 +305,7 @@ const LocationHeader: React.FC<LocationDetailsProps> = (props) => {
     }, [onEditLocationData, location.locationId]);
 
     const handleOpenModal = useCallback(() => {
-        if (!onOpenImageModal) return;
+        if (!onOpenImageModal || !displayImagePrompt) return;
 
         let onClearCustomCallback: (() => void) | undefined;
         let onUploadCallback: ((base64: string) => void) | undefined;
@@ -320,10 +321,6 @@ const LocationHeader: React.FC<LocationDetailsProps> = (props) => {
     return (
         <div className="p-4 bg-gray-800/30 rounded-lg mb-4">
             <div className="w-full h-48 rounded-lg overflow-hidden bg-gray-900 group relative cursor-pointer mb-4" onClick={handleOpenModal}>
-{/*
-FIX: Pass 'gameSettings' prop to ImageRenderer.
-The ImageRenderer component requires gameSettings to determine which image generation model to use.
-*/}
                 <ImageRenderer 
                     prompt={displayImagePrompt}
                     originalTextPrompt={originalImagePrompt}

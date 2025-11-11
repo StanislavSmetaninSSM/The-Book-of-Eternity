@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { useLocalization } from '../context/LocalizationContext';
 import { FilmIcon, PlayIcon, ArrowDownTrayIcon, TrashIcon, ChevronDownIcon, ChevronUpIcon, DocumentArrowUpIcon, ArrowPathIcon, XCircleIcon, PencilIcon, CheckIcon, ArrowsPointingOutIcon, ArrowsPointingInIcon, SpeakerWaveIcon } from '@heroicons/react/24/solid';

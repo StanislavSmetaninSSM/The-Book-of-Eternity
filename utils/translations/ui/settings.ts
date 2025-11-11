@@ -1,4 +1,3 @@
-
 export const settings = {
   en: {
     // Cooperative Game Settings
@@ -133,6 +132,13 @@ export const settings = {
     "allowHistoryManipulationDescription": "Allows for flexible interaction with the game's narrative. Enables editing of chat messages and game state details, and allows for 'cheats' like declaring the discovery of items or money.",
     "use_google_search": "Use Google Search for Grounding",
     "use_google_search_desc": "Allows the GM to search the web for better context on the game's universe. This disables strict JSON output, which may slightly affect performance or stability.",
+    "Image Generation Pipeline": "Image Generation Pipeline",
+    "image_pipeline_desc": "Determines the order of image generation services. The system will try each provider in sequence until one succeeds.",
+    "Add to Pipeline": "Add to Pipeline",
+    "Custom Upload": "Custom Upload",
+    "image_source_pollinations": "Pollinations ({model})",
+    "image_source_nanobanana": "Nano Banana",
+    "image_source_imagen": "Imagen"
   },
   ru: {
     // Cooperative Game Settings
@@ -267,5 +273,12 @@ export const settings = {
     "allowHistoryManipulationDescription": "Позволяет гибко взаимодействовать с повествованием игры. Включает редактирование сообщений чата и деталей игрового состояния, а также позволяет использовать «читы», например, объявлять о находке предметов или денег.",
     "use_google_search": "Использовать Поиск Google для ответов",
     "use_google_search_desc": "Позволяет ГМ искать в интернете для лучшего понимания контекста вселенной игры. Отключает строгий JSON-вывод, что может незначительно повлиять на производительность или стабильность.",
+    "Image Generation Pipeline": "Конвейер генерации изображений",
+    "image_pipeline_desc": "Определяет порядок использования сервисов генерации изображений. Система будет пробовать каждого провайдера по очереди, пока один из них не добьется успеха.",
+    "Add to Pipeline": "Добавить в конвейер",
+    "Custom Upload": "Своя загрузка",
+    "image_source_pollinations": "Pollinations ({model})",
+    "image_source_nanobanana": "Nano Banana",
+    "image_source_imagen": "Imagen"
   }
 }

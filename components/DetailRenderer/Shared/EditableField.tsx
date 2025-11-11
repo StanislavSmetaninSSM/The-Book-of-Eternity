@@ -1,5 +1,6 @@
 
 
+
 import React, { useState, useEffect } from 'react';
 import { PencilSquareIcon } from '@heroicons/react/24/solid';
 import { useLocalization } from '../../../context/LocalizationContext';
@@ -14,7 +15,6 @@ interface EditableFieldProps {
   className?: string;
   id?: string;
   onChange?: (newValue: string) => void;
-  // FIX: Added style prop to allow inline styling.
   style?: React.CSSProperties;
 }
 
@@ -27,7 +27,6 @@ const EditableField: React.FC<EditableFieldProps> = ({
   className = '',
   id,
   onChange,
-  // FIX: Destructured the new style prop.
   style,
 }) => {
   const [isEditing, setIsEditing] = useState(false);
@@ -97,7 +96,6 @@ const EditableField: React.FC<EditableFieldProps> = ({
   return (
     <div className="relative group cursor-pointer" onClick={(e) => { e.stopPropagation(); setIsEditing(true); }} title={t('Edit')}>
       {as === 'input' ? (
-        // FIX: Applied the style prop to the clickable, non-editing div.
         <div className={`${className} group-hover:bg-gray-700/50 p-2 rounded-md transition-colors`} style={style}>{value || `*${t('empty')}*`}</div>
       ) : (
         <MarkdownRenderer content={value || `*${t('empty')}*`} className={`${className} group-hover:bg-gray-700/50 p-2 rounded-md transition-colors`} />

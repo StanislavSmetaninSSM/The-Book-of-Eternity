@@ -1,13 +1,6 @@
 
-
-//DO NOT USE ./components/{componentName}
-//USE ./{componentName} since we are already INSIDE components folder
-//DO NOT DELETE THESE COMMENTS!
-
 import React, { useState, useCallback, useRef, useEffect, useMemo } from 'react';
-// FIX: Add NetworkChatMessage, NetworkMessage types.
-// FIX: Import CinemaFrame to resolve 'Cannot find name' errors.
-import { GameState, GameContext, ChatMessage, SaveFile, WorldState, GameSettings, Language, DBSaveSlotInfo, PlayerCharacter, Location, NPC, Faction, Quest, Wound, CustomState, WorldStateFlag, UnlockedMemory, WorldEvent, Effect, NetworkRole, PeerInfo, NetworkMessage, GameResponse, CollectiveActionState, SimultaneousActionState, Item, CompletedActivity, LocationStorage, AdjacencyMapEntry, Project, CompletedProject, StructuredBonus, ActiveThreat, Cinematic, FactionRank, NetworkChatMessage, CinemaFrame } from '../types';
+import { GameState, GameContext, ChatMessage, SaveFile, WorldState, GameSettings, Language, DBSaveSlotInfo, PlayerCharacter, Location, NPC, Faction, Quest, Wound, CustomState, WorldStateFlag, UnlockedMemory, WorldEvent, Effect, NetworkRole, PeerInfo, NetworkMessage, GameResponse, CollectiveActionState, SimultaneousActionState, Item, CompletedActivity, LocationStorage, AdjacencyMapEntry, Project, CompletedProject, StructuredBonus, ActiveThreat, Cinematic, FactionRank, NetworkChatMessage, CinemaFrame, SkillMastery, ImageGenerationSource, ImageCacheEntry } from '../types';
 import Peer, { DataConnection } from 'peerjs';
 import { useLocalization } from '../context/LocalizationContext';
 import { GoogleGenAI, Type, HarmCategory, HarmBlockThreshold, Modality } from '@google/genai';
@@ -24,16 +17,15 @@ import { createMusicManager } from './logic/music';
 import { createMultiplayerManager } from './logic/multiplayer';
 import { checkAndApplyLevelUp, processAndApplyResponse } from '../utils/responseProcessor';
 import { recalculateAllWeights } from '../utils/inventoryManager';
-// FIX: Imported `calculateDate` and `calculateTotalMinutes` to support the new calendar system's date calculations.
 import { recalculateDerivedStats, buildNextContext, createInitialContext, calculateDate, calculateTotalMinutes } from '../utils/gameContext';
 import { getAutosaveTimestampFromDB, listDBSlots } from '../utils/fileManager';
-// FIX: Import `playNotificationSound` to fix the 'Cannot find name' error.
 import { initializeAndPreviewSound, playNotificationSound } from '../utils/soundManager';
 import { createNewPlayerCharacter } from '../utils/characterManager';
 import { generateFactionColor } from '../utils/colorUtils';
 import { executeCancellableJsonGeneration, RegenerationRequiredError } from '../utils/gemini';
 import { deepStripModerationSymbols } from '../utils/textUtils';
 import { gameData } from '../utils/localizationGameData';
+import { translate } from '../utils/localization';
 
 
 interface UseGameLogicProps {
@@ -130,6 +122,8 @@ export function useGameLogic({ language, setLanguage }: UseGameLogicProps) {
 
     const [networkChatHistory, setNetworkChatHistory] = useState<NetworkChatMessage[]>([]);
 
+    const playerLevelRef = useRef<number | null>(null);
+
     useEffect(() => {
         if (wasLoadingRef.current && !isLoading) {
             if (gameSettings?.notificationSound) {
@@ -141,6 +135,62 @@ export function useGameLogic({ language, setLanguage }: UseGameLogicProps) {
 
     const { t } = useLocalization();
     const gameContextRef = useRef<GameContext | null>(null);
+
+    useEffect(() => {
+        if (!gameState) {
+            playerLevelRef.current = null;
+            return;
+        }
+    
+        const currentLevel = gameState.playerCharacter.level;
+        const previousLevel = playerLevelRef.current;
+    
+        if (typeof currentLevel === 'number' && previousLevel !== currentLevel) {
+            playerLevelRef.current = currentLevel;
+        }
+    
+        if (previousLevel !== null && typeof currentLevel === 'number' && currentLevel > previousLevel) {
+            console.log(`Level up detected! From ${previousLevel} to ${currentLevel}. Scaling quest rewards.`);
+            
+            const newExpForNextLevel = gameState.playerCharacter.experienceForNextLevel;
+            const meaningfulRewardThreshold = newExpForNextLevel * 0.1;
+    
+            setGameState(currentGameState => {
+                if (!currentGameState) return null;
+    
+                let questsWereUpdated = false;
+                const newLogs: string[] = [];
+    
+                const updatedActiveQuests = currentGameState.activeQuests.map(quest => {
+                    if (quest.rewards?.experience && quest.rewards.experience < meaningfulRewardThreshold) {
+                        const oldReward = quest.rewards.experience;
+                        const newReward = Math.floor(meaningfulRewardThreshold);
+                        if (oldReward < newReward) { // Only scale up
+                            questsWereUpdated = true;
+                            const logMessage = language === 'ru'
+                              ? `Мир становится опаснее. Награда за квест «${quest.questName}» была увеличена с ${oldReward} XP до ${newReward} XP, чтобы оставаться актуальной.`
+                              : `The world grows more dangerous. The reward for quest '${quest.questName}' has been increased from ${oldReward} XP to ${newReward} XP to remain relevant.`;
+                            newLogs.push(logMessage);
+                            
+                            const newRewards = { ...quest.rewards, experience: newReward };
+                            return { ...quest, rewards: newRewards };
+                        }
+                    }
+                    return quest;
+                });
+    
+                if (questsWereUpdated) {
+                    setGameLog(currentLog => [...newLogs, ...currentLog]);
+                    return {
+                        ...currentGameState,
+                        activeQuests: updatedActiveQuests
+                    };
+                }
+    
+                return currentGameState;
+            });
+        }
+    }, [gameState, language, setGameState, setGameLog, t]);
 
     useEffect(() => {
         if (gameState && gameContextRef.current) {
@@ -174,7 +224,7 @@ export function useGameLogic({ language, setLanguage }: UseGameLogicProps) {
         const migrateLocationEvents = (loc: any) => {
             if (loc && loc.lastEventsDescription && typeof loc.lastEventsDescription === 'string' && !loc.eventDescriptions) {
                 console.warn(`Migrating old 'lastEventsDescription' for location: ${loc.name || loc.locationId}`);
-                loc.eventDescriptions = loc.lastEventsDescription.split('\n\n').filter((e: string) => e.trim());
+                loc.eventDescriptions = loc.lastEventsDescription.split('\n\n').filter((e: string) => e.trim()).reverse();
                 delete loc.lastEventsDescription;
             }
         };
@@ -324,18 +374,60 @@ export function useGameLogic({ language, setLanguage }: UseGameLogicProps) {
             data.gameContext.previousTurnResponse.factionDataChanges.forEach(migrateFactionRanks);
         }
         // --- END FACTION RANK MIGRATION ---
+        
+        const loadedSettings = data.gameContext.gameSettings;
+        const loadedLanguage = loadedSettings.language || 'en';
+        setLanguage(loadedLanguage);
 
-        // --- CALENDAR MIGRATION ---
-        if (data.gameContext.gameSettings.gameWorldInformation && !data.gameContext.gameSettings.gameWorldInformation.calendar) {
+        // --- CALENDAR MIGRATION AND LOCALIZATION ---
+        if (loadedSettings.gameWorldInformation && !loadedSettings.gameWorldInformation.calendar) {
             console.warn("Save data missing calendar, adding default.");
-            data.gameContext.gameSettings.gameWorldInformation.calendar = gameData.fantasy.calendar;
+            loadedSettings.gameWorldInformation.calendar = gameData.fantasy.calendar;
         }
-        if (data.gameContext.worldState && !data.gameContext.worldState.date) {
-            console.warn("Save data missing date, calculating from total minutes.");
-            const calendar = data.gameContext.gameSettings.gameWorldInformation.calendar!;
-            data.gameContext.worldState.date = calculateDate(data.gameContext.worldState.currentTimeInMinutes, calendar);
+
+        if (loadedSettings.gameWorldInformation?.calendar) {
+            const baseCalendarTemplate = 
+                loadedSettings.gameWorldInformation.baseInfo?.calendar || 
+                loadedSettings.gameWorldInformation.calendar || 
+                gameData.fantasy.calendar;
+
+            const localizedCalendar = JSON.parse(JSON.stringify(baseCalendarTemplate));
+            localizedCalendar.months = localizedCalendar.months.map((month: any) => ({ ...month, name: translate(loadedLanguage, month.name) }));
+            localizedCalendar.dayNames = localizedCalendar.dayNames.map((day: any) => translate(loadedLanguage, day));
+            
+            loadedSettings.gameWorldInformation.calendar = localizedCalendar;
+            
+            if (data.gameContext.worldState) {
+                data.gameContext.worldState.date = calculateDate(data.gameContext.worldState.currentTimeInMinutes, localizedCalendar);
+            }
         }
         // --- END CALENDAR MIGRATION ---
+
+        // --- IMAGE GENERATION PIPELINE MIGRATION ---
+        if (!loadedSettings.imageGenerationModelPipeline || loadedSettings.imageGenerationModelPipeline.length === 0) {
+            console.log("Migrating old image generation settings to new pipeline.");
+            const pipeline: ImageGenerationSource[] = [];
+            const pollinationsModel = loadedSettings.pollinationsImageModel === 'kontext' ? 'flux' : (loadedSettings.pollinationsImageModel || 'flux');
+        
+            if (loadedSettings.useNanoBananaPrimary) {
+                pipeline.push({ provider: 'nanobanana' });
+                pipeline.push({ provider: 'pollinations', model: pollinationsModel });
+            } else {
+                pipeline.push({ provider: 'pollinations', model: pollinationsModel });
+                if (loadedSettings.useNanoBananaFallback) {
+                    pipeline.push({ provider: 'nanobanana' });
+                }
+            }
+            // Add Imagen as the final fallback for all migrated settings
+            pipeline.push({ provider: 'imagen' });
+            
+            loadedSettings.imageGenerationModelPipeline = pipeline;
+        }
+        // We can now remove the old properties from the loaded settings object to keep it clean
+        delete (loadedSettings as any).pollinationsImageModel;
+        delete (loadedSettings as any).useNanoBananaFallback;
+        delete (loadedSettings as any).useNanoBananaPrimary;
+        // --- END MIGRATION ---
 
         gameContextRef.current = data.gameContext;
         const loadedGameState = data.gameState;
@@ -447,6 +539,24 @@ export function useGameLogic({ language, setLanguage }: UseGameLogicProps) {
 
         if (!loadedGameState.imageCache) {
             loadedGameState.imageCache = {};
+        } else {
+            // MIGRATION LOGIC FOR imageCache
+            const firstValue = Object.values(loadedGameState.imageCache)[0];
+            if (typeof firstValue === 'string' || !firstValue?.src) { // Check if it's old format
+                console.warn("Migrating old imageCache format.");
+                const newCache: Record<string, ImageCacheEntry> = {};
+                for (const key in loadedGameState.imageCache) {
+                    const value = (loadedGameState.imageCache as any)[key];
+                    if (typeof value === 'string') {
+                        newCache[key] = {
+                            src: value,
+                            sourceProvider: key.startsWith('custom-') ? 'Custom Upload' : 'Pollinations.ai',
+                            sourceModel: key.startsWith('custom-') ? undefined : 'flux'
+                        };
+                    }
+                }
+                loadedGameState.imageCache = newCache as any;
+            }
         }
 
         if (!loadedGameState.cinematics) {
@@ -554,7 +664,6 @@ export function useGameLogic({ language, setLanguage }: UseGameLogicProps) {
             finalGameLog = [...finalGameLog, ...levelUpLogs];
         }
 
-        const loadedSettings = data.gameContext.gameSettings;
         if (loadedSettings.keepLatestNpcJournals === undefined) {
             loadedSettings.keepLatestNpcJournals = false;
         }
@@ -570,16 +679,7 @@ export function useGameLogic({ language, setLanguage }: UseGameLogicProps) {
         if (loadedSettings.useGoogleSearch === undefined) {
             loadedSettings.useGoogleSearch = false;
         }
-        if (loadedSettings.pollinationsImageModel === undefined || (loadedSettings.pollinationsImageModel as any) === 'kontext') {
-            loadedSettings.pollinationsImageModel = 'flux';
-        }
-        if (loadedSettings.useNanoBananaFallback === undefined) {
-            loadedSettings.useNanoBananaFallback = true;
-        }
-        if (loadedSettings.useNanoBananaPrimary === undefined) {
-            loadedSettings.useNanoBananaPrimary = false;
-        }
-
+       
         console.log(`🔄 RESTORE DEBUG: About to restore game state`);
         console.log(`  - Is Network Sync: ${isNetworkSync}`);
         console.log(`  - Loaded Network Role: ${loadedGameState.networkRole}`);
@@ -607,7 +707,6 @@ export function useGameLogic({ language, setLanguage }: UseGameLogicProps) {
         setWorldState(data.gameContext.worldState);
         setGameSettings(loadedSettings);
         setSuperInstructions(data.gameContext.superInstructions || '');
-        setLanguage(loadedSettings.language || 'en');
         setGameHistory(data.gameHistory as ChatMessage[]);
         setGameLog(finalGameLog);
         setCombatLog(data.combatLog ?? []);
@@ -622,16 +721,17 @@ export function useGameLogic({ language, setLanguage }: UseGameLogicProps) {
         setIsLoading(false);
         setError(null);
 
-    }, [setLanguage, t, setGameState, setWorldState, setGameSettings, setSuperInstructions, setGameHistory, setGameLog, setCombatLog, setLastJsonResponse, setSceneImagePrompt, setWorldMap, setVisitedLocations, setTurnNumber, setIsLoading, setError]);
+    }, [setLanguage, t, setGameState, setWorldState, setGameSettings, setSuperInstructions, setGameHistory, setGameLog, setCombatLog, setLastJsonResponse, setSceneImagePrompt, setWorldMap, setVisitedLocations, setTurnNumber, setIsLoading, setError, language]);
 
     const abortControllerRef = useRef<AbortController | null>(null);
     const lastSavedTurnRef = useRef<number | null>(null);
     const prevPlayersLengthRef = useRef<number | undefined>(undefined);
 
-    const onImageGenerated = useCallback((cacheKey: string, base664: string) => {
+    const onImageGenerated = useCallback((cacheKey: string, src: string, sourceProvider: ImageCacheEntry['sourceProvider'], sourceModel?: string) => {
         setGameState(prev => {
             if (!prev) return null;
-            const newCache = { ...(prev.imageCache || {}), [cacheKey]: base664 };
+            const newCacheEntry: ImageCacheEntry = { src, sourceProvider, sourceModel };
+            const newCache = { ...(prev.imageCache || {}), [cacheKey]: newCacheEntry };
             return { ...prev, imageCache: newCache };
         });
     }, [setGameState]);
@@ -990,8 +1090,16 @@ export function useGameLogic({ language, setLanguage }: UseGameLogicProps) {
             setLastTurnSaveFile
         });
 
+        const { startGame: baseStartGame, initializeAndRunFirstTurn: baseInitializeAndRunFirstTurn } = turnManager;
+
+        const initializeAndRunFirstTurn = (creationData: any, networkConfig?: { role: NetworkRole; peerId?: string }) => {
+            baseInitializeAndRunFirstTurn(creationData, networkConfig);
+        };
+        
+
         return {
             ...turnManager,
+            initializeAndRunFirstTurn,
             ...saveLoadManager,
             ...createInventoryActions({
                 setGameState, gameContextRef, t, gameState
@@ -1043,6 +1151,16 @@ export function useGameLogic({ language, setLanguage }: UseGameLogicProps) {
         setLastTurnSaveFile, addPlayer, removePlayer, passTurnToPlayer, cleanupNetwork, broadcastFullSync
     ]);
 
+    const clearStashForNewTurn = useCallback(() => {
+        setGameState(prev => {
+            if (!prev) return null;
+            if (prev.temporaryStash && prev.temporaryStash.length > 0) {
+                return { ...prev, temporaryStash: [] };
+            }
+            return prev;
+        });
+    }, [setGameState]);
+
     useEffect(() => {
         if (turnNumber && turnNumber > 0 && gameState && lastSavedTurnRef.current !== turnNumber) {
             console.log(`Autosaving for turn ${turnNumber}`);
@@ -1080,6 +1198,41 @@ export function useGameLogic({ language, setLanguage }: UseGameLogicProps) {
         setSuperInstructions(newInstructions);
     }, []);
 
+    const editLocationData = (locationId: string, field: keyof Location, value: any) => {
+        if (!gameSettings?.allowHistoryManipulation) return;
+
+        setWorldMap(prevMap => {
+            const newMap = { ...prevMap };
+            if (newMap[locationId]) {
+                newMap[locationId] = { ...newMap[locationId], [field]: value };
+                if (gameContextRef.current) {
+                    gameContextRef.current.worldMap = newMap;
+                }
+            }
+            return newMap;
+        });
+
+        setVisitedLocations(prev => {
+            const newLocations = prev.map(loc => loc.locationId === locationId ? { ...loc, [field]: value } : loc);
+            if (gameContextRef.current) {
+                gameContextRef.current.visitedLocations = newLocations;
+            }
+            return newLocations;
+        });
+        
+        setGameState(prev => {
+            if(!prev) return null;
+            if(prev.currentLocationData?.locationId === locationId){
+                const newCurrent = {...prev.currentLocationData, [field]: value} as Location;
+                if(gameContextRef.current) {
+                    gameContextRef.current.currentLocation = newCurrent;
+                }
+                return {...prev, currentLocationData: newCurrent};
+            }
+            return prev;
+        });
+    };
+
     const updatePlayerPortrait = useCallback((playerId: string, portraitData: { prompt?: string | null; custom?: string | null; }) => {
         setGameState(prevState => {
             if (!prevState || !prevState.players || prevState.players.length === 0) return prevState;
@@ -1100,10 +1253,10 @@ export function useGameLogic({ language, setLanguage }: UseGameLogicProps) {
                     delete newImageCache[currentKey];
                 }
                 if (portraitData.custom === null) {
-                    playerToUpdate.portrait = playerToUpdate.appearanceDescription;
+                    playerToUpdate.portrait = playerToUpdate.image_prompt;
                 } else {
                     const key = `custom-portrait-${playerToUpdate.playerId}`;
-                    newImageCache[key] = portraitData.custom;
+                    newImageCache[key] = { src: portraitData.custom, sourceProvider: 'Custom Upload' };
                     playerToUpdate.portrait = key;
                 }
             }
@@ -1169,7 +1322,7 @@ export function useGameLogic({ language, setLanguage }: UseGameLogicProps) {
                 } else {
                     const key = `custom-portrait-npc-${npcId}`;
                     console.log('Setting new cache key:', key);
-                    newImageCache[key] = portraitData.custom;
+                    newImageCache[key] = { src: portraitData.custom, sourceProvider: 'Custom Upload' };
                     newNpc.custom_image_prompt = key;
                 }
             } else if (portraitData.prompt !== undefined) {
@@ -1328,6 +1481,131 @@ export function useGameLogic({ language, setLanguage }: UseGameLogicProps) {
         });
     }, [gameSettings, setGameState]);
 
+    const deleteActiveEffect = useCallback((characterType: 'player' | 'npc', characterId: string | null, effectId: string) => {
+        if (!gameSettings?.allowHistoryManipulation) return;
+    
+        setGameState(prevState => {
+            if (!prevState) return null;
+            const newState = JSON.parse(JSON.stringify(prevState));
+    
+            if (characterType === 'player') {
+                const pc = newState.playerCharacter as PlayerCharacter;
+                pc.activePlayerEffects = (pc.activePlayerEffects || []).filter((e: Effect) => e.effectId !== effectId);
+                
+                newState.playerCharacter = recalculateDerivedStats(pc);
+    
+                if (gameContextRef.current) {
+                    gameContextRef.current.playerCharacter = newState.playerCharacter;
+                }
+            } else if (characterType === 'npc' && characterId) {
+                const npcIndex = newState.encounteredNPCs.findIndex((n: NPC) => n.NPCId === characterId);
+                if (npcIndex > -1) {
+                    const npc = newState.encounteredNPCs[npcIndex];
+                    npc.activeEffects = (npc.activeEffects || []).filter((e: Effect) => e.effectId !== effectId);
+                    
+                    newState.encounteredNPCs[npcIndex] = recalculateDerivedStats(npc);
+    
+                    if (gameContextRef.current) {
+                        gameContextRef.current.encounteredNPCs = newState.encounteredNPCs;
+                    }
+                }
+            }
+            return newState;
+        });
+    }, [gameSettings, setGameState]);
+
+    const forgetHealedWound = useCallback((characterType: 'player' | 'npc', characterId: string | null, woundId: string) => {
+        if (!gameSettings?.allowHistoryManipulation) return;
+        setGameState(prevState => {
+            if (!prevState) return null;
+            const newState = JSON.parse(JSON.stringify(prevState));
+            if (characterType === 'player') {
+                const pc = newState.playerCharacter as PlayerCharacter;
+                pc.playerWounds = pc.playerWounds.filter((w: Wound) => w.woundId !== woundId);
+                 if (gameContextRef.current) {
+                    gameContextRef.current.playerCharacter.playerWounds = pc.playerWounds;
+                }
+            } else if (characterType === 'npc' && characterId) {
+                const npcIndex = newState.encounteredNPCs.findIndex((n: NPC) => n.NPCId === characterId);
+                if (npcIndex > -1) {
+                    newState.encounteredNPCs[npcIndex].wounds = (newState.encounteredNPCs[npcIndex].wounds || []).filter((w: Wound) => w.woundId !== woundId);
+                     if (gameContextRef.current) {
+                        gameContextRef.current.encounteredNPCs = newState.encounteredNPCs;
+                    }
+                }
+            }
+            return newState;
+        });
+    }, [gameSettings, setGameState]);
+
+    const forgetActiveWound = useCallback((characterType: 'player' | 'npc', characterId: string | null, woundId: string) => {
+        if (!gameSettings?.allowHistoryManipulation) return;
+        setGameState(prevState => {
+            if (!prevState) return null;
+            const newState = JSON.parse(JSON.stringify(prevState));
+            
+            let woundToRemove: Wound | undefined;
+
+            if (characterType === 'player') {
+                const pc = newState.playerCharacter as PlayerCharacter;
+                const woundIndex = pc.playerWounds.findIndex((w: Wound) => w.woundId === woundId);
+                if (woundIndex > -1) {
+                    woundToRemove = pc.playerWounds[woundIndex];
+                    pc.playerWounds.splice(woundIndex, 1);
+                }
+                if (woundToRemove) {
+                    pc.activePlayerEffects = (pc.activePlayerEffects || []).filter((e: Effect) => e.sourceWoundId !== woundId);
+                }
+                if (gameContextRef.current) {
+                    gameContextRef.current.playerCharacter = pc;
+                }
+            } else if (characterType === 'npc' && characterId) {
+                const npcIndex = newState.encounteredNPCs.findIndex((n: NPC) => n.NPCId === characterId);
+                if (npcIndex > -1) {
+                    const npc = newState.encounteredNPCs[npcIndex];
+                    if (npc.wounds) {
+                        const woundIndex = npc.wounds.findIndex((w: Wound) => w.woundId === woundId);
+                        if (woundIndex > -1) {
+                            woundToRemove = npc.wounds[woundIndex];
+                            npc.wounds.splice(woundIndex, 1);
+                        }
+                    }
+                    if (woundToRemove) {
+                        npc.activeEffects = (npc.activeEffects || []).filter((e: Effect) => e.sourceWoundId !== woundId);
+                    }
+                    if (gameContextRef.current) {
+                        gameContextRef.current.encounteredNPCs = newState.encounteredNPCs;
+                    }
+                }
+            }
+            return newState;
+        });
+    }, [gameSettings, setGameState]);
+
+    const clearAllHealedWounds = useCallback((characterType: 'player' | 'npc', characterId: string | null) => {
+        if (!gameSettings?.allowHistoryManipulation) return;
+        setGameState(prevState => {
+            if (!prevState) return null;
+            const newState = JSON.parse(JSON.stringify(prevState));
+            if (characterType === 'player') {
+                const pc = newState.playerCharacter as PlayerCharacter;
+                pc.playerWounds = pc.playerWounds.filter((w: Wound) => !w.healingState || w.healingState.currentState !== 'Healed');
+                 if (gameContextRef.current) {
+                    gameContextRef.current.playerCharacter.playerWounds = pc.playerWounds;
+                }
+            } else if (characterType === 'npc' && characterId) {
+                const npcIndex = newState.encounteredNPCs.findIndex((n: NPC) => n.NPCId === characterId);
+                if (npcIndex > -1) {
+                    newState.encounteredNPCs[npcIndex].wounds = (newState.encounteredNPCs[npcIndex].wounds || []).filter((w: Wound) => !w.healingState || w.healingState.currentState !== 'Healed');
+                     if (gameContextRef.current) {
+                        gameContextRef.current.encounteredNPCs = newState.encounteredNPCs;
+                    }
+                }
+            }
+            return newState;
+        });
+    }, [gameSettings, setGameState]);
+
     const onEditNpcMemory = useCallback((npcId: string, memory: UnlockedMemory) => {
         if (!gameSettings?.allowHistoryManipulation) return;
         setGameState(prevState => {
@@ -1433,13 +1711,13 @@ export function useGameLogic({ language, setLanguage }: UseGameLogicProps) {
         });
     }, [gameSettings, setGameState]);
 
-    const deleteFactionCustomState = useCallback((factionId: string, stateId: string) => {
+    const deleteFactionCustomState = useCallback((factionId: string, stateIdOrName: string) => {
         if (!gameSettings?.allowHistoryManipulation) return;
         setGameState(prevState => {
             if (!prevState) return null;
             const newFactions = prevState.encounteredFactions.map(faction => {
                 if (faction.factionId === factionId && faction.customStates) {
-                    const newStates = faction.customStates.filter(s => s.stateId !== stateId);
+                    const newStates = faction.customStates.filter(s => s.stateId !== stateIdOrName && s.stateName !== stateIdOrName);
                     return { ...faction, customStates: newStates };
                 }
                 return faction;
@@ -1448,6 +1726,52 @@ export function useGameLogic({ language, setLanguage }: UseGameLogicProps) {
                 gameContextRef.current.encounteredFactions = newFactions;
             }
             return { ...prevState, encounteredFactions: newFactions };
+        });
+    }, [gameSettings, setGameState]);
+
+    const deleteCustomState = useCallback((idOrName: string) => {
+        if (!gameSettings?.allowHistoryManipulation) return;
+        setGameState(prevState => {
+            if (!prevState || !prevState.playerCharacter.playerCustomStates) return prevState;
+    
+            const pc = prevState.playerCharacter;
+            const initialLength = pc.playerCustomStates.length;
+            const newPlayerCustomStates = pc.playerCustomStates.filter(s => 
+                s.stateId !== idOrName && s.stateName !== idOrName
+            );
+    
+            if (newPlayerCustomStates.length === initialLength) {
+                console.warn(`Could not find player custom state to delete with identifier: ${idOrName}`);
+                return prevState; // No change
+            }
+    
+            const newPc = { ...pc, playerCustomStates: newPlayerCustomStates };
+            const newState = { ...prevState, playerCharacter: newPc, playerCustomStates: newPlayerCustomStates };
+            
+            if (gameContextRef.current) {
+                gameContextRef.current.playerCustomStates = newPlayerCustomStates;
+                gameContextRef.current.playerCharacter.playerCustomStates = newPlayerCustomStates;
+            }
+            
+            return newState;
+        });
+    }, [gameSettings, setGameState]);
+    
+    const deleteNpcCustomState = useCallback((npcId: string, idOrName: string) => {
+        if (!gameSettings?.allowHistoryManipulation) return;
+        setGameState(prevState => {
+            if (!prevState) return null;
+            const newNpcs = prevState.encounteredNPCs.map(npc => {
+                if (npc.NPCId === npcId && npc.customStates) {
+                    const newStates = npc.customStates.filter(s => s.stateId !== idOrName && s.stateName !== idOrName);
+                    return { ...npc, customStates: newStates };
+                }
+                return npc;
+            });
+            if (gameContextRef.current) {
+                gameContextRef.current.encounteredNPCs = newNpcs;
+            }
+            return { ...prevState, encounteredNPCs: newNpcs };
         });
     }, [gameSettings, setGameState]);
 
@@ -1495,13 +1819,13 @@ export function useGameLogic({ language, setLanguage }: UseGameLogicProps) {
 
     }, [gameSettings, setGameState, setWorldMap, setVisitedLocations]);
 
-    const deleteFactionBonus = useCallback((factionId: string, bonusId: string) => {
+    const deleteFactionBonus = useCallback((factionId: string, bonusIdentifier: string) => {
         if (!gameSettings?.allowHistoryManipulation) return;
         setGameState(prevState => {
             if (!prevState) return null;
             const newFactions = prevState.encounteredFactions.map(faction => {
                 if (faction.factionId === factionId && faction.structuredBonuses) {
-                    const newBonuses = faction.structuredBonuses.filter(b => b.bonusId !== bonusId);
+                    const newBonuses = faction.structuredBonuses.filter(b => b.bonusId !== bonusIdentifier && b.description !== bonusIdentifier);
                     return { ...faction, structuredBonuses: newBonuses };
                 }
                 return faction;
@@ -1547,462 +1871,29 @@ export function useGameLogic({ language, setLanguage }: UseGameLogicProps) {
         });
     }, [gameSettings, setGameState]);
 
-    const createErrorPlaceholder = (width: number, height: number, text: string): string => {
-        const canvas = document.createElement('canvas');
-        canvas.width = width;
-        canvas.height = height;
-        const ctx = canvas.getContext('2d');
-        if (!ctx) return ''; // fallback to empty string
+    const clearNpcJournalsNow = useCallback(() => {
+        if (!gameSettings) return;
+        
+        setGameState(prevState => {
+            if (!prevState) return null;
 
-        // Black background
-        ctx.fillStyle = '#000000';
-        ctx.fillRect(0, 0, width, height);
+            const countToKeepNum = Number(gameSettings.latestNpcJournalsCount);
+            const countToKeep = !isNaN(countToKeepNum) && countToKeepNum > 0 ? countToKeepNum : 20;
 
-        // Red error text
-        ctx.fillStyle = '#8B0000'; // DarkRed for better aesthetics
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.font = 'bold 30px Lora, serif';
-        ctx.shadowColor = 'rgba(0, 0, 0, 0.7)';
-        ctx.shadowBlur = 10;
-        ctx.fillText(text, width / 2, height / 2);
-
-        return canvas.toDataURL('image/png');
-    };
-
-    const generateImageForFrames = async (frames: Omit<CinemaFrame, 'imageUrl'>[], onProgress: (current: number, total: number, message: string) => void) => {
-        const generatedFrames: CinemaFrame[] = [];
-        const MAX_RETRIES = 5;
-        const RETRY_DELAY = 2000; // 2 seconds
-
-        for (let i = 0; i < frames.length; i++) {
-            const frame = frames[i];
-            onProgress(i + 1, frames.length, `${t('GeneratingScene')} ${i + 1}/${frames.length}...`);
-
-            if (abortControllerRef.current?.signal.aborted) {
-                throw new DOMException('Aborted by user.', 'AbortError');
-            }
-
-            let imageUrl: string | null = null;
-            for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
-                try {
-                    imageUrl = await new Promise<string>((resolveImg, rejectImg) => {
-                        const newSeed = Date.now() + Math.random();
-                        const imageModel = gameSettings?.pollinationsImageModel || 'flux';
-                        const params = new URLSearchParams({
-                            width: String(1024),
-                            height: String(576), // 16:9 aspect ratio for cinema
-                            seed: String(newSeed),
-                            model: imageModel,
-                            nologo: 'true'
-                        });
-                        const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(frame.imagePrompt)}?${params}`;
-
-                        const img = new Image();
-                        img.crossOrigin = "Anonymous";
-                        img.onload = () => {
-                            const canvas = document.createElement('canvas');
-                            canvas.width = img.naturalWidth;
-                            canvas.height = img.naturalHeight;
-                            const ctx = canvas.getContext('2d');
-                            if (ctx) {
-                                try {
-                                    ctx.drawImage(img, 0, 0);
-                                    const base664data = canvas.toDataURL('image/png');
-                                    resolveImg(base664data);
-                                } catch (e) {
-                                    rejectImg(e);
-                                }
-                            } else {
-                                rejectImg(new Error("Could not get canvas context."));
-                            }
-                        };
-                        img.onerror = (err) => {
-                            // Reject with a proper Error object
-                            rejectImg(new Error(`Image failed to load from ${url}. Attempt ${attempt}/${MAX_RETRIES}. Error: ${JSON.stringify(err)}`));
-                        };
-                        img.src = url;
-                    });
-
-                    // If successful, break the retry loop
-                    if (imageUrl) {
-                        break;
-                    }
-
-                } catch (e: any) {
-                    console.warn(`Image generation for frame ${i + 1} failed on attempt ${attempt}. Retrying...`, e.message);
-                    if (abortControllerRef.current?.signal.aborted) {
-                        throw new DOMException('Aborted by user.', 'AbortError');
-                    }
-                    if (attempt < MAX_RETRIES) {
-                        await new Promise(resolve => setTimeout(resolve, RETRY_DELAY));
-                    } else {
-                        console.error(`All ${MAX_RETRIES} attempts failed for frame ${i + 1}. Generating placeholder.`);
-                        setError(t('image_generation_failed_placeholder'));
-                        imageUrl = createErrorPlaceholder(1024, 576, t('Image Generation Failed'));
-                    }
+            const newNpcs = prevState.encounteredNPCs.map(npc => {
+                if (npc && Array.isArray(npc.journalEntries) && npc.journalEntries.length > countToKeep) {
+                    const trimmedEntries = npc.journalEntries.slice(0, countToKeep);
+                    return { ...npc, journalEntries: trimmedEntries };
                 }
-            }
-
-            generatedFrames.push({ ...frame, imageUrl: imageUrl! });
-        }
-        return generatedFrames;
-    };
-
-    const generateFilmTrailer = useCallback(async (userPrompt: string) => {
-        if (!gameContextRef.current || !gameSettings) {
-            setError("Game not initialized.");
-            return;
-        }
-
-        setIsGeneratingCinema(true);
-        setCinemaGenerationProgress({ current: 0, total: 0, message: t('GeneratingTrailerScript') });
-        setError(null);
-        abortControllerRef.current = new AbortController();
-
-        try {
-            const model = gameSettings.modelName ? gameSettings.modelName : 'gemini-2.5-flash';
-            const { promptContent, systemInstruction } = getCinemaPrompt(gameContextRef.current, userPrompt);
-            const narrativeGuide = narrativeStyleGuide.getGuide();
-            const apiContext = { ...gameContextRef.current!, gameSettings: { ...gameSettings, modelName: model } };
-
-            const trailerData = await executeCancellableJsonGeneration(
-                promptContent + narrativeGuide,
-                apiContext,
-                abortControllerRef.current.signal,
-                (text) => { },
-                systemInstruction
-            );
-
-            const cleanedTrailerData = deepStripModerationSymbols(trailerData);
-
-            const framesToGenerate = cleanedTrailerData.frames as Omit<CinemaFrame, 'imageUrl'>[];
-
-            if (!framesToGenerate || framesToGenerate.length === 0) {
-                throw new Error("AI did not generate any frames for the trailer.");
-            }
-            setCinemaGenerationProgress({ current: 0, total: framesToGenerate.length, message: t('GeneratingSceneImages') });
-
-            const generatedFrames = await generateImageForFrames(framesToGenerate, (c, t, m) => setCinemaGenerationProgress({ current: c, total: t, message: m }));
-
-            const newCinematic: Cinematic = {
-                id: generateId('cinematic'),
-                title: cleanedTrailerData.title,
-                synopsis: cleanedTrailerData.synopsis,
-                userPrompt: userPrompt,
-                frames: generatedFrames,
-                comments: cleanedTrailerData.comments,
-            };
-
-            setGameState(prev => {
-                if (!prev) return null;
-                const newCinematics = [...(prev.cinematics || []), newCinematic];
-                return { ...prev, cinematics: newCinematics };
+                return npc;
             });
-            setCinemaGenerationProgress({ current: framesToGenerate.length, total: framesToGenerate.length, message: t('TrailerReady') });
 
-        } catch (e: any) {
-            if (e instanceof RegenerationRequiredError) {
-                console.error("Error generating film trailer:", e);
-                setError(t('gmCommunicationError', { provider: 'Gemini', message: `${e.message}\n\n--- Raw AI Output ---\n${e.rawText}` }));
-            } else if (e.name === 'AbortError') {
-                setError(t('Trailer generation cancelled.'));
-            } else {
-                console.error("Error generating film trailer:", e);
-                setError(formatError(e));
+            if (gameContextRef.current) {
+                gameContextRef.current.encounteredNPCs = newNpcs;
             }
-        } finally {
-            setIsGeneratingCinema(false);
-        }
-    }, [gameContextRef, gameSettings, t, setError, setGameState]);
-
-    const continueFilmTrailer = useCallback(async (cinematicId: string) => {
-        const cinematic = gameStateRef.current?.cinematics?.find(c => c.id === cinematicId);
-        if (!cinematic || !gameContextRef.current || !gameSettings) {
-            setError("Could not find cinematic or game not initialized.");
-            return;
-        }
-
-        setExtendingCinematicId(cinematicId);
-        setIsGeneratingCinema(true);
-        setCinemaGenerationProgress({ current: 0, total: 0, message: t('ContinuingTrailerScript') });
-        setError(null);
-        abortControllerRef.current = new AbortController();
-
-        try {
-            const model = gameSettings.modelName ? gameSettings.modelName : 'gemini-2.5-flash';
-            const { promptContent, systemInstruction } = getContinueCinemaPrompt(gameContextRef.current, cinematic);
-            const narrativeGuide = narrativeStyleGuide.getGuide();
-            const apiContext = { ...gameContextRef.current!, gameSettings: { ...gameSettings, modelName: model } };
-
-            const responseData = await executeCancellableJsonGeneration(
-                promptContent + narrativeGuide,
-                apiContext,
-                abortControllerRef.current.signal,
-                (text) => { },
-                systemInstruction
-            );
-
-            const cleanedResponseData = deepStripModerationSymbols(responseData);
-
-            const newFramesToGenerate = cleanedResponseData.frames;
-            const newComments = cleanedResponseData.newComments;
-            const updatedSynopsis = cleanedResponseData.updatedSynopsis;
-
-            if (!newFramesToGenerate || newFramesToGenerate.length === 0) {
-                throw new Error("AI did not generate any new frames.");
-            }
-            setCinemaGenerationProgress({ current: 0, total: newFramesToGenerate.length, message: t('GeneratingAdditionalScenes') });
-
-            const generatedFrames = await generateImageForFrames(newFramesToGenerate, (c, t, m) => setCinemaGenerationProgress({ current: c, total: t, message: m }));
-
-            setGameState(prev => {
-                if (!prev) return null;
-                const newCinematics = (prev.cinematics || []).map(c => {
-                    if (c.id === cinematicId) {
-                        return {
-                            ...c,
-                            synopsis: updatedSynopsis || c.synopsis,
-                            frames: [...c.frames, ...generatedFrames],
-                            comments: [...c.comments, ...(newComments || [])]
-                        };
-                    }
-                    return c;
-                });
-                return { ...prev, cinematics: newCinematics };
-            });
-            setCinemaGenerationProgress({ current: newFramesToGenerate.length, total: newFramesToGenerate.length, message: t('TrailerReady') });
-
-        } catch (e: any) {
-            if (e instanceof RegenerationRequiredError) {
-                console.error("Error continuing film trailer:", e);
-                setError(t('gmCommunicationError', { provider: 'Gemini', message: `${e.message}\n\n--- Raw AI Output ---\n${e.rawText}` }));
-            } else if (e.name === 'AbortError') {
-                setError(t('Trailer generation cancelled.'));
-            } else {
-                console.error("Error continuing film trailer:", e);
-                setError(formatError(e));
-            }
-        } finally {
-            setIsGeneratingCinema(false);
-            setExtendingCinematicId(null);
-        }
-    }, [gameContextRef, gameSettings, t, setError, setGameState]);
-
-    const playCinematic = useCallback((cinematicId: string) => {
-        const cinematic = gameStateRef.current?.cinematics?.find(c => c.id === cinematicId);
-        if (cinematic) {
-            setPlayingCinematic(cinematic);
-        }
-    }, []);
-
-    const stopPlayingCinematic = useCallback(() => {
-        setPlayingCinematic(null);
-    }, []);
-
-    const exportCinematic = useCallback((cinematicId: string) => {
-        const cinematic = gameStateRef.current?.cinematics?.find(c => c.id === cinematicId);
-        if (!cinematic) return;
-        try {
-            const blob = new Blob([JSON.stringify(cinematic, null, 2)], { type: 'application/json' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            const filename = `cinematic-${cinematic.title.replace(/\s+/g, '_')}.json`;
-            a.download = filename;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-            setGameLog(prev => [t('CinematicExported', { filename }), ...prev]);
-        } catch (err) {
-            console.error('Error exporting cinematic:', err);
-            setError(formatError(err));
-        }
-    }, [t, setGameLog, setError]);
-
-    const importCinematic = useCallback(() => {
-        const input = document.createElement('input');
-        input.type = 'file';
-        input.accept = '.json,application/json';
-        input.onchange = (e) => {
-            const file = (e.target as HTMLInputElement).files?.[0];
-            if (!file) return;
-
-            const reader = new FileReader();
-            reader.onload = (readerEvent) => {
-                try {
-                    const content = readerEvent.target?.result as string;
-                    const imported = JSON.parse(content);
-                    // Basic validation
-                    if (imported && imported.id && imported.title && imported.frames && imported.comments) {
-                        setGameState(prev => {
-                            if (!prev) return null;
-                            // Avoid duplicate IDs
-                            if ((prev.cinematics || []).some(c => c.id === imported.id)) {
-                                imported.id = generateId('cinematic');
-                            }
-                            const newCinematics = [...(prev.cinematics || []), imported];
-                            return { ...prev, cinematics: newCinematics };
-                        });
-                        setGameLog(prev => [t('CinematicImported'), ...prev]);
-                    } else {
-                        throw new Error("Invalid cinematic file format.");
-                    }
-                } catch (err) {
-                    console.error("Error importing cinematic:", err);
-                    setError(t('CinematicImportError'));
-                }
-            };
-            reader.readAsText(file);
-        };
-        input.click();
-    }, [t, setGameState, setGameLog, setError]);
-
-    const deleteCinematic = useCallback((cinematicId: string) => {
-        setGameState(prev => {
-            if (!prev) return null;
-            const newCinematics = (prev.cinematics || []).filter(c => c.id !== cinematicId);
-            return { ...prev, cinematics: newCinematics };
+            return { ...prevState, encounteredNPCs: newNpcs };
         });
-        setGameLog(prev => [t('CinematicDeleted'), ...prev]);
-    }, [t, setGameLog, setGameState]);
-
-    const cancelCinemaGeneration = useCallback(() => {
-        if (abortControllerRef.current) {
-            abortControllerRef.current.abort();
-            console.log("Cinema generation cancelled by user.");
-        }
-        setIsGeneratingCinema(false);
-        setExtendingCinematicId(null);
-    }, []);
-
-    const updateCinematic = useCallback((cinematicId: string, updates: Partial<Omit<Cinematic, 'id'>>) => {
-        setGameState(prev => {
-            if (!prev || !prev.cinematics) return prev;
-            const newCinematics = prev.cinematics.map(c => {
-                if (c.id === cinematicId) {
-                    const newFrames = updates.frames ? updates.frames : c.frames;
-                    return { ...c, ...updates, frames: newFrames };
-                }
-                return c;
-            });
-            return { ...prev, cinematics: newCinematics };
-        });
-        setGameLog(prev => [t('CinematicUpdated'), ...prev]);
-    }, [setGameState, t, setGameLog]);
-
-    const regenerateCinemaFrame = useCallback(async (cinematicId: string, frameIndex: number, newPrompt: string): Promise<boolean> => {
-        if (!gameContextRef.current || !gameSettings) {
-            setError("Game not initialized for regeneration.");
-            return false;
-        }
-
-        const cinematic = gameStateRef.current?.cinematics?.find(c => c.id === cinematicId);
-        if (!cinematic || !cinematic.frames[frameIndex]) {
-            setError("Cinematic or frame not found for regeneration.");
-            return false;
-        }
-
-        setIsGeneratingCinema(true);
-        setCinemaGenerationProgress({ current: 0, total: 1, message: `${t('GeneratingScene')} 1/1...` });
-        setError(null);
-        abortControllerRef.current = new AbortController();
-
-        try {
-            const frameToRegenerate: Omit<CinemaFrame, 'imageUrl'> = {
-                imagePrompt: newPrompt,
-                subtitle: cinematic.frames[frameIndex].subtitle,
-            };
-
-            const [generatedFrame] = await generateImageForFrames(
-                [frameToRegenerate],
-                (c, t, m) => setCinemaGenerationProgress({ current: c, total: t, message: m })
-            );
-
-            if (generatedFrame) {
-                setGameState(prev => {
-                    if (!prev || !prev.cinematics) return prev;
-                    const newCinematics = prev.cinematics.map(c => {
-                        if (c.id === cinematicId) {
-                            const newFrames = [...c.frames];
-                            newFrames[frameIndex] = { ...newFrames[frameIndex], imageUrl: generatedFrame.imageUrl, imagePrompt: newPrompt };
-                            return { ...c, frames: newFrames };
-                        }
-                        return c;
-                    });
-                    return { ...prev, cinematics: newCinematics };
-                });
-                return true;
-            } else {
-                throw new Error("Image generation failed to return a frame.");
-            }
-        } catch (e: any) {
-            if (e.name === 'AbortError') {
-                setError(t('Trailer generation cancelled.'));
-            } else {
-                console.error("Error regenerating frame:", e);
-                setError(formatError(e));
-            }
-            return false;
-        } finally {
-            setIsGeneratingCinema(false);
-        }
-    }, [gameContextRef, gameSettings, t, setError, setGameState]);
-
-    const generateCinematicAudio = useCallback(async (cinematicId: string, voice: string): Promise<void> => {
-        const cinematic = gameStateRef.current?.cinematics?.find(c => c.id === cinematicId);
-        if (!cinematic || !gameContextRef.current || !gameSettings) {
-            setError(t("Could not find cinematic or game not initialized."));
-            return;
-        }
-
-        setIsGeneratingCinema(true);
-        setCinemaGenerationProgress({ current: 0, total: 1, message: t('GeneratingAudio') });
-        setError(null);
-
-        try {
-            const script = cinematic.frames.map(f => f.subtitle).join('\n\n');
-
-            const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-            const response = await ai.models.generateContent({
-                model: "gemini-2.5-flash-preview-tts",
-                contents: [{ parts: [{ text: script }] }],
-                config: {
-                    responseModalities: [Modality.AUDIO],
-                    speechConfig: {
-                        voiceConfig: {
-                            prebuiltVoiceConfig: { voiceName: voice },
-                        },
-                    },
-                },
-            });
-
-            const base64Audio = response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
-
-            if (base64Audio) {
-                setGameState(prev => {
-                    if (!prev || !prev.cinematics) return prev;
-                    const newCinematics = prev.cinematics.map(c => {
-                        if (c.id === cinematicId) {
-                            return { ...c, audio_base64: base64Audio, audio_voice: voice };
-                        }
-                        return c;
-                    });
-                    return { ...prev, cinematics: newCinematics };
-                });
-                setCinemaGenerationProgress({ current: 1, total: 1, message: t('AudioReady') });
-            } else {
-                throw new Error("No audio data received from API.");
-            }
-
-        } catch (e: any) {
-            console.error("Error generating cinematic audio:", e);
-            setError(formatError(e));
-        } finally {
-            setIsGeneratingCinema(false);
-        }
-    }, [gameContextRef, gameSettings, t, setError, setGameState]);
+    }, [gameSettings, setGameState]);
 
 
     const {
@@ -2016,6 +1907,10 @@ export function useGameLogic({ language, setLanguage }: UseGameLogicProps) {
             }
         }
     };
+    
+    const stopPlayingCinematic = useCallback(() => {
+        setPlayingCinematic(null);
+    }, []);
 
     // Derived values for backward compatibility
     const isCinemaVisible = !!playingCinematic;
@@ -2054,9 +1949,18 @@ export function useGameLogic({ language, setLanguage }: UseGameLogicProps) {
         syncNewPeerRef.current = syncNewPeer;
     }, [syncNewPeer]);
 
+    const sendMessageWithStashClear = useCallback((message: string, image?: { data: string; mimeType: string; } | null) => {
+        if (message.trim().toLowerCase() === '[system action] pass turn') {
+            passTurnManually();
+            return;
+        }
+        clearStashForNewTurn();
+        allManagers.sendMessage(message, image);
+    }, [allManagers, clearStashForNewTurn, passTurnManually]);
+
     useEffect(() => {
-        (sendMessageRef as React.MutableRefObject<any>).current = allManagers.sendMessage;
-    }, [allManagers.sendMessage]);
+        (sendMessageRef as React.MutableRefObject<any>).current = sendMessageWithStashClear;
+    }, [sendMessageWithStashClear]);
 
     const myPlayerId = gameState?.myPeerId;
 
@@ -2175,11 +2079,11 @@ export function useGameLogic({ language, setLanguage }: UseGameLogicProps) {
             gameStateRef.current.collectiveActionState = null;
         }
 
-        allManagers.sendMessage(combinedMessage.trim());
+        sendMessageWithStashClear(combinedMessage.trim());
 
         // This updates the UI immediately.
         setGameState(prev => prev ? { ...prev, collectiveActionState: null } : null);
-    }, [t, allManagers, setGameState]);
+    }, [t, setGameState, sendMessageWithStashClear]);
 
     const cancelCollectiveAction = useCallback(() => {
         setGameState(prevState => {
@@ -2258,12 +2162,349 @@ export function useGameLogic({ language, setLanguage }: UseGameLogicProps) {
         });
     }, [t, setGameHistory, setGameState]);
 
+    const cancelCinemaGeneration = useCallback(() => {
+        if (abortControllerRef.current) {
+            abortControllerRef.current.abort();
+        }
+        setIsGeneratingCinema(false);
+        setExtendingCinematicId(null);
+        setCinemaGenerationProgress({ current: 0, total: 0, message: '' });
+    }, []);
+
+    const generateFilmTrailer = useCallback(async (userPrompt: string) => {
+        if (!gameContextRef.current || !gameSettings) return;
+
+        setIsGeneratingCinema(true);
+        setError(null);
+        setCinemaGenerationProgress({ current: 0, total: 1, message: t('Generating trailer script...') });
+
+        abortControllerRef.current = new AbortController();
+
+        try {
+            const cinemaContext = {
+                ...gameContextRef.current,
+                superInstructions: narrativeStyleGuide + '\n' + superInstructions,
+            };
+
+            const prompt = getCinemaPrompt(userPrompt, cinemaContext);
+            
+            const result = await executeCancellableJsonGeneration(
+                prompt,
+                cinemaContext,
+                abortControllerRef.current.signal,
+                (text) => { /* streaming not needed here */ }
+            );
+
+            const newCinematic: Cinematic = {
+                id: generateId('cinematic'),
+                userPrompt,
+                title: result.title,
+                synopsis: result.synopsis,
+                comments: result.comments || [],
+                frames: result.frames,
+            };
+
+            setCinemaGenerationProgress({ current: 0, total: newCinematic.frames.length, message: t('Generating scene images...') });
+
+            for (let i = 0; i < newCinematic.frames.length; i++) {
+                if (abortControllerRef.current.signal.aborted) throw new Error("Cancelled");
+                setCinemaGenerationProgress(prev => ({ ...prev, current: i + 1, message: `${t('Generating scene')} ${i + 1}/${newCinematic.frames.length}` }));
+                
+                const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+                const imageResponse = await ai.models.generateContent({
+                    model: 'gemini-2.5-flash-image',
+                    contents: { parts: [{ text: newCinematic.frames[i].imagePrompt }] },
+                    config: { responseModalities: [Modality.IMAGE] },
+                });
+                
+                let imageUrl = '';
+                for (const part of imageResponse.candidates[0].content.parts) {
+                    if (part.inlineData) {
+                        const base64ImageBytes: string = part.inlineData.data;
+                        imageUrl = `data:image/png;base64,${base64ImageBytes}`;
+                    }
+                }
+
+                if(imageUrl) {
+                    newCinematic.frames[i].imageUrl = imageUrl;
+                }
+            }
+            
+            setGameState(prev => {
+                if (!prev) return null;
+                const cinematics = [...(prev.cinematics || []), newCinematic];
+                return { ...prev, cinematics };
+            });
+
+            setCinemaGenerationProgress({ current: newCinematic.frames.length, total: newCinematic.frames.length, message: t('TrailerReady') });
+
+        } catch (e: any) {
+            if (e.name !== 'AbortError') {
+                setError(formatError(e));
+                console.error("Failed to generate film trailer:", e);
+            }
+        } finally {
+            setIsGeneratingCinema(false);
+        }
+    }, [gameSettings, superInstructions, t, setError, setGameState]);
+
+    const continueFilmTrailer = useCallback(async (cinematicId: string) => {
+        if (!gameContextRef.current || !gameSettings) return;
+
+        const cinematicToExtend = gameStateRef.current?.cinematics?.find(c => c.id === cinematicId);
+        if (!cinematicToExtend) {
+            setError("Cinematic not found.");
+            return;
+        }
+
+        setIsGeneratingCinema(true);
+        setExtendingCinematicId(cinematicId);
+        setError(null);
+        setCinemaGenerationProgress({ current: 0, total: 1, message: t('Continuing trailer script...') });
+        abortControllerRef.current = new AbortController();
+
+        try {
+            const cinemaContext = {
+                ...gameContextRef.current,
+                superInstructions: narrativeStyleGuide + '\n' + superInstructions,
+            };
+
+            const prompt = getContinueCinemaPrompt(cinematicToExtend, cinemaContext);
+            const result = await executeCancellableJsonGeneration(
+                prompt,
+                cinemaContext,
+                abortControllerRef.current.signal,
+                (text) => { /* streaming not needed here */ }
+            );
+
+            const newFrames: CinemaFrame[] = result.frames;
+
+            setCinemaGenerationProgress({ current: 0, total: newFrames.length, message: t('Generating additional scenes...') });
+
+            for (let i = 0; i < newFrames.length; i++) {
+                 if (abortControllerRef.current.signal.aborted) throw new Error("Cancelled");
+                setCinemaGenerationProgress(prev => ({ ...prev, current: i + 1, message: `${t('Generating scene')} ${i + 1}/${newFrames.length}` }));
+                const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+                const imageResponse = await ai.models.generateContent({
+                    model: 'gemini-2.5-flash-image',
+                    contents: { parts: [{ text: newFrames[i].imagePrompt }] },
+                    config: { responseModalities: [Modality.IMAGE] },
+                });
+                
+                let imageUrl = '';
+                for (const part of imageResponse.candidates[0].content.parts) {
+                    if (part.inlineData) {
+                        const base64ImageBytes: string = part.inlineData.data;
+                        imageUrl = `data:image/png;base64,${base64ImageBytes}`;
+                    }
+                }
+                if(imageUrl) {
+                    newFrames[i].imageUrl = imageUrl;
+                }
+            }
+
+            setGameState(prev => {
+                if (!prev) return null;
+                const newCinematics = (prev.cinematics || []).map(c => {
+                    if (c.id === cinematicId) {
+                        return { ...c, frames: [...c.frames, ...newFrames] };
+                    }
+                    return c;
+                });
+                return { ...prev, cinematics: newCinematics };
+            });
+
+            setCinemaGenerationProgress({ current: newFrames.length, total: newFrames.length, message: t('TrailerReady') });
+
+        } catch (e: any) {
+             if (e.name !== 'AbortError') {
+                setError(formatError(e));
+                console.error("Failed to continue film trailer:", e);
+            }
+        } finally {
+            setIsGeneratingCinema(false);
+            setExtendingCinematicId(null);
+        }
+    }, [gameSettings, superInstructions, t, setError, setGameState, gameStateRef]);
+
+    const playCinematic = useCallback((cinematicId: string) => {
+        const cinematic = gameStateRef.current?.cinematics?.find(c => c.id === cinematicId);
+        if (cinematic) {
+            setPlayingCinematic(cinematic);
+        }
+    }, []);
+    
+    const exportCinematic = useCallback((cinematicId: string) => {
+        const cinematic = gameStateRef.current?.cinematics?.find(c => c.id === cinematicId);
+        if (cinematic) {
+            const blob = new Blob([JSON.stringify(cinematic, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            const filename = `cinematic-${cinematic.title.replace(/\s+/g, '_')}.json`;
+            a.download = filename;
+            a.click();
+            URL.revokeObjectURL(url);
+            setGameLog(prev => [t('CinematicExported', { filename }), ...prev]);
+        }
+    }, [t, setGameLog, gameStateRef]);
+
+    const importCinematic = useCallback(() => {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = '.json';
+        input.onchange = (e) => {
+            const file = (e.target as HTMLInputElement).files?.[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (re) => {
+                    try {
+                        const content = re.target?.result as string;
+                        const cinematic = JSON.parse(content) as Cinematic;
+                        if (cinematic.id && cinematic.title && cinematic.frames) {
+                            setGameState(prev => {
+                                if (!prev) return null;
+                                const existing = (prev.cinematics || []).find(c => c.id === cinematic.id);
+                                if (existing) {
+                                    alert('A cinematic with this ID already exists.');
+                                    return prev;
+                                }
+                                const cinematics = [...(prev.cinematics || []), cinematic];
+                                setGameLog(p => [t('CinematicImported'), ...p]);
+                                return { ...prev, cinematics };
+                            });
+                        } else {
+                            throw new Error("Invalid format");
+                        }
+                    } catch (err) {
+                        setError(t('CinematicImportError'));
+                        console.error(err);
+                    }
+                };
+                reader.readAsText(file);
+            }
+        };
+        input.click();
+    }, [t, setError, setGameLog, setGameState]);
+
+    const deleteCinematic = useCallback((cinematicId: string) => {
+        setGameState(prev => {
+            if (!prev) return null;
+            const cinematics = (prev.cinematics || []).filter(c => c.id !== cinematicId);
+            setGameLog(p => [t('CinematicDeleted'), ...p]);
+            return { ...prev, cinematics };
+        });
+    }, [setGameState, setGameLog, t]);
+
+    const updateCinematic = useCallback((cinematicId: string, updates: Partial<Omit<Cinematic, 'id'>>) => {
+        setGameState(prev => {
+            if (!prev) return null;
+            const newCinematics = (prev.cinematics || []).map(c => {
+                if (c.id === cinematicId) {
+                    return { ...c, ...updates };
+                }
+                return c;
+            });
+            setGameLog(p => [t('CinematicUpdated'), ...p]);
+            return { ...prev, cinematics: newCinematics };
+        });
+    }, [setGameState, setGameLog, t]);
+
+    const regenerateCinemaFrame = useCallback(async (cinematicId: string, frameIndex: number, newPrompt: string): Promise<boolean> => {
+        try {
+            const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+            const imageResponse = await ai.models.generateContent({
+                model: 'gemini-2.5-flash-image',
+                contents: { parts: [{ text: newPrompt }] },
+                config: { responseModalities: [Modality.IMAGE] },
+            });
+
+            let imageUrl = '';
+            for (const part of imageResponse.candidates[0].content.parts) {
+                if (part.inlineData) {
+                    const base64ImageBytes: string = part.inlineData.data;
+                    imageUrl = `data:image/png;base64,${base64ImageBytes}`;
+                }
+            }
+            
+            if (imageUrl) {
+                setGameState(prev => {
+                    if (!prev) return null;
+                    const newCinematics = (prev.cinematics || []).map(c => {
+                        if (c.id === cinematicId) {
+                            const newFrames = [...c.frames];
+                            if (newFrames[frameIndex]) {
+                                newFrames[frameIndex] = { ...newFrames[frameIndex], imagePrompt: newPrompt, imageUrl: imageUrl };
+                            }
+                            return { ...c, frames: newFrames };
+                        }
+                        return c;
+                    });
+                    // Also update the currently playing cinematic if it's the one being edited
+                    setPlayingCinematic(currentPlaying => {
+                        if (currentPlaying && currentPlaying.id === cinematicId) {
+                            const newFrames = [...currentPlaying.frames];
+                            if (newFrames[frameIndex]) {
+                                newFrames[frameIndex] = { ...newFrames[frameIndex], imagePrompt: newPrompt, imageUrl: imageUrl };
+                            }
+                            return { ...currentPlaying, frames: newFrames };
+                        }
+                        return currentPlaying;
+                    });
+                    return { ...prev, cinematics: newCinematics };
+                });
+                return true;
+            }
+            return false;
+        } catch (e: any) {
+            setError(formatError(e));
+            return false;
+        }
+    }, [setGameState, setError]);
+
+    const generateCinematicAudio = useCallback(async (cinematicId: string, voice: string) => {
+        setIsGeneratingCinema(true);
+        setCinemaGenerationProgress({ current: 0, total: 1, message: t('GeneratingAudio') });
+
+        try {
+            const cinematic = gameStateRef.current?.cinematics?.find(c => c.id === cinematicId);
+            if (!cinematic) throw new Error("Cinematic not found");
+            
+            const fullText = cinematic.frames.map(f => f.subtitle).join('\n');
+            const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+            const response = await ai.models.generateContent({
+                model: "gemini-2.5-flash-preview-tts",
+                contents: [{ parts: [{ text: `Narrate dramatically: ${fullText}` }] }],
+                config: {
+                    responseModalities: [Modality.AUDIO],
+                    speechConfig: {
+                        voiceConfig: {
+                            prebuiltVoiceConfig: { voiceName: voice as any },
+                        },
+                    },
+                },
+            });
+            const audioData = response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
+            if (audioData) {
+                updateCinematic(cinematicId, { audio_base64: audioData, audio_voice: voice });
+                setCinemaGenerationProgress({ current: 1, total: 1, message: t('AudioReady') });
+            } else {
+                throw new Error("No audio data returned");
+            }
+        } catch (e: any) {
+            setError(formatError(e));
+        } finally {
+            setIsGeneratingCinema(false);
+        }
+    }, [updateCinematic, setError, t, gameStateRef]);
+
     return {
         gameState,
         gameHistory,
         isLoading,
         error,
         ...allManagers,
+        sendMessage: sendMessageWithStashClear,
         lastJsonResponse,
         lastRequestJson,
         gameLog,
@@ -2287,6 +2528,7 @@ export function useGameLogic({ language, setLanguage }: UseGameLogicProps) {
         currentModel,
         turnTime,
         onImageGenerated,
+        editLocationData,
         updatePlayerPortrait,
         addPlayer,
         removePlayer,
@@ -2311,7 +2553,6 @@ export function useGameLogic({ language, setLanguage }: UseGameLogicProps) {
         deleteFactionProject,
         deleteFactionCompletedProject,
         deleteFactionCustomState,
-        deleteFactionBonus,
         worldMap,
         updateNpcPortrait,
         deleteLocationThreat,
@@ -2337,5 +2578,13 @@ export function useGameLogic({ language, setLanguage }: UseGameLogicProps) {
         regenerateLastResponse,
         networkChatHistory,
         sendNetworkChatMessage,
+        deleteActiveEffect,
+        forgetHealedWound,
+        forgetActiveWound,
+        clearAllHealedWounds,
+        deleteCustomState,
+        deleteNpcCustomState,
+        deleteFactionBonus,
+        clearNpcJournalsNow
     };
 }

@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import ReactDOM from 'react-dom';
-import { Location, GameSettings, Faction, DifficultyProfile } from '../types';
+import { Location, GameSettings, Faction, DifficultyProfile, ImageCacheEntry } from '../types';
 import { 
     MapPinIcon, QuestionMarkCircleIcon, HomeModernIcon, BuildingStorefrontIcon, 
     FireIcon, GlobeAltIcon, SunIcon, PlusIcon, MinusIcon, ArrowPathIcon, UserGroupIcon,
@@ -80,14 +80,12 @@ const Tooltip = ({
     position, 
     imageCache, 
     onImageGenerated,
-    model,
     gameSettings
 }: { 
     location: Location | null; 
     position: { top: number; left: number };
-    imageCache: Record<string, string>;
-    onImageGenerated: (prompt: string, base64: string) => void;
-    model?: 'flux' | 'turbo' | 'gptimage';
+    imageCache: Record<string, ImageCacheEntry>;
+    onImageGenerated: (prompt: string, src: string, sourceProvider: ImageCacheEntry['sourceProvider'], sourceModel?: string) => void;
     gameSettings: GameSettings | null;
 }) => {
     const { t } = useLocalization();
@@ -107,7 +105,7 @@ const Tooltip = ({
         >
             {imagePrompt && (
                 <div className="map-tooltip-image">
-                    <ImageRenderer prompt={imagePrompt} alt={location.name} imageCache={imageCache} onImageGenerated={onImageGenerated} model={model} width={1024} height={1024} gameSettings={gameSettings} />
+                    <ImageRenderer prompt={imagePrompt} alt={location.name} imageCache={imageCache} onImageGenerated={onImageGenerated} width={1024} height={1024} gameSettings={gameSettings} />
                 </div>
             )}
             <div className="map-tooltip-title">{location.name}</div>
@@ -232,8 +230,8 @@ interface LocationViewerProps {
   visitedLocations: Location[];
   currentLocation: Location;
   onOpenModal: (title: string, data: any) => void;
-  imageCache: Record<string, string>;
-  onImageGenerated: (prompt: string, base64: string) => void;
+  imageCache: Record<string, ImageCacheEntry>;
+  onImageGenerated: (prompt: string, src: string, sourceProvider: ImageCacheEntry['sourceProvider'], sourceModel?: string) => void;
   isFullScreen?: boolean;
   onExpand?: () => void;
   onCollapse?: () => void;
@@ -653,7 +651,6 @@ export default function LocationViewer({ visitedLocations, currentLocation, onOp
                 position={tooltipPosition} 
                 imageCache={imageCache} 
                 onImageGenerated={onImageGenerated}
-                model={gameSettings?.pollinationsImageModel}
                 gameSettings={gameSettings}
             />
         </div>

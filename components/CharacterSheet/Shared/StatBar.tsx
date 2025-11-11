@@ -54,12 +54,14 @@ const StatBar: React.FC<{
         return `${displayValue.toFixed(2)} / ${max.toFixed(2)}${unitDisplay}`;
     }, [label, displayValue, max, min, unit, t, hasMeaningfulRange, threshold]);
     
+    const Wrapper = onClick ? 'button' : 'div';
+    
     return (
-        <button onClick={onClick} className="w-full text-left group transition-transform transform disabled:cursor-default hover:enabled:scale-[1.02]" disabled={!onClick} title={title}>
+        <Wrapper onClick={onClick} className={`w-full text-left group transition-transform transform ${!onClick ? 'cursor-default' : 'hover:scale-[1.02] cursor-pointer'}`} disabled={!onClick} title={title}>
             <div className="flex justify-between items-center mb-1">
                 <div className="flex items-center gap-2">
                     <Icon className={`w-4 h-4 ${isOverThreshold ? 'text-red-400' : color.replace('bg-', 'text-')}`} />
-                    <span className={`text-sm font-medium ${isOverThreshold ? 'text-red-300' : 'text-gray-300'} group-hover:enabled:text-cyan-300`}>{label}</span>
+                    <span className={`text-sm font-medium ${isOverThreshold ? 'text-red-300' : 'text-gray-300'} group-hover:text-cyan-300`}>{label}</span>
                     {isOverThreshold && <ExclamationTriangleIcon className="w-4 h-4 text-yellow-400" title={t('Overloaded!')} />}
                 </div>
               <span className={`text-sm font-mono ${isOverThreshold ? 'text-red-300' : 'text-gray-400'}`}>
@@ -72,7 +74,7 @@ const StatBar: React.FC<{
                     <div className="absolute top-0 bottom-0 border-r-2 border-yellow-300" style={{ left: `${thresholdPercentage}%` }} title={t('Max Weight (Overload Threshold)')}></div>
                 )}
             </div>
-        </button>
+        </Wrapper>
     );
 };
 

@@ -1,5 +1,3 @@
-
-
 export const status = {
   en: {
     // Conditions, Effects, Wounds
@@ -55,7 +53,7 @@ export const status = {
     "StealthAndDetectionDescL1": "**1. Entering Stealth:** To become stealthy, you must declare your intent (e.g., \"I try to sneak\"). The Game Master will determine if it's possible in the current environment. If so, you will make a **Dexterity** check. Success means you've entered stealth mode.",
     "StealthAndDetectionDescL2": "**2. Detection Level:** Your stealthiness is measured by a **Detection Level** (from 0 to 100). 0 means you are completely hidden. 100 means you have been detected. The higher the level, the more suspicion you arouse.",
     "StealthAndDetectionDescL3": "**3. Actions in Stealth:** Any action you take (moving, picking a lock, opening a door) increases your Detection Level. Noisy actions, like running in heavy armor or talking loudly, will immediately break your stealth.",
-    "StealthAndDetectionDescL4": "**4. Detection:** Enemies can spot you. If your Detection Level becomes high enough, they will start actively searching for you, making **Perception** checks against your stealth. Their success can either further increase your detection level or fully reveal you.",
+    "StealthAndDetectionDescL4": "**4. Detection:** Enemies can spot you. If your Detection Level becomes high enough, they will start actively searching for you, making **Perception** checks against your stealth. Success with their side can either further increase your detection level, or fully reveal you.",
     "StealthAndDetectionDescL5": "**5. Advantages of Stealth:** Attacking an unaware enemy from stealth grants you **Great Advantage** on your attack roll, significantly increasing your chances of a critical hit. The attack itself breaks your stealth.",
 
     // Effect Types and Strings
@@ -69,14 +67,16 @@ export const status = {
     "WoundReference": "Effects from wound: {woundName}",
     "Damage": "Damage",
     "Heal": "Heal",
-    "{duration} turns left": "{duration} turns left",
-    "({duration} turns left)": "({duration} turns left)",
+    "turns_left_count": "{duration} turns left",
+    "({duration} turns left)": "({duration} turns left})",
     "Effect '{effectName}' has been removed.": "Effect '{effectName}' has been removed.",
     "Effect '{effectName}' has expired.": "Effect '{effectName}' has expired.",
     "NPCEffect '{effectName}' on {npcName} has expired.": "Effect '{effectName}' on {npcName} has expired.",
     "NPCEffect '{effectName}' on {npcName} has been removed.": "Effect '{effectName}' on {npcName} has been removed.",
     "Wound '{woundName}' has been fully healed.": "Wound '{woundName}' has been fully healed.",
     "energy_lost_overload": "Lost {amount} energy due to being overloaded.",
+    "Delete Effect": "Delete Effect",
+    "Are you sure you want to permanently delete the effect \"{name}\"?": "Are you sure you want to permanently delete the effect \"{name}\"? This cannot be undone.",
 
     // Custom States
     "States": "States",
@@ -166,7 +166,7 @@ export const status = {
     "WoundReference": "Эффекты от раны: {woundName}",
     "Damage": "Урон",
     "Heal": "Лечение",
-    "{duration} turns left": "{duration} ходов осталось",
+    "turns_left_count": "Осталось ходов: {duration}",
     "({duration} turns left)": "(осталось ходов: {duration})",
     "Effect '{effectName}' has been removed.": "Эффект '{effectName}' был снят.",
     "Effect '{effectName}' has expired.": "Срок действия эффекта '{effectName}' истёк.",
@@ -174,6 +174,8 @@ export const status = {
     "NPCEffect '{effectName}' on {npcName} has been removed.": "Эффект '{effectName}' на {npcName} был снят.",
     "Wound '{woundName}' has been fully healed.": "Рана '{woundName}' полностью зажила.",
     "energy_lost_overload": "Потеряно {amount} энергии из-за перегрузки.",
+    "Delete Effect": "Удалить эффект",
+    "Are you sure you want to permanently delete the effect \"{name}\"?": "Вы уверены, что хотите навсегда удалить эффект «{name}»? Это действие необратимо.",
 
     // Custom States
     "States": "Состояния",

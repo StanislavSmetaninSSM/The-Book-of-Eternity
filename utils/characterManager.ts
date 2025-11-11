@@ -1,4 +1,3 @@
-
 import { PlayerCharacter, Characteristics, GameSettings, Item, ActiveSkill, PassiveSkill, SkillMastery, Recipe } from '../types';
 import { gameData } from './localizationGameData';
 import { recalculateDerivedStats } from './gameContext';
@@ -176,6 +175,8 @@ export function createNewPlayerCharacter(
         raceDescription: isCustomRace ? customRaceDescription : currentWorld.races[race]?.description || '',
         classDescription: isCustomClass ? customClassDescription : currentWorld.classes[charClass]?.description || '',
         portrait: null,
+        // FIX: Add missing 'image_prompt' property
+        image_prompt: `A detailed fantasy art portrait of a ${age}-year-old ${isCustomRace ? customRaceName : race} ${isCustomClass ? customClassName : charClass} named ${playerName}. ${characterDescription}`,
         level: finalLevel,
         levelOnPreviousTurn: finalLevel,
         experience: 0,
@@ -227,6 +228,7 @@ export function createNewPlayerCharacter(
         effortTracker: { lastUsedCharacteristic: null, consecutivePartialSuccesses: 0 },
         personalNpcReputations: [],
         personalFactionReputations: [],
+        characterChronicle: [],
     };
 
     return playerCharacter;

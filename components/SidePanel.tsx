@@ -1,14 +1,11 @@
-
 //DO NOT USE ./components/{componentName}
 //USE ./{componentName} since we are already INSIDE components folder
 //DO NOT DELETE THESE COMMENTS!
 
 import React, { useState, useMemo } from 'react';
-// FIX: Corrected import paths for local components.
 import CharacterSheet from './CharacterSheet';
 import QuestLog from './QuestLog';
-// FIX: Changed import from 'Peer' to 'PeerInfo' to match the renamed interface in types.ts, resolving a name collision.
-import { GameState, Location, WorldState, GameSettings, PlayerCharacter, Faction, PlotOutline, Item, DBSaveSlotInfo, WorldStateFlag, Wound, CustomState, UnlockedMemory, NPC, WorldEvent, Quest, PeerInfo, NetworkRole, CompletedActivity, LocationStorage, Project, Cinematic, NetworkChatMessage } from '../types';
+import { GameState, Location, WorldState, GameSettings, PlayerCharacter, Faction, PlotOutline, Item, DBSaveSlotInfo, WorldStateFlag, Wound, CustomState, UnlockedMemory, NPC, WorldEvent, Quest, PeerInfo, NetworkRole, CompletedActivity, LocationStorage, Project, Cinematic, NetworkChatMessage, ImageCacheEntry } from '../types';
 import { UserCircleIcon, BookOpenIcon, CodeBracketIcon, DocumentTextIcon, UsersIcon, ShieldExclamationIcon, Cog6ToothIcon, MapIcon, MapPinIcon, QuestionMarkCircleIcon, UserGroupIcon, GlobeAltIcon, ArchiveBoxXMarkIcon, BeakerIcon, TrashIcon, WifiIcon, ArrowDownTrayIcon, ArrowUpTrayIcon, ArrowsPointingOutIcon, ClockIcon, FilmIcon } from '@heroicons/react/24/outline';
 import { ChevronDoubleRightIcon, ChevronDoubleLeftIcon, UserIcon as UserIconSolid } from '@heroicons/react/24/solid';
 import JsonDebugView from './JsonDebugView';
@@ -74,7 +71,6 @@ interface SidePanelProps {
   editFactionData: (factionId: string, field: keyof Faction, value: any) => void;
   editLocationData: (locationId: string, field: keyof Location, value: any) => void;
   editPlayerData: (field: keyof PlayerCharacter, value: any) => void;
-  // FIX: Updated the type signature of `editWorldState` to accept a single object argument instead of two separate arguments, aligning it with the updated `useGameLogic` hook and resolving the TypeScript error.
   editWorldState: (updates: Partial<{ day: number; time: string; year: number; monthIndex: number; }>) => void;
   editWeather: (newWeather: string) => void;
   editWorldStateFlagData: (flagId: string, field: keyof WorldStateFlag, value: any) => void;
@@ -86,8 +82,8 @@ interface SidePanelProps {
   currentStep: string | null;
   currentModel: string | null;
   turnTime: number | null;
-  imageCache: Record<string, string>;
-  onImageGenerated: (prompt: string, base64: string) => void;
+  imageCache: Record<string, ImageCacheEntry>;
+  onImageGenerated: (prompt: string, src: string, sourceProvider: ImageCacheEntry['sourceProvider'], sourceModel?: string) => void;
   forgetHealedWound: (characterType: 'player' | 'npc', characterId: string | null, woundId: string) => void;
   forgetActiveWound: (characterType: 'player' | 'npc', characterId: string | null, woundId: string) => void;
   clearAllHealedWounds: (characterType: 'player' | 'npc', characterId: string | null) => void;
@@ -118,7 +114,6 @@ interface SidePanelProps {
   onDeleteNpcMemory: (npcId: string, memoryId: string) => void;
   clearNpcJournalsNow: () => void;
   addPlayer: (creationData: any) => void;
-  // FIX: Added 'playerId' parameter to match the function signature from useGameLogic.
   updatePlayerPortrait: (playerId: string, portraitData: { prompt?: string | null; custom?: string | null; }) => void;
   allNpcs?: NPC[];
   allFactions?: Faction[];
@@ -128,6 +123,8 @@ interface SidePanelProps {
   passTurnToPlayer: (playerIndex: number) => void;
   deleteActiveSkill: (skillName: string) => void;
   deletePassiveSkill: (skillName: string) => void;
+  deleteActiveEffect: (characterType: 'player' | 'npc', characterId: string | null, effectId: string) => void;
+  deleteFactionBonus: (factionId: string, bonusIdentifier: string) => void;
   assignCharacterToPeer: (characterId: string, newPeerId: string | null) => void;
   peers?: PeerInfo[];
   networkRole?: NetworkRole;
@@ -198,10 +195,11 @@ const FactionItem: React.FC<{
     allowHistoryManipulation: boolean;
     onDelete: () => void;
     gameSettings: GameSettings | null;
-    imageCache: Record<string, string>;
-    onImageGenerated: (prompt: string, base64: string) => void;
+    imageCache: Record<string, ImageCacheEntry>;
+    onImageGenerated: (prompt: string, src: string, sourceProvider: ImageCacheEntry['sourceProvider'], sourceModel?: string) => void;
     t: TFunction;
-}> = ({ faction, onOpenModal, allowHistoryManipulation, onDelete, gameSettings, imageCache, onImageGenerated, t }) => {
+    isLoading: boolean;
+}> = ({ faction, onOpenModal, allowHistoryManipulation, onDelete, gameSettings, imageCache, onImageGenerated, t, isLoading }) => {
     const imagePrompt = faction.custom_image_prompt || faction.image_prompt;
     return (
         <div className="relative w-full text-left bg-gray-900/40 p-3 rounded-lg border-l-4 shadow-md transition-all hover:ring-1 hover:ring-cyan-500/50 group" style={{ borderColor: faction.color || '#4b5563' }}>
@@ -220,8 +218,7 @@ const FactionItem: React.FC<{
             >
                 <div className="w-12 h-12 rounded-md overflow-hidden flex-shrink-0 bg-gray-800 flex items-center justify-center">
                     {imagePrompt ? (
-/* FIX: Passed the required `gameSettings` prop to the `ImageRenderer` component. */
-                        <ImageRenderer prompt={imagePrompt} originalTextPrompt={faction.image_prompt || ''} alt={faction.name} className="w-full h-full object-cover" imageCache={imageCache} onImageGenerated={onImageGenerated} model={gameSettings?.pollinationsImageModel} gameSettings={gameSettings} />
+                        <ImageRenderer prompt={imagePrompt} originalTextPrompt={faction.image_prompt || ''} alt={faction.name} className="w-full h-full object-cover" imageCache={imageCache} onImageGenerated={onImageGenerated} gameSettings={gameSettings} gameIsLoading={isLoading} />
                     ) : (
                         <UserGroupIcon className="w-8 h-8 text-cyan-400" />
                     )}
@@ -242,11 +239,12 @@ const FactionLog: React.FC<{
     onOpenModal: (title: string, data: any) => void;
     allowHistoryManipulation: boolean;
     forgetFaction: (factionId: string) => void;
-    imageCache: Record<string, string>;
-    onImageGenerated: (prompt: string, base64: string) => void;
+    imageCache: Record<string, ImageCacheEntry>;
+    onImageGenerated: (prompt: string, src: string, sourceProvider: ImageCacheEntry['sourceProvider'], sourceModel?: string) => void;
     gameSettings: GameSettings | null;
     t: TFunction;
-}> = ({ factions, onOpenModal, allowHistoryManipulation, forgetFaction, imageCache, onImageGenerated, gameSettings, t }) => {
+    isLoading: boolean;
+}> = ({ factions, onOpenModal, allowHistoryManipulation, forgetFaction, imageCache, onImageGenerated, gameSettings, t, isLoading }) => {
     const [factionToDelete, setFactionToDelete] = useState<Faction | null>(null);
 
     const handleDeleteConfirm = () => {
@@ -273,6 +271,7 @@ const FactionLog: React.FC<{
                                 imageCache={imageCache}
                                 onImageGenerated={onImageGenerated}
                                 t={t}
+                                isLoading={isLoading}
                             />
                         ))}
                     </div>
@@ -393,6 +392,8 @@ export default function SidePanel(props: SidePanelProps): React.ReactNode {
     passTurnToPlayer,
     deleteActiveSkill,
     deletePassiveSkill,
+    deleteActiveEffect,
+    deleteFactionBonus,
     assignCharacterToPeer,
     peers,
     networkRole,
@@ -489,6 +490,7 @@ export default function SidePanel(props: SidePanelProps): React.ReactNode {
             gameState={gameState}
             visitedLocations={visitedLocations}
             onOpenDetailModal={onOpenDetailModal}
+            isLoading={isLoading}
         />
         <div className="grid grid-cols-2 gap-3">
             {visibleTabs.map(tab => {
@@ -569,6 +571,7 @@ export default function SidePanel(props: SidePanelProps): React.ReactNode {
                 onDeleteActiveSkill={deleteActiveSkill}
                 onDeletePassiveSkill={deletePassiveSkill}
                 onOpenTextReader={onOpenTextReader}
+                onDeleteActiveEffect={deleteActiveEffect}
               />}
               {sidePanelView === 'Quests' && gameState && <QuestLog activeQuests={gameState.activeQuests} completedQuests={gameState.completedQuests} onOpenModal={onOpenDetailModal} lastUpdatedQuestId={lastUpdatedQuestId} allowHistoryManipulation={gameSettings?.allowHistoryManipulation ?? false} forgetQuest={forgetQuest} />}
               {sidePanelView === 'Characters' && gameState && gameSettings && <PlayersPanel playerCharacter={gameState.playerCharacter} players={gameState.players} gameSettings={gameSettings} onAddPlayer={addPlayer} removePlayer={removePlayer} passTurnToPlayer={passTurnToPlayer} allowHistoryManipulation={gameSettings.allowHistoryManipulation} assignCharacterToPeer={assignCharacterToPeer} peers={peers || []} networkRole={networkRole || 'none'} onViewCharacterSheet={onViewCharacterSheet} imageCache={imageCache} onImageGenerated={onImageGenerated} updatePlayerPortrait={updatePlayerPortrait} />}
@@ -595,7 +598,7 @@ export default function SidePanel(props: SidePanelProps): React.ReactNode {
                 onImageGenerated={onImageGenerated}
                 onOpenImageModal={onOpenImageModal}
                 />}
-              {sidePanelView === 'Factions' && gameState && <FactionLog factions={gameState.encounteredFactions} onOpenModal={onOpenDetailModal} allowHistoryManipulation={gameSettings?.allowHistoryManipulation ?? false} forgetFaction={forgetFaction} imageCache={gameState.imageCache} onImageGenerated={onImageGenerated} gameSettings={gameSettings} t={t} />}
+              {sidePanelView === 'Factions' && gameState && <FactionLog factions={gameState.encounteredFactions} onOpenModal={onOpenDetailModal} allowHistoryManipulation={gameSettings?.allowHistoryManipulation ?? false} forgetFaction={forgetFaction} imageCache={gameState.imageCache} onImageGenerated={onImageGenerated} gameSettings={gameSettings} t={t} isLoading={isLoading} />}
               {sidePanelView === 'SceneNPCs' && gameState && <NpcLog gameState={gameState} npcs={npcsInScene} encounteredFactions={gameState.encounteredFactions} onOpenModal={onOpenDetailModal} onOpenJournalModal={onOpenJournalModal} onViewCharacterSheet={onViewCharacterSheet} imageCache={imageCache} onImageGenerated={onImageGenerated} updateNpcSortOrder={updateNpcSortOrder} forgetNpc={forgetNpc} allowHistoryManipulation={gameSettings?.allowHistoryManipulation ?? false} gameSettings={gameSettings} onOpenImageModal={onOpenImageModal} updateNpcPortrait={updateNpcPortrait} />}
               {sidePanelView === 'NPCs' && gameState && <NpcLog gameState={gameState} npcs={gameState.encounteredNPCs} encounteredFactions={gameState.encounteredFactions} onOpenModal={onOpenDetailModal} onOpenJournalModal={onOpenJournalModal} onViewCharacterSheet={onViewCharacterSheet} imageCache={imageCache} onImageGenerated={onImageGenerated} updateNpcSortOrder={updateNpcSortOrder} forgetNpc={forgetNpc} allowHistoryManipulation={gameSettings?.allowHistoryManipulation ?? false} gameSettings={gameSettings} onOpenImageModal={onOpenImageModal} updateNpcPortrait={updateNpcPortrait} />}
               {sidePanelView === 'Locations' && gameState && <LocationLog locations={visitedLocations} currentLocation={gameState.currentLocationData} onOpenModal={onOpenDetailModal} allowHistoryManipulation={gameSettings?.allowHistoryManipulation ?? false} onEditLocationData={editLocationData} imageCache={gameState.imageCache} onImageGenerated={onImageGenerated} forgetLocation={forgetLocation} gameSettings={gameSettings} />}
@@ -649,6 +652,7 @@ export default function SidePanel(props: SidePanelProps): React.ReactNode {
                     onDeleteActiveSkill={deleteActiveSkill}
                     onDeletePassiveSkill={deletePassiveSkill}
                     onOpenTextReader={onOpenTextReader}
+                    onDeleteActiveEffect={deleteActiveEffect}
                 />
             </Modal>
         )}

@@ -1,3 +1,4 @@
+
 import { GameState, Item, PlayerCharacter, NPC } from '../types';
 import { recalculateDerivedStats } from './gameContext';
 
@@ -205,42 +206,55 @@ export const moveItemForNpc = (npcId: string, itemToMove: Item, destinationConta
 export function recalculateAllWeights<T extends (PlayerCharacter | NPC)>(pc: T): T {
     const newPc = JSON.parse(JSON.stringify(pc));
     const inventory: Item[] = newPc.inventory || [];
+    
+    // This map will store the calculated total weight FOR THE ENTIRE STACK of an item.
+    const calculatedWeights = new Map<string, number>();
 
-    // Find all containers and sort them by depth, deepest first.
+    // Sort containers by depth, deepest first, to calculate weights from the inside out.
     const containers = inventory
         .filter(item => item.isContainer)
         .sort((a, b) => (b.contentsPath?.length || 0) - (a.contentsPath?.length || 0));
 
-    // Iteratively calculate container weights from the inside out.
     containers.forEach(container => {
+        if (!container.existedId) return;
+
         const containerPath = container.contentsPath ? [...container.contentsPath, container.name] : [container.name];
         const containerPathStr = containerPath.join('/');
-        
+
         const contents = inventory.filter(i => i.contentsPath?.join('/') === containerPathStr);
         
         const rawContentsWeight = contents.reduce((sum, item) => {
-            // The item's `weight` property is per unit. Total contribution is weight * count.
-            // For a container inside, its `weight` property has already been updated to include its own contents.
-            return sum + (item.weight * item.count);
+            // Get the already calculated total weight of the content stack.
+            // If not calculated yet (i.e., not a container), calculate from base weight.
+            const itemTotalWeight = calculatedWeights.get(item.existedId!) ?? (item.weight * item.count);
+            return sum + itemTotalWeight;
         }, 0);
-        
+
         const weightReduction = container.weightReduction || 0;
         const reducedContentsWeight = rawContentsWeight * (1 - (weightReduction / 100));
+
+        // Use containerWeight if it exists as the canonical empty weight.
+        // Fallback to the item's own base weight property if containerWeight is missing.
+        const emptyWeight = container.containerWeight ?? container.weight;
         
-        // The container's new total weight is its empty weight plus the reduced weight of its contents.
-        // The `weight` property is PER UNIT, and containers always have count=1, so we just set it.
-        container.weight = (container.containerWeight || 0) + reducedContentsWeight;
+        // A container is always a single item, count is 1.
+        calculatedWeights.set(container.existedId, emptyWeight + reducedContentsWeight);
     });
 
-    // Calculate the total weight of the inventory.
-    // Total weight is the sum of all items at the root level (not in any container).
+    // Sum up weights of all root-level items.
     const totalWeight = inventory
         .filter(item => !item.contentsPath)
-        .reduce((sum, item) => sum + (item.weight * item.count), 0);
+        .reduce((sum, item) => {
+            if (!item.existedId) return sum + (item.weight * item.count);
+
+            // Use the calculated weight if it's a container, otherwise use its base weight.
+            const itemTotalWeight = calculatedWeights.get(item.existedId) ?? (item.weight * item.count);
+            return sum + itemTotalWeight;
+        }, 0);
 
     newPc.totalWeight = parseFloat(totalWeight.toFixed(2));
-    newPc.inventory = inventory;
     
+    // newPc.inventory is NOT modified. The original item weights are preserved in the state.
     return newPc;
 }
 

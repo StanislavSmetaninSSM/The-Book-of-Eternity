@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo, useCallback } from 'react';
 import { Item, GameSettings, StructuredBonus } from '../../types';
 import { DetailRendererProps } from './types';
@@ -22,41 +23,14 @@ import InfoRow from './Shared/InfoRow';
 import ReadableEditableField from '../CharacterSheet/Shared/ReadableEditableField';
 import ItemJournalView from './Shared/ItemJournalView';
 import ItemTextContentView from './Shared/ItemTextContentView';
+import BonusCard from './Shared/BonusCard';
 
 interface ItemDetailsProps extends Omit<DetailRendererProps, 'data'> {
   item: Item & { ownerType?: 'player' | 'npc', ownerId?: string, isEquippedByOwner?: boolean };
 }
 
-const BonusCard: React.FC<{ bonus: StructuredBonus }> = ({ bonus }) => {
-    const { t } = useLocalization();
-    const { icon: Icon, colorClass, titleKey } = useMemo(() => {
-        switch(bonus.bonusType) {
-            case 'Characteristic': return { icon: AcademicCapIcon, colorClass: 'border-cyan-500', titleKey: 'Characteristic Bonus' };
-            case 'ActionCheck': return { icon: ShieldCheckSolidIcon, colorClass: 'border-green-500', titleKey: 'Action Check Bonus' };
-            case 'Utility': return { icon: WrenchScrewdriverIcon, colorClass: 'border-blue-500', titleKey: 'Utility Effect' };
-            default: return { icon: SparklesIcon, colorClass: 'border-indigo-500', titleKey: 'Other Bonus' };
-        }
-    }, [bonus.bonusType]);
-
-    return (
-        <div className={`bg-gray-800/60 p-3 rounded-md border-l-4 ${colorClass}`}>
-            <div className="flex items-center gap-2 mb-2">
-                <Icon className={`w-5 h-5 flex-shrink-0 ${colorClass.replace('border-', 'text-')}`} />
-                <h5 className="font-semibold text-gray-200">{t(titleKey as any)}</h5>
-            </div>
-            <p className="text-gray-300 font-bold text-lg mb-2 pl-7">{bonus.description}</p>
-            <div className="text-xs text-gray-400 pl-7 grid grid-cols-2 gap-x-4 gap-y-1">
-                <span><strong>{t("Target")}:</strong> {bonus.bonusType === 'Characteristic' ? t(bonus.target as any) : bonus.target}</span>
-                <span><strong>{t("Value")}:</strong> {String(bonus.value)} ({t(bonus.valueType as any)})</span>
-                <span><strong>{t("Application")}:</strong> {t(bonus.application as any)}</span>
-                {bonus.condition && <span><strong>{t("Condition")}:</strong> {t(bonus.condition as any)}</span>}
-            </div>
-        </div>
-    );
-};
-
 const ItemHeader: React.FC<ItemDetailsProps> = (props) => {
-    const { item, allowHistoryManipulation, onEditItemData, onOpenImageModal, imageCache, onImageGenerated, gameSettings, onOpenTextReader } = props;
+    const { item, allowHistoryManipulation, onEditItemData, onOpenImageModal, imageCache, onImageGenerated, gameSettings, onOpenTextReader, isLoading } = props;
     const { t } = useLocalization();
 
     const displayImagePrompt = item.custom_image_prompt || item.image_prompt || `A detailed, photorealistic fantasy art image of a single ${item.quality} ${item.name}. ${item.description.split('. ')[0]}`;
@@ -92,7 +66,6 @@ const ItemHeader: React.FC<ItemDetailsProps> = (props) => {
     return (
         <div className="grid grid-cols-1 md:grid-cols-[208px_1fr] gap-6 items-start">
             <div className="w-52 h-72 rounded-md overflow-hidden bg-gray-900 group relative cursor-pointer flex-shrink-0" onClick={handleOpenModal}>
-{/* FIX: Pass 'gameSettings' prop to ImageRenderer. */}
                 <ImageRenderer 
                     prompt={displayImagePrompt} 
                     originalTextPrompt={originalImagePrompt}
@@ -104,6 +77,7 @@ const ItemHeader: React.FC<ItemDetailsProps> = (props) => {
                     height={768}
                     model={gameSettings?.pollinationsImageModel}
                     gameSettings={gameSettings}
+                    gameIsLoading={isLoading}
                 />
             </div>
             <div className="flex-1 min-w-0 flex flex-col h-72"> {/* Set height to match image */}
@@ -231,11 +205,11 @@ const ItemDetailsRenderer: React.FC<ItemDetailsProps> = (props) => {
                         </div>
                     </>)}
 
-                    {item.resource != null && (<>
+                    {(item.resource != null || item.maximumResource != null) ? (<>
                         <SectionHeader title={t("Resource")} icon={BoltIcon} />
-                        <InfoRow label={t("Resource")} value={item.maximumResource != null ? `${item.resource} / ${item.maximumResource}` : item.resource} icon={BeakerIcon} />
+                        <InfoRow label={t("Resource")} value={item.maximumResource != null ? `${item.resource || 0} / ${item.maximumResource}` : item.resource} icon={BeakerIcon} />
                         {item.resourceType && <InfoRow label={t("Resource Type")} value={t(item.resourceType as any)} icon={TagIcon} />}
-                    </>)}
+                    </>) : null}
 
                     {item.isContainer && (<>
                          <SectionHeader title={t("Container Details")} icon={ArchiveBoxIcon} />
@@ -477,7 +451,7 @@ const ItemDetailsRenderer: React.FC<ItemDetailsProps> = (props) => {
                                 </button>
                                 <div className="w-px h-6 bg-gray-700"></div>
                                 <h3 className="text-xl font-bold text-cyan-400 narrative-text flex-1">{t(activeView as any)}</h3>
-                                <button onClick={() => setIsHeaderExpanded(!isHeaderExpanded)} title={t(isHeaderExpanded ? 'Collapse Header' : 'Expand Header')} className="p-2 text-gray-400 rounded-full hover:bg-gray-700/50 transition-colors">
+                                <button onClick={() => setIsHeaderExpanded(!isHeaderExpanded)} title={t(isHeaderExpanded ? 'Expand Header' : 'Expand Header')} className="p-2 text-gray-400 rounded-full hover:bg-gray-700/50 transition-colors">
                                     {isHeaderExpanded ? <ChevronUpIcon className="w-5 h-5" /> : <ChevronDownIcon className="w-5 h-5" />}
                                 </button>
                             </div>

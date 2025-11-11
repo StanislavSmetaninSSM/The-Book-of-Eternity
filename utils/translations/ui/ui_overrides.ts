@@ -148,5 +148,8 @@ export const ui = {
     "Money": "Деньги",
     "Lvl_short": "Ур.",
     "empty": "пусто",
+    "Properties": "Свойства",
+    "Duration": "Длительность",
+    "Source": "Источник",
   }
 }

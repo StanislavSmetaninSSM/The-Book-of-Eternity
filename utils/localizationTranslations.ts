@@ -23,6 +23,8 @@ export const translations: Record<string, Record<string, string>> = {
     ...modernLoc.en,
     ...historyLoc.en,
     ...mythsLoc.en,
+    show_image_source_info_label: 'Show Image Source Info',
+    show_image_source_info_desc: 'On enlarged images, display which model was used for generation.',
   },
   ru: {
     ...general.ru,
@@ -36,5 +38,7 @@ export const translations: Record<string, Record<string, string>> = {
     ...modernLoc.ru,
     ...historyLoc.ru,
     ...mythsLoc.ru,
+    show_image_source_info_label: 'Показывать источник изображения',
+    show_image_source_info_desc: 'На увеличенных изображениях отображать, какая модель использовалась при генерации.',
   }
 };

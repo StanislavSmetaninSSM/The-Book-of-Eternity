@@ -1,3 +1,4 @@
+
 import { CheckIcon, ChevronDoubleLeftIcon, XMarkIcon } from '@heroicons/react/24/solid';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import CharacterSheet from './components/CharacterSheet';
@@ -21,8 +22,7 @@ import StartScreen from './components/StartScreen';
 import TurnIndicator from './components/TurnIndicator';
 import { useLocalization } from './context/LocalizationContext';
 import { useGameLogic } from './hooks/useGameLogic';
-// FIX: Added import for LocationData to explicitly type allWorldLocations.
-import { ChatMessage, Cinematic, Faction, Item, Location, NPC, NetworkRole, PlayerCharacter, Quest, Wound, LocationStorage, Project, LocationData } from './types';
+import { ChatMessage, Cinematic, Faction, Item, Location, NPC, NetworkRole, PlayerCharacter, Quest, Wound, LocationStorage, Project, LocationData, ImageCacheEntry } from './types';
 import { gameData } from './utils/localizationGameData';
 import TextReaderModal from './components/TextReaderModal';
 import { useSpeech } from './context/SpeechContext';
@@ -158,6 +158,7 @@ export default function App(): React.ReactNode {
         passTurnToPlayer,
         deleteActiveSkill,
         deletePassiveSkill,
+        deleteActiveEffect,
         startHost,
         joinGame,
         sendNewCharacterToHost,
@@ -209,6 +210,7 @@ export default function App(): React.ReactNode {
         regenerateLastResponse,
         networkChatHistory,
         sendNetworkChatMessage,
+        deleteFactionBonus,
     } = useGameLogic({ language, setLanguage });
 
     const [hasStarted, setHasStarted] = useState(false);
@@ -292,19 +294,19 @@ export default function App(): React.ReactNode {
     }, [gameState, viewingCharacter]);
 
     useEffect(() => {
-        // ФИКС: Эта функция была закомментирована, так как она вызывала ошибку,
-        // из-за которой было невозможно просматривать листы персонажей других игроков.
-        // Она автоматически переключала просмотр на активного игрока, что мешало ручному выбору.
-        // if (viewingCharacter && gameState && 'playerId' in viewingCharacter) {
-        //     const viewingPlayerIndex = gameState.players.findIndex(p => p.playerId === viewingCharacter.playerId);
+        // This was causing a bug where viewing other players' character sheets was impossible
+        // in co-op mode. It would automatically switch the view to the active player.
+        // Commenting this out allows for free viewing of any character sheet at any time.
+        /*
+        if (viewingCharacter && gameState && 'playerId' in viewingCharacter) {
+            const viewingPlayerIndex = gameState.players.findIndex(p => p.playerId === viewingCharacter.playerId);
     
-        //     // ...and the active player has changed to someone else...
-        //     if (viewingPlayerIndex !== -1 && viewingPlayerIndex !== gameState.activePlayerIndex) {
-        //         // ...then update the character sheet to show the NEW active player.
-        //         console.log(`Switching character view from ${viewingCharacter.name} to active player ${gameState.players[gameState.activePlayerIndex].name}`);
-        //         setViewingCharacter(gameState.players[gameState.activePlayerIndex]);
-        //     }
-        // }
+            if (viewingPlayerIndex !== -1 && viewingPlayerIndex !== gameState.activePlayerIndex) {
+                console.log(`Switching character view from ${viewingCharacter.name} to active player ${gameState.players[gameState.activePlayerIndex].name}`);
+                setViewingCharacter(gameState.players[gameState.activePlayerIndex]);
+            }
+        }
+        */
     }, [gameState?.activePlayerIndex, gameState?.players, viewingCharacter]);
 
 
@@ -427,25 +429,70 @@ export default function App(): React.ReactNode {
     
         const currentLocId = currentLocationData.locationId;
         const currentLocInitialId = currentLocationData.initialId;
-    
-        return encounteredNPCs.filter(npc => {
+        const currentLocName = currentLocationData.name;
+
+        // Create a map of all known locations for efficient lookup
+        const allKnownLocations = new Map<string, Location>();
+        Object.values(worldMap || {}).forEach(loc => loc.locationId && allKnownLocations.set(loc.locationId, loc));
+        (visitedLocations || []).forEach(loc => loc.locationId && allKnownLocations.set(loc.locationId, loc));
+        if (currentLocationData.locationId) {
+            allKnownLocations.set(currentLocationData.locationId, currentLocationData);
+        }
+
+        const npcsInLocation = encounteredNPCs.filter(npc => {
             if (!npc) return false;
     
-            // Standard check for existing locations with permanent IDs
+            // 1. Match by location ID
             if (currentLocId && npc.currentLocationId === currentLocId) {
                 return true;
             }
     
-            // Fallback for newly created locations/NPCs on the same turn using temporary IDs
-            // This is crucial for the first turn or when entering a new area where both
-            // the location and the NPCs are created in the same response.
+            // 2. Match by initial ID (for new locations)
             if (currentLocInitialId && npc.initialLocationId === currentLocInitialId) {
                 return true;
+            }
+
+            // 3. Match by location name
+            if (npc.currentLocationId) {
+                const npcLocation = allKnownLocations.get(npc.currentLocationId);
+                if (npcLocation && npcLocation.name === currentLocName) {
+                    return true;
+                }
             }
     
             return false;
         });
-    }, [gameState]);
+
+        const npcsWithRecentJournalsSet = new Set<string>();
+        if (lastJsonResponse) {
+            try {
+                // This might fail if JSON is streaming, but that's okay.
+                const response = JSON.parse(lastJsonResponse);
+                if (response && response.NPCJournals && Array.isArray(response.NPCJournals)) {
+                    response.NPCJournals.forEach((journalEntry: any) => {
+                        const npcName = journalEntry.NPCName || journalEntry.name;
+                        if (journalEntry.NPCId) {
+                            npcsWithRecentJournalsSet.add(journalEntry.NPCId);
+                        } else if (npcName) {
+                            // Fallback to name if ID is missing (e.g. for new NPCs)
+                            const npc = encounteredNPCs.find(n => n.name === npcName);
+                            if (npc && npc.NPCId) {
+                                npcsWithRecentJournalsSet.add(npc.NPCId);
+                            }
+                        }
+                    });
+                }
+            } catch (e) {
+                // It's fine if it's not a valid JSON yet during streaming.
+            }
+        }
+        
+        const combinedNpcSet = new Set(npcsInLocation.map(n => n.NPCId));
+        npcsWithRecentJournalsSet.forEach(id => id && combinedNpcSet.add(id));
+
+        return encounteredNPCs.filter(npc => npc && npc.NPCId && combinedNpcSet.has(npc.NPCId));
+
+    }, [gameState, visitedLocations, worldMap, lastJsonResponse]);
 
     const toggleSidebar = useCallback(() => {
         setIsSidebarCollapsed(prev => !prev);
@@ -643,18 +690,16 @@ export default function App(): React.ReactNode {
         });
     }, []);
 
-    const handleImageGeneratedInModal = useCallback((generatedFromPrompt: string, newBase64: string) => {
-        onImageGenerated(generatedFromPrompt, newBase64);
+    const handleImageGeneratedInModal = useCallback((generatedFromPrompt: string, newBase64: string, sourceProvider: ImageCacheEntry['sourceProvider'], sourceModel?: string) => {
+        onImageGenerated(generatedFromPrompt, newBase64, sourceProvider, sourceModel);
         
-        // Если есть onClearCustom колбэк, это означает что изображение может быть кастомным
-        // При регенерации нужно сбросить кастомное изображение и использовать новый промпт
         if (imageModalInfo?.onClearCustom) {
             imageModalInfo.onClearCustom();
         }
         
         setImageModalInfo(prev => {
             if (!prev) return null;
-            return { ...prev, prompt: newBase64, originalTextPrompt: generatedFromPrompt };
+            return { ...prev, prompt: generatedFromPrompt, originalTextPrompt: generatedFromPrompt };
         });
     }, [onImageGenerated, imageModalInfo]);
 
@@ -736,6 +781,7 @@ export default function App(): React.ReactNode {
                                 onImageGenerated={onImageGenerated}
                                 onClick={() => handleShowImageModal(sceneImagePrompt, sceneImagePrompt)}
                                 gameSettings={gameSettings}
+                                gameIsLoading={isLoading}
                             />
                             <div className="absolute inset-0 bg-gradient-to-t from-gray-900 via-gray-900/80 to-transparent"></div>
                         </div>
@@ -752,6 +798,7 @@ export default function App(): React.ReactNode {
                                 onOpenImageModal={handleShowImageModal}
                                 onExpandFullScreen={() => setIsPartyStatusFullScreen(true)}
                                 updatePlayerPortrait={updatePlayerPortrait}
+                                isLoading={isLoading}
                             />
                         )}
                         <div className="flex-1 overflow-y-auto mb-4 pr-2 pointer-events-auto">
@@ -764,6 +811,7 @@ export default function App(): React.ReactNode {
                                 onShowEditModal={handleShowEditModal}
                                 allowHistoryManipulation={gameSettings?.allowHistoryManipulation ?? false}
                                 onRegenerate={lastTurnSaveFile && !isLoading ? () => setIsRegenConfirmOpen(true) : undefined}
+                                isLoading={isLoading}
                             />
                         </div>
                         {gameState?.simultaneousActionState?.isActive ? (
@@ -922,6 +970,8 @@ export default function App(): React.ReactNode {
                             passTurnToPlayer={passTurnToPlayer}
                             deleteActiveSkill={deleteActiveSkill}
                             deletePassiveSkill={deletePassiveSkill}
+                            deleteActiveEffect={deleteActiveEffect}
+                            deleteFactionBonus={deleteFactionBonus}
                             assignCharacterToPeer={assignCharacterToPeer}
                             peers={gameState?.peers}
                             networkRole={gameState?.networkRole}
@@ -998,6 +1048,7 @@ export default function App(): React.ReactNode {
                     updateItemSortSettings={updateItemSortSettings}
                     updateNpcItemSortOrder={updateNpcItemSortOrder}
                     updateNpcItemSortSettings={updateNpcItemSortSettings}
+                    isLoading={isLoading}
                 />
             )}
             {messageModalState && (
@@ -1035,21 +1086,26 @@ export default function App(): React.ReactNode {
 
             {imageModalInfo && (
                 <Modal isOpen={true} onClose={() => setImageModalInfo(null)} title={t("Scene Image")}>
-                    <ImageRenderer
-                        key={imageModalInfo.originalTextPrompt}
-                        prompt={imageModalInfo.prompt}
-                        originalTextPrompt={imageModalInfo.originalTextPrompt}
-                        className="w-full h-auto rounded-md"
-                        alt={t("Enlarged game scene")}
-                        showRegenerateButton={!!imageModalInfo.onClearCustom || !imageModalInfo.prompt.startsWith('data:image')}
-                        width={1024}
-                        height={1024}
-                        imageCache={gameState?.imageCache ?? {}}
-                        onImageGenerated={handleImageGeneratedInModal}
-                        onClearCustom={imageModalInfo.onClearCustom ? handleModalClearCustom : undefined}
-                        onUploadCustom={imageModalInfo.onUpload ? handleModalUploadCustom : undefined}
-                        gameSettings={gameSettings}
-                    />
+                    <div className="flex justify-center items-center h-full">
+                        <ImageRenderer
+                            key={imageModalInfo.originalTextPrompt}
+                            prompt={imageModalInfo.prompt}
+                            originalTextPrompt={imageModalInfo.originalTextPrompt}
+                            alt={t("Enlarged game scene")}
+                            fitMode="natural"
+                            className="rounded-md"
+                            showRegenerateButton={!!imageModalInfo.onClearCustom || !imageModalInfo.prompt.startsWith('data:image')}
+                            width={1024}
+                            height={1024}
+                            imageCache={gameState?.imageCache ?? {}}
+                            onImageGenerated={handleImageGeneratedInModal}
+                            onClearCustom={imageModalInfo.onClearCustom ? handleModalClearCustom : undefined}
+                            onUploadCustom={imageModalInfo.onUpload ? handleModalUploadCustom : undefined}
+                            gameSettings={gameSettings}
+                            gameIsLoading={isLoading}
+                            showSourceInfo={true}
+                        />
+                    </div>
                 </Modal>
             )}
             <Modal 
@@ -1078,7 +1134,7 @@ export default function App(): React.ReactNode {
                     disassembleItem={disassembleItem}
                     disassembleNpcItem={disassembleNpcItem}
                     currentLocationId={gameState?.currentLocationData?.locationId}
-                    allowHistoryManipulation={gameSettings?.allowHistoryManipulation ?? false}
+                    allowHistoryManipulation={(gameSettings?.allowHistoryManipulation ?? false) && !isLoading}
                     onEditNpcData={editNpcData}
                     onEditQuestData={editQuestData}
                     onEditItemData={editItemData}
@@ -1115,6 +1171,7 @@ export default function App(): React.ReactNode {
                     clearAllCompletedFactionProjects={clearAllCompletedFactionProjects}
                     deleteFactionProject={deleteFactionProject}
                     deleteFactionCustomState={deleteFactionCustomState}
+                    deleteFactionBonus={deleteFactionBonus}
                     clearAllCompletedNpcActivities={clearAllCompletedNpcActivities}
                     onDeleteCurrentActivity={onDeleteCurrentActivity}
                     onDeleteCompletedActivity={onDeleteCompletedActivity}
@@ -1124,6 +1181,8 @@ export default function App(): React.ReactNode {
                     onOpenStorage={handleOpenStorage}
                     placeAsStorage={placeAsStorage}
                     deleteLocationThreat={deleteLocationThreat}
+                    isLoading={isLoading}
+                    deleteActiveEffect={deleteActiveEffect}
                 />}
             </Modal>
             {isMapFullScreen && gameState && (
@@ -1197,6 +1256,7 @@ export default function App(): React.ReactNode {
                             isFullScreen={true}
                             onCollapseFullScreen={() => setIsPartyStatusFullScreen(false)}
                             updatePlayerPortrait={updatePlayerPortrait}
+                            isLoading={isLoading}
                         />
                     </div>
                 </Modal>
@@ -1212,7 +1272,7 @@ export default function App(): React.ReactNode {
                         <CinemaHall
                             cinematics={gameState.cinematics || []}
                             onGenerateTrailer={generateFilmTrailer}
-                            isGenerating={isGeneratingCinema}
+                            isGenerating={isGeneratingCinema || isLoading}
                             progress={cinemaGenerationProgress}
                             onPlay={playCinematic}
                             onExport={exportCinematic}
@@ -1296,7 +1356,7 @@ export default function App(): React.ReactNode {
                     <CharacterSheet
                         character={viewingCharacter as PlayerCharacter | NPC}
                         playerCharacter={gameState.playerCharacter}
-                        isViewOnly={'playerId' in viewingCharacter ? viewingCharacter.playerId !== gameState.playerCharacter.playerId : (viewingCharacter.progressionType !== 'Companion' && !gameSettings!.allowHistoryManipulation)}
+                        isViewOnly={isLoading || ('playerId' in viewingCharacter ? viewingCharacter.playerId !== gameState.playerCharacter.playerId : (viewingCharacter.progressionType !== 'Companion' && !gameSettings!.allowHistoryManipulation))}
                         gameSettings={gameSettings!}
                         onOpenDetailModal={handleOpenDetailModal}
                         onShowMessageModal={handleShowMessageModal}
@@ -1309,6 +1369,7 @@ export default function App(): React.ReactNode {
                         clearAllHealedWounds={clearAllHealedWounds}
                         onDeleteCustomState={deleteCustomState}
                         onDeleteNpcCustomState={deleteNpcCustomState}
+                        onDeleteActiveEffect={deleteActiveEffect}
                         onEditPlayerData={editPlayerData}
                         onEditNpcData={editNpcData}
                         updatePlayerPortrait={updatePlayerPortrait}
@@ -1339,6 +1400,7 @@ export default function App(): React.ReactNode {
                         handleMergeItemsForNpc={handleMergeItemsForNpc}
                         initialView={characterSheetDefaultView}
                         onRegenerateId={onRegenerateId}
+                        isLoading={isLoading}
                     />
                 </Modal>
             )}

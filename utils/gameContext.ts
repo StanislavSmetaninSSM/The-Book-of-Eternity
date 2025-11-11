@@ -1,9 +1,8 @@
-import { GameState, GameContext, ChatMessage, GameResponse, PlayerCharacter, Characteristics, Location, Faction, Language, LootTemplate, UnlockedMemory, Recipe, Item, WorldStateFlag, SkillMastery, GameSettings, WorldState, NPC, Effect, WorldEvent, QuestUpdate, PassiveSkill, LocationStorage, ActiveThreat, Project, CompletedProject, AdjacencyMapEntry, Calendar, CompleteThreatActivity } from '../types';
+import { GameState, GameContext, ChatMessage, GameResponse, PlayerCharacter, Characteristics, Location, Faction, Language, LootTemplate, UnlockedMemory, Recipe, Item, WorldStateFlag, SkillMastery, GameSettings, WorldState, NPC, Effect, WorldEvent, QuestUpdate, PassiveSkill, LocationStorage, ActiveThreat, Project, CompletedProject, AdjacencyMapEntry, Calendar, CompleteThreatActivity, Month, NPCInventoryAdd, ImageGenerationSource } from '../types';
 import { gameData } from './localizationGameData';
 import { generateLootTemplates } from './lootGenerator';
 import { translate } from './localization';
 import { deepMergeResponses } from './responseProcessor';
-// FIX: Add import for createNewPlayerCharacter, which is needed by the new createInitialContext function.
 import { createNewPlayerCharacter } from './characterManager';
 
 const asArray = <T>(value: T | T[] | null | undefined): T[] => {
@@ -17,7 +16,6 @@ const asArray = <T>(value: T | T[] | null | undefined): T[] => {
 };
 
 const CHARACTERISTICS_LIST = ['strength', 'dexterity', 'constitution', 'intelligence', 'wisdom', 'faith', 'attractiveness', 'trade', 'persuasion', 'perception', 'luck', 'speed'];
-// FIX: Define generateId at the module scope so it can be used by updateWorldMap and createInitialContext.
 const generateId = (prefix: string) => `${prefix}-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
 
 const BIOME_WEATHER: Record<string, string[]> = {
@@ -35,27 +33,21 @@ const BIOME_WEATHER: Record<string, string[]> = {
 export function recalculateDerivedStats<T extends PlayerCharacter | NPC>(pc: T): T {
     const newPc = JSON.parse(JSON.stringify(pc)); // Work on a copy
 
-    // Ensure characteristics exist
     if (!newPc.characteristics) {
         console.warn('recalculateDerivedStats: characteristics is undefined, initializing with defaults');
         newPc.characteristics = {} as any;
     }
 
-    // --- Step 1: Calculate Permanently Modified Characteristics ---
-    // These are used for foundational stats like HP, Energy, Weight, Crit.
     const permanentlyModifiedValues: Record<string, number> = {};
 
     CHARACTERISTICS_LIST.forEach(char => {
         const charCapitalized = char.charAt(0).toUpperCase() + char.slice(1);
         const standardKey = `standard${charCapitalized}` as keyof PlayerCharacter['characteristics'];
         const standardValue = (newPc.characteristics as any)[standardKey] as number;
-
-        // Provide a default value if standardValue is undefined
         const safeStandardValue = typeof standardValue === 'number' ? standardValue : 1;
 
         let permanentFlatBonusTotal = 0;
 
-        // Bonuses from equipped items
         Object.values(newPc.equippedItems || {}).forEach((itemId: string | null) => {
             if (!itemId) return;
             const item = (newPc.inventory || []).find((i: Item) => i.existedId === itemId);
@@ -67,7 +59,7 @@ export function recalculateDerivedStats<T extends PlayerCharacter | NPC>(pc: T):
                         bonus.bonusType === 'Characteristic' &&
                         bonus.target.toLowerCase() === char.toLowerCase() &&
                         bonus.application === 'Permanent' &&
-                        !bonus.condition && // Unconditional
+                        !bonus.condition &&
                         bonus.valueType === 'Flat' &&
                         typeof bonus.value === 'number'
                     ) {
@@ -84,7 +76,6 @@ export function recalculateDerivedStats<T extends PlayerCharacter | NPC>(pc: T):
             }
         });
 
-        // Bonuses from passive skills
         (newPc.passiveSkills || []).forEach((skill: PassiveSkill) => {
             let bonusApplied = false;
             if (skill.structuredBonuses && skill.structuredBonuses.length > 0) {
@@ -115,7 +106,6 @@ export function recalculateDerivedStats<T extends PlayerCharacter | NPC>(pc: T):
         permanentlyModifiedValues[char] = safeStandardValue + permanentFlatBonusTotal;
     });
 
-    // --- Step 2: Calculate Foundational Attributes using Permanently Modified Values ---
     const pmStr = permanentlyModifiedValues.strength || 1;
     const pmCon = permanentlyModifiedValues.constitution || 1;
     const pmInt = permanentlyModifiedValues.intelligence || 1;
@@ -135,8 +125,6 @@ export function recalculateDerivedStats<T extends PlayerCharacter | NPC>(pc: T):
     newPc.currentHealth = Math.min(newPc.currentHealth, newPc.maxHealth);
     newPc.currentEnergy = Math.min(newPc.currentEnergy, newPc.maxEnergy);
 
-    // --- Step 3: Calculate final Modified Characteristics for action checks ---
-    // These start from the Permanently Modified values and add conditional/temporary effects.
     CHARACTERISTICS_LIST.forEach(char => {
         const charCapitalized = char.charAt(0).toUpperCase() + char.slice(1);
         const modifiedKey = `modified${charCapitalized}` as keyof PlayerCharacter['characteristics'];
@@ -145,7 +133,6 @@ export function recalculateDerivedStats<T extends PlayerCharacter | NPC>(pc: T):
         let conditionalFlatBonusTotal = 0;
         let percentageBonusTotal = 0;
 
-        // Add CONDITIONAL flat bonuses from equipped items
         Object.values(newPc.equippedItems || {}).forEach((itemId: string | null) => {
             if (!itemId) return;
             const item = (newPc.inventory || []).find((i: Item) => i.existedId === itemId);
@@ -154,18 +141,15 @@ export function recalculateDerivedStats<T extends PlayerCharacter | NPC>(pc: T):
                 if (
                     bonus.bonusType === 'Characteristic' &&
                     bonus.target.toLowerCase() === char.toLowerCase() &&
-                    bonus.application === 'Conditional' && // Only conditional
+                    bonus.application === 'Conditional' &&
                     bonus.valueType === 'Flat' &&
                     typeof bonus.value === 'number'
                 ) {
-                    // For stat sheet display, we assume conditional bonuses apply.
-                    // A real action check would verify the condition.
                     conditionalFlatBonusTotal += bonus.value;
                 }
             });
         });
 
-        // Add CONDITIONAL flat bonuses from passive skills
         (newPc.passiveSkills || []).forEach((skill: PassiveSkill) => {
             if (!skill.structuredBonuses) return;
             skill.structuredBonuses.forEach(bonus => {
@@ -181,7 +165,6 @@ export function recalculateDerivedStats<T extends PlayerCharacter | NPC>(pc: T):
             });
         });
 
-        // Add bonuses from temporary effects (usually percentage-based)
         const activeEffects = (newPc as PlayerCharacter).activePlayerEffects || (newPc as NPC).activeEffects || [];
         activeEffects.forEach((effect: Effect) => {
             if ((effect.effectType === 'Buff' || effect.effectType === 'Debuff') && effect.targetType.toLowerCase() === char.toLowerCase()) {
@@ -201,12 +184,6 @@ export function recalculateDerivedStats<T extends PlayerCharacter | NPC>(pc: T):
     return newPc;
 }
 
-const getTurnNumber = (eventString: string): number => {
-    if (typeof eventString !== 'string') return -1;
-    const match = eventString.match(/^#\[(\d+)/);
-    return match ? parseInt(match[1], 10) : -1;
-};
-
 export const calculateDate = (totalMinutes: number, calendar: Calendar): WorldState['date'] => {
     if (!calendar || !calendar.months || calendar.months.length === 0 || !calendar.dayNames || calendar.dayNames.length === 0) {
         const totalDaysFallback = Math.floor(totalMinutes / (24 * 60));
@@ -222,20 +199,24 @@ export const calculateDate = (totalMinutes: number, calendar: Calendar): WorldSt
     const totalDays = Math.floor(totalMinutes / minutesInDay);
     const yearLengthInDays = calendar.months.reduce((acc, month) => acc + month.days, 0);
     
-    if (yearLengthInDays === 0) { // Avoid division by zero
+    if (yearLengthInDays === 0) {
         return {
             currentYear: calendar.startingYear,
             currentMonthName: calendar.months[0]?.name || 'Unknown',
             dayOfMonth: totalDays + 1,
-            dayOfWeekName: calendar.dayNames[totalDays % calendar.daysInWeek] || 'Unknown',
+            dayOfWeekName: calendar.dayNames[((totalDays % calendar.daysInWeek) + calendar.daysInWeek) % calendar.daysInWeek] || 'Unknown',
         };
     }
 
     let currentYear = calendar.startingYear + Math.floor(totalDays / yearLengthInDays);
-    let daysIntoYear = totalDays % yearLengthInDays;
+    let daysIntoYear = ((totalDays % yearLengthInDays) + yearLengthInDays) % yearLengthInDays;
 
-    let currentMonthName = calendar.months[0].name;
-    let dayOfMonth = daysIntoYear + 1;
+    if (calendar.startingYear > 0 && currentYear <= 0) {
+        currentYear -= 1; // Skip year 0
+    }
+
+    let currentMonthName = '';
+    let dayOfMonth = 0;
 
     for (const month of calendar.months) {
         if (daysIntoYear < month.days) {
@@ -246,7 +227,12 @@ export const calculateDate = (totalMinutes: number, calendar: Calendar): WorldSt
         daysIntoYear -= month.days;
     }
     
-    const dayOfWeekName = calendar.dayNames[totalDays % calendar.daysInWeek] || 'Unknown';
+    if (!currentMonthName) {
+        currentMonthName = calendar.months[calendar.months.length - 1].name;
+        dayOfMonth = daysIntoYear + 1;
+    }
+    
+    const dayOfWeekName = calendar.dayNames[((totalDays % calendar.daysInWeek) + calendar.daysInWeek) % calendar.daysInWeek] || 'Unknown';
 
     return {
         currentYear,
@@ -263,7 +249,14 @@ export const calculateTotalMinutes = (date: { year: number, monthIndex: number, 
     const yearLengthInDays = calendar.months.reduce((acc, month) => acc + month.days, 0);
     if (yearLengthInDays === 0) return 0;
     
-    const yearsPassed = date.year - calendar.startingYear;
+    let yearsPassed = date.year - calendar.startingYear;
+    
+    if (calendar.startingYear > 0 && date.year <= 0) {
+        yearsPassed += 1;
+    } else if (calendar.startingYear <= 0 && date.year > 0) {
+        yearsPassed -= 1;
+    }
+
     let daysPassed = yearsPassed * yearLengthInDays;
 
     for (let i = 0; i < date.monthIndex; i++) {
@@ -283,8 +276,6 @@ export function updateWorldMap(
 ): Record<string, Location> {
     const newMap: Record<string, Location> = JSON.parse(JSON.stringify(currentMap));
 
-    // The currentLocation passed in is the source of truth for where the player is.
-    // It has already been processed and given an ID if it was new.
     if (currentLocation.locationId) {
         newMap[currentLocation.locationId] = deepMergeResponses(newMap[currentLocation.locationId], currentLocation);
     }
@@ -302,17 +293,10 @@ export function updateWorldMap(
 
     const initialIdToLocationIdMap = new Map<string, string>();
 
-    // Process new off-screen locations
     asArray(updates.newLocations).forEach(newLoc => {
         if (!newLoc.coordinates) return;
-
         const coordKey = `${newLoc.coordinates.x},${newLoc.coordinates.y}`;
-        
-        if (existingCoords.has(coordKey)) {
-            // GM might hallucinate a new location at an existing coordinate.
-            // In this case, we should probably merge or ignore. For now, ignoring.
-            return;
-        }
+        if (existingCoords.has(coordKey)) return;
         
         const newLocationId = newLoc.locationId || generateId('loc');
         newLoc.locationId = newLocationId;
@@ -324,10 +308,7 @@ export function updateWorldMap(
         if (newLoc.locationStorages) {
             newLoc.locationStorages = (newLoc.locationStorages as Partial<LocationStorage>[]).map(storage => {
                 if (!storage) return null;
-                return {
-                    ...storage,
-                    storageId: storage.storageId || generateId('storage'),
-                } as LocationStorage;
+                return { ...storage, storageId: storage.storageId || generateId('storage') } as LocationStorage;
             }).filter((s): s is LocationStorage => !!s);
         }
         
@@ -335,30 +316,27 @@ export function updateWorldMap(
         existingCoords.add(coordKey);
     });
 
-    // Process updates to existing off-screen locations
     asArray(updates.locationUpdates).forEach(update => {
         if (update.locationId && newMap[update.locationId]) {
-    
             const originalLocation = newMap[update.locationId];
             const updateAny = update as any;
-    
-            // Create a clean update object mapping "new" keys to their correct names.
-            const cleanUpdate: Partial<Location> = {};
-            if (updateAny.newName) cleanUpdate.name = updateAny.newName;
-            if (updateAny.newDescription) cleanUpdate.description = updateAny.newDescription;
-            if (updateAny.newInternalDifficultyProfile) cleanUpdate.internalDifficultyProfile = deepMergeResponses(originalLocation.internalDifficultyProfile, updateAny.newInternalDifficultyProfile);
-            if (updateAny.newExternalDifficultyProfile) cleanUpdate.externalDifficultyProfile = deepMergeResponses(originalLocation.externalDifficultyProfile, updateAny.newExternalDifficultyProfile);
             
-            // Copy over any other fields that might be there and don't start with "new"
-            for (const key in update) {
-                if (!key.startsWith('new') && key !== 'locationId' && key !== 'newLastEventsDescription') {
-                    (cleanUpdate as any)[key] = (update as any)[key];
+            const { newLastEventsDescription, ...restOfUpdate } = updateAny;
+    
+            const cleanUpdate: Partial<Location> = {};
+            if (restOfUpdate.newName) cleanUpdate.name = restOfUpdate.newName;
+            if (restOfUpdate.newDescription) cleanUpdate.description = restOfUpdate.newDescription;
+            if (restOfUpdate.newInternalDifficultyProfile) cleanUpdate.internalDifficultyProfile = deepMergeResponses(originalLocation.internalDifficultyProfile, restOfUpdate.newInternalDifficultyProfile);
+            if (restOfUpdate.newExternalDifficultyProfile) cleanUpdate.externalDifficultyProfile = deepMergeResponses(originalLocation.externalDifficultyProfile, restOfUpdate.newExternalDifficultyProfile);
+            
+            for (const key in restOfUpdate) {
+                if (!key.startsWith('new') && key !== 'locationId') {
+                    (cleanUpdate as any)[key] = (restOfUpdate as any)[key];
                 }
             }
             
-            // Handle locationStorages separately because it needs deep merging with ID generation
-            if (updateAny.locationStorages) {
-                cleanUpdate.locationStorages = (updateAny.locationStorages as Partial<LocationStorage>[]).map(storage => {
+            if (restOfUpdate.locationStorages) {
+                cleanUpdate.locationStorages = (restOfUpdate.locationStorages as Partial<LocationStorage>[]).map(storage => {
                     if (!storage) return null;
                     const existingStorage = originalLocation?.locationStorages?.find(s => s.storageId === storage.storageId);
                     return {
@@ -370,19 +348,18 @@ export function updateWorldMap(
             }
     
             let mergedLocation = deepMergeResponses(originalLocation, cleanUpdate) as Location;
-    
-            // Handle newLastEventsDescription separately as it prepends, not merges.
-            if (updateAny.newLastEventsDescription && typeof updateAny.newLastEventsDescription === 'string') {
-                // Use mergedLocation's event descriptions as the base to avoid race conditions
-                const oldEvents = mergedLocation.eventDescriptions || [];
-                mergedLocation.eventDescriptions = [updateAny.newLastEventsDescription, ...oldEvents];
+
+            if (newLastEventsDescription && typeof newLastEventsDescription === 'string') {
+                if (!Array.isArray(mergedLocation.eventDescriptions)) {
+                    mergedLocation.eventDescriptions = [];
+                }
+                mergedLocation.eventDescriptions.unshift(newLastEventsDescription);
             }
     
             newMap[update.locationId] = mergedLocation;
         }
     });
 
-    // Process new links
     asArray(updates.newLinks).forEach(linkUpdate => {
         const source = newMap[linkUpdate.sourceLocationId];
         if (source) {
@@ -396,7 +373,6 @@ export function updateWorldMap(
         }
     });
 
-    // Process link updates
     asArray(updates.linkUpdates).forEach(update => {
         const source = newMap[update.sourceLocationId];
         if (source?.adjacencyMap) {
@@ -410,7 +386,6 @@ export function updateWorldMap(
         }
     });
 
-    // Process link removals
     asArray(updates.linksToRemove).forEach(removal => {
         const source = newMap[removal.sourceLocationId];
         if (source?.adjacencyMap) {
@@ -421,26 +396,54 @@ export function updateWorldMap(
         }
     });
 
-    // Process threat updates for all locations
-    const { threatsToAdd, threatsToUpdate, threatsToRemove, completeThreatActivities } = updates || {};
+    const { threatsToAdd, threatsToUpdate, threatsToRemove, completeThreatActivities, storageUpdates, storagesToRemove } = updates || {};
     
+    if (storageUpdates) {
+        asArray(storageUpdates).forEach(update => {
+            const location = newMap[update.targetLocationId];
+            if (location && location.locationStorages) {
+                const storageIndex = location.locationStorages.findIndex(s => s.storageId === update.storageId);
+                if (storageIndex > -1) {
+                    const originalStorage = location.locationStorages[storageIndex];
+                    const updatePayload = update.update;
+
+                    const cleanUpdate: Partial<LocationStorage> = {};
+                    if (updatePayload.newName) cleanUpdate.name = updatePayload.newName;
+                    if (updatePayload.newDescription) cleanUpdate.description = updatePayload.newDescription;
+                    if (updatePayload.newCapacity !== undefined) cleanUpdate.capacity = updatePayload.newCapacity;
+                    if (updatePayload.newOwner) cleanUpdate.owner = updatePayload.newOwner;
+
+                    for (const key in updatePayload) {
+                        if (!key.startsWith('new')) {
+                            (cleanUpdate as any)[key] = (updatePayload as any)[key];
+                        }
+                    }
+                    
+                    location.locationStorages[storageIndex] = deepMergeResponses(originalStorage, cleanUpdate) as LocationStorage;
+                }
+            }
+        });
+    }
+
+    if (storagesToRemove) {
+        asArray(storagesToRemove).forEach(removal => {
+            const location = newMap[removal.targetLocationId];
+            if (location && location.locationStorages) {
+                location.locationStorages = location.locationStorages.filter(s => s.storageId !== removal.storageId);
+            }
+        });
+    }
+
     if (threatsToAdd) {
         asArray(threatsToAdd).forEach(add => {
             let targetLocationId = add.targetLocationId;
-            
             if (add.initialTargetLocationId) {
                 const foundId = initialIdToLocationIdMap.get(add.initialTargetLocationId);
-                if (foundId) {
-                    targetLocationId = foundId;
-                } else {
-                    console.warn(`Could not find a new location with initialId: ${add.initialTargetLocationId} for a new threat.`);
-                }
+                if (foundId) targetLocationId = foundId;
+                else console.warn(`Could not find a new location with initialId: ${add.initialTargetLocationId} for a new threat.`);
             }
-
             if (targetLocationId && newMap[targetLocationId]) {
-                if (!newMap[targetLocationId].activeThreats) {
-                    newMap[targetLocationId].activeThreats = [];
-                }
+                if (!newMap[targetLocationId].activeThreats) newMap[targetLocationId].activeThreats = [];
                 const newThreat = { ...add.threat, threatId: add.threat.threatId || generateId('threat') };
                 newMap[targetLocationId].activeThreats!.push(newThreat);
             } else if(targetLocationId) {
@@ -453,21 +456,11 @@ export function updateWorldMap(
         asArray(threatsToUpdate).forEach(update => {
             if (update.targetLocationId && newMap[update.targetLocationId] && newMap[update.targetLocationId].activeThreats) {
                 const location = newMap[update.targetLocationId];
-                
                 let threatIndex = -1;
-                if (update.threatUpdate.threatId) {
-                    threatIndex = location.activeThreats!.findIndex(t => t.threatId === update.threatUpdate.threatId);
-                }
-                if (threatIndex === -1 && update.threatUpdate.name) {
-                    // Fallback to finding by name if ID is missing or not found
-                    threatIndex = location.activeThreats!.findIndex(t => t.name === update.threatUpdate.name);
-                }
-
+                if (update.threatUpdate.threatId) threatIndex = location.activeThreats!.findIndex(t => t.threatId === update.threatUpdate.threatId);
+                if (threatIndex === -1 && update.threatUpdate.name) threatIndex = location.activeThreats!.findIndex(t => t.name === update.threatUpdate.name);
                 if (threatIndex > -1) {
-                    // Ensure the found threat gets an ID if it doesn't have one
-                    if (!location.activeThreats![threatIndex].threatId) {
-                        location.activeThreats![threatIndex].threatId = generateId('threat');
-                    }
+                    if (!location.activeThreats![threatIndex].threatId) location.activeThreats![threatIndex].threatId = generateId('threat');
                     location.activeThreats![threatIndex] = deepMergeResponses(location.activeThreats![threatIndex], update.threatUpdate) as ActiveThreat;
                 }
             }
@@ -487,20 +480,15 @@ export function updateWorldMap(
             const location = newMap[completion.targetLocationId];
             if (location && location.activeThreats) {
                 const threatIndex = location.activeThreats.findIndex(t => t.threatId === completion.threatId);
-
                 if (threatIndex > -1) {
                     const threat = location.activeThreats[threatIndex];
-                    if (!threat.completedActivities) {
-                        threat.completedActivities = [];
-                    }
-                    // Add the new completed activity to the beginning of the list.
+                    if (!threat.completedActivities) threat.completedActivities = [];
                     threat.completedActivities.unshift({
                         activityName: threat.currentActivity?.activityName || completion.threatName,
                         finalState: completion.finalState,
                         narrativeSummary: completion.narrativeSummary,
                         completionTurn: currentTurnNumber,
                     });
-                    // Set current activity to null as it's completed.
                     threat.currentActivity = null;
                 } else {
                     console.warn(`Could not find threat with id ${completion.threatId} in location ${completion.targetLocationId} to complete its activity.`);
@@ -520,6 +508,106 @@ export function buildNextContext(
     newHistory: ChatMessage[],
     advanceTurn: boolean = true
 ): GameContext {
+    // PATCH to handle faulty AI responses where resource data for new items is in a separate array.
+    if (response.inventoryItemsResources) {
+        const resourceChangesForNewItems = asArray(response.inventoryItemsResources).filter(rc => rc.existedId === null && rc.name);
+        if (resourceChangesForNewItems.length > 0) {
+            const processInventory = (inventory: Item[]) => {
+                if (!inventory) return;
+                inventory.forEach(item => {
+                    if (item.resource === undefined) {
+                        const resourceInfoIndex = resourceChangesForNewItems.findIndex(rc => rc.name === item.name && !(rc as any)._used);
+                        if (resourceInfoIndex > -1) {
+                            const resourceInfo = resourceChangesForNewItems[resourceInfoIndex];
+                            item.resource = resourceInfo.resource;
+                            item.maximumResource = resourceInfo.maximumResource;
+                            item.resourceType = resourceInfo.resourceType;
+                            // Mark as used to prevent patching multiple new items of the same name with the same resource data
+                            (resourceInfo as any)._used = true;
+                        }
+                    }
+                });
+            };
+            newState.players.forEach(player => processInventory(player.inventory));
+            newState.encounteredNPCs.forEach(npc => processInventory(npc.inventory));
+        }
+    }
+    
+    // PATCH to handle faulty AI responses where resource data for new NPC items is in a separate array.
+    if (response.NPCInventoryResourcesChanges) {
+        const resourceChangesForNewNpcItems = asArray(response.NPCInventoryResourcesChanges).filter(rc => (rc.itemId === null || rc.itemId === undefined) && rc.itemName);
+        if (resourceChangesForNewNpcItems.length > 0) {
+            resourceChangesForNewNpcItems.forEach(resourceChange => {
+                if ((resourceChange as any)._used) return;
+
+                const npc = newState.encounteredNPCs.find(n => (n.NPCId && n.NPCId === resourceChange.NPCId) || n.name === resourceChange.NPCName);
+                if (npc && npc.inventory) {
+                    const itemIndex = npc.inventory.findIndex(item => 
+                        item.name === resourceChange.itemName && 
+                        item.resource === undefined && 
+                        !(item as any)._patched_resource
+                    );
+
+                    if (itemIndex > -1) {
+                        const item = npc.inventory[itemIndex];
+                        // The AI is inconsistent, so we check for both 'resource' and 'newResourceValue'
+                        const resourceValue = (resourceChange as any).newResourceValue ?? (resourceChange as any).resource;
+
+                        if (resourceValue !== undefined) {
+                            item.resource = resourceValue;
+                            if ((resourceChange as any).maximumResource !== undefined) {
+                                item.maximumResource = (resourceChange as any).maximumResource;
+                            } else {
+                                // if it's not provided, let's assume max is the current value for a new item.
+                                item.maximumResource = resourceValue;
+                            }
+                            if ((resourceChange as any).resourceType !== undefined) {
+                                item.resourceType = (resourceChange as any).resourceType;
+                            }
+                            (item as any)._patched_resource = true; // Mark as patched for this turn to handle multiple items of same name
+                            (resourceChange as any)._used = true;
+                        }
+                    }
+                }
+            });
+
+            // Cleanup patch flags for next turn
+            newState.encounteredNPCs.forEach(npc => {
+                if (npc?.inventory) {
+                    npc.inventory.forEach(item => {
+                        delete (item as any)._patched_resource;
+                    });
+                }
+            });
+        }
+    }
+
+
+    // PATCH to handle faulty AI responses where resource data for new items is in a separate array.
+    if (response.inventoryItemsResources) {
+        const resourceChangesForNewItems = asArray(response.inventoryItemsResources).filter(rc => rc.existedId === null && rc.name);
+        if (resourceChangesForNewItems.length > 0) {
+            const processInventory = (inventory: Item[]) => {
+                if (!inventory) return;
+                inventory.forEach(item => {
+                    if (item.resource === undefined) {
+                        const resourceInfoIndex = resourceChangesForNewItems.findIndex(rc => rc.name === item.name && !(rc as any)._used);
+                        if (resourceInfoIndex > -1) {
+                            const resourceInfo = resourceChangesForNewItems[resourceInfoIndex];
+                            item.resource = resourceInfo.resource;
+                            item.maximumResource = resourceInfo.maximumResource;
+                            item.resourceType = resourceInfo.resourceType;
+                            // Mark as used to prevent patching multiple new items of the same name with the same resource data
+                            (resourceInfo as any)._used = true;
+                        }
+                    }
+                });
+            };
+            newState.players.forEach(player => processInventory(player.inventory));
+            newState.encounteredNPCs.forEach(npc => processInventory(npc.inventory));
+        }
+    }
+
     let newTurnNumber = currentContext.currentTurnNumber;
     let newActivePlayerIndex = newState.activePlayerIndex;
 
@@ -544,20 +632,19 @@ export function buildNextContext(
     newState.activePlayerIndex = newActivePlayerIndex;
 
 
-    let newWorldState = { ...currentContext.worldState };
+    const newWorldState: WorldState = { ...currentContext.worldState };
 
     if (response.setWorldTime) {
-        // This is a direct override.
         const { day, minutesIntoDay } = response.setWorldTime;
         const calendar = currentContext.gameSettings.gameWorldInformation.calendar!;
-        // We need to calculate the total minutes from the STARTING YEAR to this new date.
+        
         let daysSinceStart = 0;
         const yearLengthInDays = calendar.months.reduce((acc, month) => acc + month.days, 0);
         const currentYearFromDate = newWorldState.date?.currentYear || calendar.startingYear;
         const yearsPassed = currentYearFromDate - calendar.startingYear;
         daysSinceStart += yearsPassed * yearLengthInDays;
         
-        let monthIndex = calendar.months.findIndex(m => m.name === newWorldState.date?.currentMonthName);
+        let monthIndex = calendar.months.findIndex((m: any) => m.name === newWorldState.date?.currentMonthName);
         if(monthIndex === -1) monthIndex = 0;
 
         for(let i=0; i<monthIndex; i++){
@@ -571,11 +658,10 @@ export function buildNextContext(
         newWorldState.currentTimeInMinutes += response.timeChange;
     }
 
-    // Always recalculate date from total minutes
     const calendar = currentContext.gameSettings.gameWorldInformation.calendar!;
     const newDate = calculateDate(newWorldState.currentTimeInMinutes, calendar);
     newWorldState.date = newDate;
-    newWorldState.day = newDate.dayOfMonth; // sync for backward compatibility
+    newWorldState.day = newDate.dayOfMonth; 
 
     const minutesIntoDay = newWorldState.currentTimeInMinutes % (24 * 60);
     if (minutesIntoDay >= 5 * 60 && minutesIntoDay < 12 * 60) newWorldState.timeOfDay = 'Morning';
@@ -617,32 +703,20 @@ export function buildNextContext(
         newState.currentLocationData = currentContext.currentLocation;
     }
 
-    const currentLocForMap = { ...newState.currentLocationData };
-    if (!currentLocForMap.locationId) {
-        currentLocForMap.locationId = generateId('loc');
-        newState.currentLocationData.locationId = currentLocForMap.locationId;
-    }
-    if (!currentLocForMap.locationStorages) {
-        currentLocForMap.locationStorages = [];
-    }
-    newState.currentLocationData.locationStorages = currentLocForMap.locationStorages;
-
-
     let baseMap = currentContext.worldMap;
     if (currentContext.currentTurnNumber === 1 && advanceTurn) {
         baseMap = {};
     }
-    // FIX: Pass currentContext.currentTurnNumber instead of the undefined currentTurnNumber.
-    const newWorldMap = updateWorldMap(baseMap, response.worldMapUpdates, currentLocForMap as Location, currentContext.currentTurnNumber);
+
+    const newWorldMap = updateWorldMap(baseMap, response.worldMapUpdates, newState.currentLocationData as Location, currentContext.currentTurnNumber);
     
     if (newState.currentLocationData?.locationId && newWorldMap[newState.currentLocationData.locationId]) {
         newState.currentLocationData = newWorldMap[newState.currentLocationData.locationId];
     }
     
     const allLocationsNow: Location[] = Object.values(newWorldMap);
-    const allLocationsMap = new Map(allLocationsNow.map(l => [l.locationId, l]));
+    const allLocationsMap = new Map(allLocationsNow.map(l => [l.locationId!, l]));
 
-    // Get IDs of all locations that are "new" this turn (either created or updated)
     const changedLocationIds = new Set<string>();
     if (newState.currentLocationData?.locationId) {
         changedLocationIds.add(newState.currentLocationData.locationId);
@@ -650,24 +724,21 @@ export function buildNextContext(
     asArray(response.worldMapUpdates?.locationUpdates).forEach(u => {
         if (u.locationId) changedLocationIds.add(u.locationId);
     });
-    const previousIds = new Set(currentContext.visitedLocations.map(l => l.locationId));
+    const previousIds = new Set(currentContext.visitedLocations.map(l => l.locationId!));
     allLocationsNow.forEach(l => {
         if (l.locationId && !previousIds.has(l.locationId)) {
             changedLocationIds.add(l.locationId);
         }
     });
 
-    // Get the previous list, but update the objects to their newest state and filter out deleted ones
     let previousOrderedList = currentContext.visitedLocations
         .map(loc => loc.locationId ? allLocationsMap.get(loc.locationId) : null)
         .filter((l): l is Location => !!l);
     
-    // Add any brand new locations to the end of the previous order. They will be sorted to the top if they are also 'changed'.
-    const existingIdsInOrderedList = new Set(previousOrderedList.map(l => l.locationId));
+    const existingIdsInOrderedList = new Set(previousOrderedList.map(l => l.locationId!));
     const brandNewLocations = allLocationsNow.filter(l => l.locationId && !existingIdsInOrderedList.has(l.locationId));
     previousOrderedList.push(...brandNewLocations);
 
-    // Reorder by moving all "changed" locations to the front, preserving the relative order of the rest.
     const topLocations: Location[] = [];
     const bottomLocations: Location[] = [];
 
@@ -679,8 +750,6 @@ export function buildNextContext(
         }
     });
 
-    // To preserve the order of updates within a single turn (e.g., current loc > other updated locs),
-    // we can do a secondary sort on the topLocations if needed, but for now, this grouping is sufficient.
     const newVisitedLocations = [...topLocations, ...bottomLocations];
 
     const updatedActiveQuests = [...newState.activeQuests];
@@ -706,29 +775,36 @@ export function buildNextContext(
         }
     });
 
+    if (response.removeWorldStateFlags) {
+      const flagsToRemove = new Set(asArray(response.removeWorldStateFlags));
+      newState.worldStateFlags = newState.worldStateFlags.filter(flag => !flagsToRemove.has(flag.flagId));
+    }
+
     const nextContext: GameContext = {
-        ...currentContext,
-        message: '', // Clear message for next turn
+        message: '',
+        image: null,
+        superInstructions: currentContext.superInstructions,
+        currentStepFocus: null,
+        partiallyGeneratedResponse: null,
         currentTurnNumber: newTurnNumber,
-        playerCharacter: newState.players[newActivePlayerIndex],
+        gameSettings: currentContext.gameSettings,
+        worldState: newWorldState,
+        worldStateFlags: newState.worldStateFlags,
         players: newState.players,
+        playerCharacter: newState.players[newActivePlayerIndex],
         currentLocation: newState.currentLocationData,
         visitedLocations: newVisitedLocations,
         activeQuests: updatedActiveQuests,
         completedQuests: updatedCompletedQuests,
         encounteredNPCs: newState.encounteredNPCs,
-        npcSkillMasteryData: [], // Or more specific type
+        npcSkillMasteryData: [],
         lootForCurrentTurn: generateLootTemplates(response.multipliers, newState.players[newActivePlayerIndex], 5),
         preGeneratedDices1d20: Array.from({ length: 50 }, () => Math.floor(Math.random() * 20) + 1),
-        worldState: newWorldState,
-        worldStateFlags: newState.worldStateFlags,
         previousTurnResponse: response,
         encounteredFactions: newState.encounteredFactions,
         plotOutline: newState.plotOutline,
         worldMap: newWorldMap,
         responseHistory: newHistory.slice(-15),
-        currentStepFocus: null,
-        partiallyGeneratedResponse: null,
         enemiesDataForCurrentTurn: newState.enemiesData,
         alliesDataForCurrentTurn: newState.alliesData,
         playerCustomStates: newState.playerCustomStates,
@@ -736,24 +812,21 @@ export function buildNextContext(
         networkRole: newState.networkRole,
         peers: newState.peers,
         isConnectedToHost: newState.isConnectedToHost,
-  };
-
-  delete (nextContext as any).image;
+    };
 
   return nextContext;
 }
 
-// FIX: Add the missing createInitialContext function to resolve module export errors.
 export const createInitialContext = (creationData: any, language: Language): GameContext => {
-    const { universe, selectedEra, customEraName, customSettingName, worldInformation, superInstructions, initialPrompt, ...characterCreationData } = creationData;
-    
-    let currentWorld: any;
+    const { universe, selectedEra, worldInformation, superInstructions, initialPrompt, ...characterCreationData } = creationData;
+    const t = (key: string, replacements?: any) => translate(language, key, replacements);
+
     const gameDataSource = creationData.customGameData || gameData;
+    let currentWorld: any;
     
     if (universe === 'custom') {
-        const key = selectedEra || customSettingName.toLowerCase().replace(/\s+/g, '_');
-        currentWorld = (gameDataSource.custom && (gameDataSource.custom as any)[key]) || {
-            name: customSettingName, description: 'A custom world.', races: {}, classes: {}, currencyName: 'Gold', currencyOptions: ['Gold'],
+        currentWorld = (gameDataSource.custom && (gameDataSource.custom as any)[selectedEra]) || {
+            name: selectedEra || t('New Universe'), description: t('Create your own world from scratch...'), races: {}, classes: {}, currencyName: 'Gold', currencyOptions: ['Gold'],
             calendar: JSON.parse(JSON.stringify(gameData.fantasy.calendar))
         };
     } else if (universe === 'history') {
@@ -764,13 +837,20 @@ export const createInitialContext = (creationData: any, language: Language): Gam
         currentWorld = (gameDataSource as any)[universe];
     }
     
+    const worldForContext = JSON.parse(JSON.stringify(currentWorld));
+
+    const calendarTemplate = worldForContext.calendar || gameData.fantasy.calendar;
+    const localizedCalendar = JSON.parse(JSON.stringify(calendarTemplate));
+    localizedCalendar.months = localizedCalendar.months.map((month: Month) => ({ ...month, name: t(month.name) }));
+    localizedCalendar.dayNames = localizedCalendar.dayNames.map((day: string) => t(day));
+    
     const gameSettings: GameSettings = {
         language: language,
         gameWorldInformation: {
-            baseInfo: currentWorld,
+            baseInfo: worldForContext,
             customInfo: worldInformation,
             currencyName: creationData.currencyName || currentWorld.currencyName || 'Gold',
-            calendar: currentWorld.calendar || gameData.fantasy.calendar
+            calendar: localizedCalendar
         },
         modelName: creationData.modelName,
         correctionModelName: creationData.correctionModelName,
@@ -793,27 +873,49 @@ export const createInitialContext = (creationData: any, language: Language): Gam
         latestNpcJournalsCount: creationData.latestNpcJournalsCount,
         cooperativeGameType: creationData.cooperativeGameType,
         autoPassTurnInCoop: creationData.autoPassTurnInCoop,
+        showPartyStatusPanel: creationData.showPartyStatusPanel,
         multiplePersonalitiesSettings: creationData.multiplePersonalitiesSettings,
         doNotUseWorldEvents: creationData.doNotUseWorldEvents,
         pollinationsImageModel: creationData.pollinationsImageModel,
         useNanoBananaPrimary: creationData.useNanoBananaPrimary,
         useNanoBananaFallback: creationData.useNanoBananaFallback,
-        useGoogleSearch: creationData.useGoogleSearch
+        useGoogleSearch: creationData.useGoogleSearch,
+        showImageSourceInfo: true,
+        imageGenerationModelPipeline: [], // Will be populated below
     };
 
+    const pipeline: ImageGenerationSource[] = [];
+    const pollinationsModel = (creationData.pollinationsImageModel === 'kontext' ? 'flux' : creationData.pollinationsImageModel) || 'flux';
+
+    if (creationData.useNanoBananaPrimary) {
+        pipeline.push({ provider: 'nanobanana' });
+        pipeline.push({ provider: 'pollinations', model: pollinationsModel });
+    } else {
+        pipeline.push({ provider: 'pollinations', model: pollinationsModel });
+        if (creationData.useNanoBananaFallback) {
+            pipeline.push({ provider: 'nanobanana' });
+        }
+    }
+    pipeline.push({ provider: 'imagen' });
+    
+    gameSettings.imageGenerationModelPipeline = pipeline;
+
+    delete (gameSettings as any).pollinationsImageModel;
+    delete (gameSettings as any).useNanoBananaFallback;
+    delete (gameSettings as any).useNanoBananaPrimary;
+
+    const calendar = gameSettings.gameWorldInformation.calendar!;
+    const startingMonthIndex = calendarTemplate.months.findIndex((m: Month) => m.name === creationData.startingMonth);
+    
     const [startHour, startMinute] = creationData.startTime.split(':').map(Number);
     const startingMinutesIntoDay = startHour * 60 + startMinute;
     
-    const calendar = gameSettings.gameWorldInformation.calendar!;
-    const startingMonthIndex = calendar.months.findIndex(m => m.name === creationData.startingMonth);
-    let totalDays = (creationData.startingYear - calendar.startingYear) * calendar.months.reduce((acc, m) => acc + m.days, 0);
-    for (let i = 0; i < startingMonthIndex; i++) {
-        totalDays += calendar.months[i].days;
-    }
-    totalDays += (creationData.startingDay - 1);
+    const totalMinutes = calculateTotalMinutes({
+        year: creationData.startingYear,
+        monthIndex: startingMonthIndex > -1 ? startingMonthIndex : 0,
+        day: creationData.startingDay
+    }, calendarTemplate) + startingMinutesIntoDay;
     
-    const totalMinutes = totalDays * 24 * 60 + startingMinutesIntoDay;
-
     const initialWorldState: WorldState = {
         day: creationData.startingDay,
         timeOfDay: 'Morning',
@@ -857,7 +959,6 @@ export const createInitialContext = (creationData: any, language: Language): Gam
         completedQuests: [],
         encounteredNPCs: [],
         npcSkillMasteryData: [],
-        // FIX: Pass an empty array for multipliers since there is no previous response.
         lootForCurrentTurn: generateLootTemplates([], playerCharacter, 5),
         preGeneratedDices1d20: Array.from({ length: 50 }, () => Math.floor(Math.random() * 20) + 1),
         worldState: initialWorldState,

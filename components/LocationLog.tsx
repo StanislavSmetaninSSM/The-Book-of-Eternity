@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { Location, LocationData, GameSettings } from '../types';
+import { Location, LocationData, GameSettings, ImageCacheEntry } from '../types';
 import { MapIcon, FireIcon, GlobeAltIcon, UserGroupIcon, MapPinIcon, TrashIcon } from '@heroicons/react/24/outline';
 import { useLocalization } from '../context/LocalizationContext';
 import MarkdownRenderer from './MarkdownRenderer';
@@ -12,8 +12,8 @@ interface LocationLogProps {
   onOpenModal: (title: string, data: any) => void;
   allowHistoryManipulation: boolean;
   onEditLocationData: (locationId: string, field: keyof Location, value: any) => void;
-  imageCache: Record<string, string>;
-  onImageGenerated: (prompt: string, base64: string) => void;
+  imageCache: Record<string, ImageCacheEntry>;
+  onImageGenerated: (prompt: string, src: string, sourceProvider: ImageCacheEntry['sourceProvider'], sourceModel?: string) => void;
   forgetLocation: (locationId: string) => void;
   gameSettings: GameSettings | null;
 }
@@ -21,8 +21,8 @@ interface LocationLogProps {
 const LocationItem: React.FC<{ 
   loc: Location, 
   onOpenModal: (title: string, data: any) => void;
-  imageCache: Record<string, string>;
-  onImageGenerated: (prompt: string, base64: string) => void;
+  imageCache: Record<string, ImageCacheEntry>;
+  onImageGenerated: (prompt: string, src: string, sourceProvider: ImageCacheEntry['sourceProvider'], sourceModel?: string) => void;
   isCurrentLocation: boolean;
   allowHistoryManipulation: boolean;
   onDelete: () => void;
@@ -84,11 +84,8 @@ const LocationItem: React.FC<{
       >
         <div className="flex items-start gap-4">
             <div className="w-16 h-16 rounded-md overflow-hidden flex-shrink-0 bg-gray-800 flex items-center justify-center">
-{/*
-FIX: Pass 'gameSettings' prop to ImageRenderer.
-The ImageRenderer component requires gameSettings to determine which image generation model to use.
-*/}
-                <ImageRenderer prompt={imagePrompt} alt={loc.name} className="w-full h-full object-cover" imageCache={imageCache} onImageGenerated={onImageGenerated} model={gameSettings?.pollinationsImageModel} gameSettings={gameSettings} />
+
+                <ImageRenderer prompt={imagePrompt} alt={loc.name} className="w-full h-full object-cover" imageCache={imageCache} onImageGenerated={onImageGenerated} gameSettings={gameSettings} />
             </div>
             <div className="flex-1">
                 <p className="font-semibold text-cyan-400 text-lg group-hover:underline">{loc.name}</p>
@@ -232,7 +229,7 @@ export default function LocationLog({ locations, currentLocation, onOpenModal, a
         isOpen={!!locationToDelete}
         onClose={() => setLocationToDelete(null)}
         onConfirm={handleDeleteConfirm}
-        title={t("Forget Location")}
+        title={t('Forget Location')}
       >
         <p>{t("Are you sure you want to forget this location? This will remove it from your map and logs.")}</p>
       </ConfirmationModal>

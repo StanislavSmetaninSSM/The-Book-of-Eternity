@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useCallback } from 'react';
-import { EnemyCombatObject, AllyCombatObject, NPC, Item, ActiveSkill, PassiveSkill, CombatAction, PlayerCharacter, Wound, CombatActionEffect, GameSettings } from '../types';
+import { EnemyCombatObject, AllyCombatObject, NPC, Item, ActiveSkill, PassiveSkill, CombatAction, PlayerCharacter, Wound, CombatActionEffect, GameSettings, ImageCacheEntry } from '../types';
 import { ShieldExclamationIcon, BoltIcon, ShieldCheckIcon, SunIcon, CloudIcon, DocumentTextIcon, SparklesIcon, ArchiveBoxIcon, Cog6ToothIcon, InformationCircleIcon, ArrowsPointingOutIcon, ArrowsPointingInIcon } from '@heroicons/react/24/outline';
 import { FireIcon } from '@heroicons/react/24/solid';
 import ImageRenderer from './ImageRenderer';
@@ -59,8 +59,8 @@ interface CombatantCardProps {
     fullNpcData: NPC | null;
     onOpenDetailModal: (title: string, data: any) => void;
     onViewCharacterSheet: (character: PlayerCharacter | NPC) => void;
-    imageCache: Record<string, string>;
-    onImageGenerated: (prompt: string, base64: string) => void;
+    imageCache: Record<string, ImageCacheEntry>;
+    onImageGenerated: (prompt: string, src: string, sourceProvider: ImageCacheEntry['sourceProvider'], sourceModel?: string) => void;
     onOpenImageModal: (displayPrompt: string, originalTextPrompt: string, onClearCustom?: () => void, onUpload?: (base64: string) => void) => void;
     gameSettings: GameSettings | null;
     editNpcData?: (npcId: string, field: keyof NPC, value: any) => void;
@@ -188,7 +188,7 @@ const CombatantCard: React.FC<CombatantCardProps> = ({ combatant, fullNpcData, o
         >
             <div className="flex justify-between items-start gap-3">
                  <div className="w-16 h-16 rounded-md overflow-hidden flex-shrink-0 bg-gray-800 cursor-pointer" onClick={handleOpenImageWithCallbacks}>
-                    <ImageRenderer prompt={displayImagePrompt} alt={combatant.name} imageCache={imageCache} onImageGenerated={onImageGenerated} model={gameSettings?.pollinationsImageModel} width={1024} height={1024} gameSettings={gameSettings} />
+                    <ImageRenderer prompt={displayImagePrompt} originalTextPrompt={originalImagePrompt} alt={combatant.name} imageCache={imageCache} onImageGenerated={onImageGenerated} width={1024} height={1024} gameSettings={gameSettings} />
                 </div>
                 <div className="flex-1">
                     <div className="flex justify-between items-start">
@@ -377,8 +377,8 @@ interface CombatTrackerProps {
     onViewCharacterSheet: (character: PlayerCharacter | NPC) => void;
     onSendMessage: (message: string) => void;
     isLoading: boolean;
-    imageCache: Record<string, string>;
-    onImageGenerated: (prompt: string, base64: string) => void;
+    imageCache: Record<string, ImageCacheEntry>;
+    onImageGenerated: (prompt: string, src: string, sourceProvider: ImageCacheEntry['sourceProvider'], sourceModel?: string) => void;
     onOpenImageModal: (displayPrompt: string, originalTextPrompt: string, onClearCustom?: () => void, onUpload?: (base64: string) => void) => void;
     onExpand?: () => void;
     isFullScreen?: boolean;

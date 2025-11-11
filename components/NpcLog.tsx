@@ -1,7 +1,5 @@
-
-
 import React, { useState, useMemo, useEffect, useRef } from 'react';
-import { NPC, Faction, GameState, GameSettings } from '../types';
+import { NPC, Faction, GameState, GameSettings, ImageCacheEntry } from '../types';
 import { UserGroupIcon, UserIcon, UserPlusIcon, ArrowsUpDownIcon, TrashIcon } from '@heroicons/react/24/outline';
 import { CheckIcon, Bars3Icon } from '@heroicons/react/24/solid';
 import { useLocalization } from '../context/LocalizationContext';
@@ -15,8 +13,8 @@ interface NpcLogProps {
   onOpenModal: (title: string, data: any) => void;
   onOpenJournalModal: (npc: NPC) => void;
   onViewCharacterSheet: (character: NPC) => void;
-  imageCache: Record<string, string>;
-  onImageGenerated: (prompt: string, base64: string) => void;
+  imageCache: Record<string, ImageCacheEntry>;
+  onImageGenerated: (prompt: string, src: string, sourceProvider: ImageCacheEntry['sourceProvider'], sourceModel?: string) => void;
   updateNpcSortOrder: (newOrder: string[]) => void;
   forgetNpc: (npcId: string) => void;
   allowHistoryManipulation: boolean;
@@ -31,8 +29,8 @@ const NpcItem: React.FC<{
     factionName: string | undefined, 
     onViewCharacterSheet: (character: NPC) => void,
     onOpenJournalModal: (npc: NPC) => void, 
-    imageCache: Record<string, string>, 
-    onImageGenerated: (prompt: string, base64: string) => void,
+    imageCache: Record<string, ImageCacheEntry>, 
+    onImageGenerated: (prompt: string, src: string, sourceProvider: ImageCacheEntry['sourceProvider'], sourceModel?: string) => void,
     isSorting: boolean,
     onDelete: () => void,
     allowHistoryManipulation: boolean,
@@ -89,7 +87,8 @@ const NpcItem: React.FC<{
                         e.stopPropagation();
                         onDelete();
                     }}
-                    className="absolute top-2 right-2 p-1 text-gray-400 rounded-full hover:bg-red-900/50 hover:text-red-300 transition-colors opacity-0 group-hover:opacity-100 z-10"
+                    disabled={isSorting}
+                    className="absolute top-2 right-2 p-1 text-gray-400 rounded-full hover:bg-red-900/50 hover:text-red-300 transition-colors opacity-0 group-hover:opacity-100 z-10 disabled:opacity-20 disabled:cursor-not-allowed"
                     title={t('Forget NPC')}
                 >
                     <TrashIcon className="w-4 h-4" />
@@ -110,8 +109,7 @@ const NpcItem: React.FC<{
                     onClick={handleImageClick}
                 >
                     {displayImagePrompt ? (
-// FIX: Pass the `gameSettings` prop to the `ImageRenderer` component.
-                        <ImageRenderer prompt={displayImagePrompt} alt={npc.name} className="w-full h-full object-cover" imageCache={imageCache} onImageGenerated={onImageGenerated} model={gameSettings?.pollinationsImageModel} gameSettings={gameSettings} />
+                        <ImageRenderer prompt={displayImagePrompt} alt={npc.name} className="w-full h-full object-cover" imageCache={imageCache} onImageGenerated={onImageGenerated} gameSettings={gameSettings} />
                     ) : (
                         <UserIcon className="w-8 h-8 text-cyan-400" />
                     )}

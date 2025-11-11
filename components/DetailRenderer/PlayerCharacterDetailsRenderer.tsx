@@ -19,29 +19,17 @@ const PlayerCharacterDetailsRenderer: React.FC<PlayerCharacterDetailsProps> = ({
     imageCache,
     onImageGenerated,
     onOpenImageModal,
-    gameSettings
+    gameSettings,
+    isLoading
 }) => {
     const { t } = useLocalization();
-    const isCustomPortrait = character.portrait?.startsWith('custom-portrait-') ?? false;
+    const isCustomPortrait = !!character.portrait;
     
-    const [localPrompt, setLocalPrompt] = useState(
-        isCustomPortrait ? '' : (character.portrait || character.appearanceDescription || '')
-    );
+    const [localPrompt, setLocalPrompt] = useState(character.image_prompt || '');
 
     useEffect(() => {
-        const isCustom = character.portrait?.startsWith('custom-portrait-') ?? false;
-        let newPrompt = isCustom ? '' : (character.portrait || character.appearanceDescription || '');
-
-        // Auto-populate prompt from description if portrait is null
-        if (character.portrait === null && character.appearanceDescription) {
-            newPrompt = character.appearanceDescription;
-            if (updatePlayerPortrait) {
-                // Set this as the new prompt-based portrait key
-                updatePlayerPortrait(character.playerId, { prompt: newPrompt });
-            }
-        }
-        setLocalPrompt(newPrompt);
-    }, [character.portrait, character.appearanceDescription, updatePlayerPortrait, character.playerId]);
+        setLocalPrompt(isCustomPortrait ? '' : (character.image_prompt || ''));
+    }, [character.image_prompt, isCustomPortrait]);
 
     const handleSavePrompt = useCallback((newPrompt: string) => {
         if (updatePlayerPortrait) {
@@ -57,9 +45,9 @@ const PlayerCharacterDetailsRenderer: React.FC<PlayerCharacterDetailsProps> = ({
 
     const handleRevertPortrait = useCallback(() => {
         if (updatePlayerPortrait) {
-            updatePlayerPortrait(character.playerId, { custom: null, prompt: character.appearanceDescription });
+            updatePlayerPortrait(character.playerId, { custom: null });
         }
-    }, [updatePlayerPortrait, character.appearanceDescription, character.playerId]);
+    }, [updatePlayerPortrait, character.playerId]);
     
     return (
         <div className="space-y-4">
@@ -93,12 +81,9 @@ const PlayerCharacterDetailsRenderer: React.FC<PlayerCharacterDetailsProps> = ({
             )}
             <Section title={t("Portrait")} icon={PhotoIcon}>
                  <div className="space-y-4">
-{/*
-FIX: Pass 'gameSettings' prop to ImageRenderer.
-The ImageRenderer component requires gameSettings to determine which image generation model to use.
-*/}
                     <ImageRenderer
-                        prompt={character.portrait}
+                        prompt={character.portrait || character.image_prompt}
+                        originalTextPrompt={character.image_prompt || ''}
                         alt={t("Player Portrait")}
                         imageCache={imageCache}
                         onImageGenerated={onImageGenerated}
@@ -108,6 +93,7 @@ The ImageRenderer component requires gameSettings to determine which image gener
                         model={gameSettings?.pollinationsImageModel}
                         className="w-full aspect-square bg-gray-900 rounded-lg overflow-hidden"
                         gameSettings={gameSettings}
+                        gameIsLoading={isLoading}
                     />
                     {allowHistoryManipulation && updatePlayerPortrait && (
                         <div className="mt-4">

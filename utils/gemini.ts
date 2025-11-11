@@ -1,4 +1,3 @@
-
 import { GoogleGenAI, Type, HarmCategory, HarmBlockThreshold, Modality } from "@google/genai";
 import { GameContext, GameResponse } from '../types';
 // @ts-ignore
@@ -105,6 +104,7 @@ async function callGenerativeApiRaw(
 
         const modelConfig: any = {
             model: finalModelName,
+            signal: abortSignal,
         };
 
         if (context.image && context.image.data) {
@@ -199,6 +199,7 @@ export async function callGenerativeApi(
 
         const modelConfig: any = {
             model: finalModelName,
+            signal: abortSignal,
         };
         
         if (context.image && context.image.data) {
@@ -780,7 +781,8 @@ export async function executeCancellableJsonGeneration(
 
     const modelConfig: any = {
         model: modelName,
-        contents: prompt
+        contents: prompt,
+        signal: abortSignal,
     };
     
     modelConfig.config = {

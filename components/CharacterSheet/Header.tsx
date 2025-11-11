@@ -1,5 +1,5 @@
 import React, { useCallback, useMemo } from 'react';
-import { PlayerCharacter, NPC, GameSettings } from '../../types';
+import { PlayerCharacter, NPC, GameSettings, ImageCacheEntry } from '../../types';
 import { useLocalization } from '../../context/LocalizationContext';
 import ImageRenderer from '../ImageRenderer';
 import EditableField from '../DetailRenderer/Shared/EditableField';
@@ -21,11 +21,12 @@ interface CharacterSheetHeaderProps {
     onOpenImageModal: (prompt: string, originalTextPrompt: string, onClearCustom?: () => void, onUpload?: (base64: string) => void) => void;
     updatePlayerPortrait?: (playerId: string, portraitData: { prompt?: string | null; custom?: string | null; }) => void;
     updateNpcPortrait?: (npcId: string, portraitData: { prompt?: string | null; custom?: string | null; }) => void;
-    imageCache: Record<string, string>;
-    onImageGenerated: (prompt: string, base64: string) => void;
+    imageCache: Record<string, ImageCacheEntry>;
+    onImageGenerated: (prompt: string, src: string, sourceProvider: ImageCacheEntry['sourceProvider'], sourceModel?: string) => void;
     gameSettings: GameSettings;
     onOpenDetailModal: (title: string, data: any) => void;
     onSwitchView: (view: string) => void;
+    isLoading: boolean;
 }
 
 const CharacterSheetHeader: React.FC<CharacterSheetHeaderProps> = ({
@@ -41,7 +42,8 @@ const CharacterSheetHeader: React.FC<CharacterSheetHeaderProps> = ({
     onImageGenerated,
     gameSettings,
     onOpenDetailModal,
-    onSwitchView
+    onSwitchView,
+    isLoading
 }) => {
     const { t } = useLocalization();
     const isPlayer = 'playerId' in character;
@@ -49,26 +51,22 @@ const CharacterSheetHeader: React.FC<CharacterSheetHeaderProps> = ({
 
     const portraitPrompt = useMemo(() => {
         if (isPlayer) {
-            return (character as PlayerCharacter).portrait || character.appearanceDescription;
+            return (character as PlayerCharacter).portrait || (character as PlayerCharacter).image_prompt;
         } else {
-            return (character as NPC).custom_image_prompt || (character as NPC).image_prompt || character.appearanceDescription;
+            return (character as NPC).custom_image_prompt || (character as NPC).image_prompt;
         }
     }, [character, isPlayer]);
     
     const originalImagePrompt = useMemo(() => {
         if (isPlayer) {
-            const pcPortrait = (character as PlayerCharacter).portrait;
-            if (pcPortrait && !pcPortrait.startsWith('custom-portrait-')) {
-                return pcPortrait;
-            }
-            return character.appearanceDescription;
+            return (character as PlayerCharacter).image_prompt;
         } else {
-            return (character as NPC).image_prompt || character.appearanceDescription;
+            return (character as NPC).image_prompt;
         }
     }, [character, isPlayer]);
 
     const handleOpenModal = useCallback(() => {
-        if (!onOpenImageModal || !portraitPrompt) return;
+        if (isLoading || !onOpenImageModal || !portraitPrompt) return;
 
         let onClearCustom: (() => void) | undefined;
         let onUpload: ((base64: string) => void) | undefined;
@@ -83,7 +81,7 @@ const CharacterSheetHeader: React.FC<CharacterSheetHeaderProps> = ({
         }
         
         onOpenImageModal(portraitPrompt, originalImagePrompt || portraitPrompt, onClearCustom, onUpload);
-    }, [character, isPlayer, onOpenImageModal, portraitPrompt, originalImagePrompt, updatePlayerPortrait, updateNpcPortrait]);
+    }, [character, isPlayer, onOpenImageModal, portraitPrompt, originalImagePrompt, updatePlayerPortrait, updateNpcPortrait, isLoading]);
 
 
     const handleNameSave = (val: any) => {
@@ -130,7 +128,7 @@ const CharacterSheetHeader: React.FC<CharacterSheetHeaderProps> = ({
                 name: t('Experience'),
                 value: `${(character as PlayerCharacter).experience} / ${(character as PlayerCharacter).experienceForNextLevel}`,
                 breakdown: [
-                    { label: t('Formula for Next Level'), value: `floor(100 * (Lvl ^ 2.5))` }
+                    { label: t('Formula for Next Level'), value: 'floor(100 * (Lvl ^ 2.5))' }
                 ],
                 description: t('primary_stat_description_experience')
             });
@@ -175,17 +173,17 @@ const CharacterSheetHeader: React.FC<CharacterSheetHeaderProps> = ({
         <div className="grid grid-cols-[208px_1fr] gap-x-6 items-start">
             {/* Left Column: Avatar */}
             <div className="w-52 h-72 rounded-md overflow-hidden bg-gray-900 group relative cursor-pointer flex-shrink-0" onClick={handleOpenModal}>
-                <ImageRenderer
-                    prompt={portraitPrompt || character.appearanceDescription}
+                <ImageRenderer 
+                    prompt={portraitPrompt} 
                     originalTextPrompt={originalImagePrompt}
-                    alt={character.name}
+                    alt={character.name} 
                     className="w-full h-full object-cover"
-                    imageCache={imageCache}
-                    onImageGenerated={onImageGenerated}
-                    width={512}
+                    imageCache={imageCache} 
+                    onImageGenerated={onImageGenerated} 
+                    width={512} 
                     height={768}
-                    model={gameSettings?.pollinationsImageModel}
                     gameSettings={gameSettings}
+                    gameIsLoading={isLoading}
                 />
             </div>
 

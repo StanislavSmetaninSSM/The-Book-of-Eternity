@@ -1,5 +1,4 @@
-
-import React, {useState} from 'react';
+import React from 'react';
 import { Wound } from '../../types';
 import { DetailRendererProps } from './types';
 import Section from './Shared/Section';
@@ -8,17 +7,15 @@ import EffectDetailsRenderer from '../DetailRenderer/EffectDetailsRenderer';
 import MarkdownRenderer from '../MarkdownRenderer';
 import { useLocalization } from '../../context/LocalizationContext';
 import {
-    InformationCircleIcon, ExclamationTriangleIcon, HeartIcon, ShieldExclamationIcon, TrashIcon, CogIcon
+    InformationCircleIcon, ExclamationTriangleIcon, HeartIcon, ShieldExclamationIcon
 } from '@heroicons/react/24/outline';
-import ConfirmationModal from '../ConfirmationModal';
 
 interface WoundDetailsProps extends Omit<DetailRendererProps, 'data'> {
   wound: Wound & { characterType?: 'player' | 'npc', characterId?: string | null };
 }
 
-const WoundDetailsRenderer: React.FC<WoundDetailsProps> = ({ wound, allowHistoryManipulation, forgetActiveWound, forgetHealedWound, clearAllHealedWounds }) => {
+const WoundDetailsRenderer: React.FC<WoundDetailsProps> = ({ wound }) => {
     const { t } = useLocalization();
-    const [isForgetConfirmOpen, setIsForgetConfirmOpen] = useState(false);
     const healing = wound.healingState;
     const progressPercentage = healing && healing.progressNeeded > 0 ? (healing.treatmentProgress / healing.progressNeeded) * 100 : 0;
     
@@ -26,13 +23,6 @@ const WoundDetailsRenderer: React.FC<WoundDetailsProps> = ({ wound, allowHistory
         ? wound.generatedEffects.filter(effect => effect) 
         : [];
     
-    const handleForgetConfirm = () => {
-        if (forgetActiveWound && wound.woundId && wound.characterType) {
-            forgetActiveWound(wound.characterType, wound.characterId || null, wound.woundId);
-        }
-        setIsForgetConfirmOpen(false);
-    };
-
     return (
         <>
             <div className="space-y-4">
@@ -86,26 +76,7 @@ const WoundDetailsRenderer: React.FC<WoundDetailsProps> = ({ wound, allowHistory
                         </div>
                     </Section>
                 )}
-                 {allowHistoryManipulation && forgetActiveWound && wound.woundId && (
-                    <Section title={t("Actions")} icon={CogIcon}>
-                        <button
-                            onClick={() => setIsForgetConfirmOpen(true)}
-                            className="w-full flex items-center justify-center gap-2 px-4 py-2 text-sm font-semibold text-red-300 bg-red-600/20 rounded-md hover:bg-red-600/40 transition-colors"
-                        >
-                            <TrashIcon className="w-5 h-5" />
-                            {t("Forget Active Wound")}
-                        </button>
-                    </Section>
-                )}
             </div>
-             <ConfirmationModal
-                isOpen={isForgetConfirmOpen}
-                onClose={() => setIsForgetConfirmOpen(false)}
-                onConfirm={handleForgetConfirm}
-                title={t("Forget Active Wound")}
-            >
-                <p>{t('forget_active_wound_confirm')}</p>
-            </ConfirmationModal>
         </>
     );
 };

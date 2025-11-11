@@ -1,14 +1,13 @@
 import React from 'react';
-import { NPC, GameSettings } from '../../types';
+import { NPC, GameSettings, ImageCacheEntry } from '../../types';
 import FateCardDetailsRenderer from '../DetailRenderer/Shared/FateCardDetailsRenderer';
 
 interface FateViewProps {
     character: NPC;
     isPlayer: boolean;
-    // FIX: Updated the onOpenImageModal signature to match the more detailed version used throughout the app.
     onOpenImageModal: (displayPrompt: string, originalTextPrompt: string, onClearCustom?: () => void, onUpload?: (base64: string) => void) => void;
-    imageCache: Record<string, string>;
-    onImageGenerated: (prompt: string, base64: string) => void;
+    imageCache: Record<string, ImageCacheEntry>;
+    onImageGenerated: (prompt: string, src: string, sourceProvider: ImageCacheEntry['sourceProvider'], sourceModel?: string) => void;
     gameSettings: GameSettings | null;
 }
 
@@ -40,7 +39,6 @@ const FateView: React.FC<FateViewProps> = ({
                         onOpenImageModal={openCardImageModal}
                         imageCache={imageCache}
                         onImageGenerated={onImageGenerated}
-                        model={gameSettings?.pollinationsImageModel}
                         gameSettings={gameSettings}
                     />
                 );

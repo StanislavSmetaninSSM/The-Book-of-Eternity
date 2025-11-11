@@ -1,4 +1,3 @@
-
 export const item = {
   en: {
     // Item Details
@@ -66,6 +65,8 @@ export const item = {
     "no_text_content_item": "This item has no readable text content.",
     "Are you sure you want to delete all text content for this item? This cannot be undone.": "Are you sure you want to delete all text content for this item? This cannot be undone.",
     "Are you sure you want to delete the {count} oldest text entries for {name}?": "Are you sure you want to delete the {count} oldest text entries for {name}?",
+    "no_journal_entries_item": "This item has no journal entries.",
+    "Are you sure you want to delete all journal entries for this item? This cannot be undone.": "Are you sure you want to delete all journal entries for this item? This cannot be undone.",
 
     // Inventory Screen
     "Inventory & Equipment": "Inventory & Equipment",
@@ -142,7 +143,6 @@ export const item = {
     "Your inventory": "Your inventory",
     "crafting_no_recipes": "You do not know any recipes yet. You might learn them from books, trainers, or through practice with Knowledge-Based skills.",
     
-    "primary_stat_description_weight": "**Total Weight:** The combined mass of all items you are currently carrying.\\n\\n**Max Weight (Overload Threshold):** This is your normal carrying capacity, determined primarily by your Strength. When your Total Weight exceeds this value, you become **Overloaded**.\\n\\n**Overload Penalty:** While Overloaded, you will constantly lose Energy each turn due to the extra exertion.\\n\\n**Critical Weight:** This represents your absolute physical limit (Max Weight + a small buffer). You cannot pick up any more items if doing so would exceed this critical limit.",
     "kg_short": "kg",
     "equipmentBonusTooltip": "Bonus from equipped items.",
     "Core Properties": "Core Properties",
@@ -154,8 +154,7 @@ export const item = {
     "Default prompt from AI:": "Default prompt from AI:",
     "Combat Effects": "Combat Effects",
     "Group": "Group",
-    "no_journal_entries_item": "This item has no journal entries.",
-    "Are you sure you want to delete all journal entries for this item? This cannot be undone.": "Are you sure you want to delete all journal entries for this item? This cannot be undone.",
+    "journal_entries_item_tooltip": "This sentient item has its own thoughts and memories. Explore its journal to learn more.",
 
     // New Localized Keys for Item Detail Menu
     "item_menu_title": "Item Menu",
@@ -249,6 +248,8 @@ export const item = {
     "no_text_content_item": "У этого предмета нет читаемого текстового содержимого.",
     "Are you sure you want to delete all text content for this item? This cannot be undone.": "Вы уверены, что хотите удалить всё текстовое содержимое этого предмета? Это действие необратимо.",
     "Are you sure you want to delete the {count} oldest text entries for {name}?": "Вы уверены, что хотите удалить {count} старейших записей для предмета {name}?",
+    "no_journal_entries_item": "У этого предмета нет записей в журнале.",
+    "Are you sure you want to delete all journal entries for this item? This cannot be undone.": "Вы уверены, что хотите удалить все записи журнала для этого предмета? Это действие необратимо.",
 
     // Inventory Screen
     "Inventory & Equipment": "Инвентарь и снаряжение",
@@ -325,7 +326,6 @@ export const item = {
     "Your inventory": "Ваш инвентарь",
     "crafting_no_recipes": "Вы еще не знаете ни одного рецепта. Вы можете изучить их из книг, у тренеров или практикуясь с навыками, основанными на знаниях.",
     
-    "primary_stat_description_weight": "**Общий вес:** Суммарная масса всех предметов, которые несет персонаж.\\n\\n**Макс. вес (Порог перегрузки):** Ваша обычная грузоподъемность, определяемая в основном вашей Силой. Когда ваш Общий вес превышает это значение, вы становитесь **перегруженным**.\\n\\n**Штраф за перегрузку:** В состоянии перегрузки вы будете постоянно терять Энергию каждый ход из-за дополнительного напряжения.\\n\\n**Критический вес:** Ваш абсолютный физический предел (Макс. вес + небольшой буфер). Вы не сможете поднять ни одного предмета, если это приведет к превышению этого критического лимита.",
     "kg_short": "кг",
     "equipmentBonusTooltip": "Бонус от экипированных предметов.",
     "Core Properties": "Основные свойства",
@@ -337,8 +337,7 @@ export const item = {
     "Default prompt from AI:": "Стандартный промпт от ИИ:",
     "Combat Effects": "Боевые эффекты",
     "Group": "Группа",
-    "no_journal_entries_item": "У этого предмета нет записей в журнале.",
-    "Are you sure you want to delete all journal entries for this item? This cannot be undone.": "Вы уверены, что хотите удалить все записи журнала для этого предмета? Это действие необратимо.",
+    "journal_entries_item_tooltip": "У этого разумного предмета есть свои мысли и воспоминания. Изучите его журнал, чтобы узнать больше.",
 
     // New Localized Keys for Item Detail Menu
     "item_menu_title": "Меню предмета",
@@ -365,5 +364,6 @@ export const item = {
     // Item Groups & Types
     "Material": "Материал",
     "CraftingMaterial": "Материал для ремесла",
+    "Move to Inventory": "Переместить в инвентарь",
   }
 }

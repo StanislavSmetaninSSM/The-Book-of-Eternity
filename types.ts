@@ -8,8 +8,20 @@ export interface Calendar {
   startingYear: number;
   months: Month[];
   daysInWeek: number;
+
   dayNames: string[];
 }
+
+export type ImageGenerationSource = 
+  { provider: 'pollinations'; model: 'flux' | 'turbo' | 'gptimage'; } |
+  { provider: 'nanobanana'; } |
+  { provider: 'imagen'; };
+
+export type ImageCacheEntry = {
+  src: string;
+  sourceProvider: 'Pollinations.ai' | 'Nano Banana' | 'Imagen' | 'Custom Upload';
+  sourceModel?: string;
+};
 
 export interface GameSettings {
   nonMagicMode: boolean;
@@ -49,10 +61,13 @@ export interface GameSettings {
     shareInventory: boolean;
   };
   doNotUseWorldEvents: boolean;
-  pollinationsImageModel: 'flux' | 'turbo' | 'gptimage';
-  useNanoBananaPrimary?: boolean;
-  useNanoBananaFallback?: boolean;
+  imageGenerationModelPipeline: ImageGenerationSource[];
   useGoogleSearch?: boolean;
+  showImageSourceInfo?: boolean;
+  // FIX: Add missing properties for backward compatibility and image generation settings.
+  pollinationsImageModel?: 'flux' | 'turbo' | 'gptimage' | 'kontext';
+  useNanoBananaFallback?: boolean;
+  useNanoBananaPrimary?: boolean;
 }
 
 export interface WorldState {
@@ -200,7 +215,6 @@ export interface SkillMastery {
     currentMasteryLevel: number;
     currentMasteryProgress: number;
     masteryProgressNeeded: number;
-    maxMasteryLevel: number;
 }
 
 export interface SkillMasteryChange {
@@ -208,7 +222,6 @@ export interface SkillMasteryChange {
     newMasteryLevel?: number;
     newCurrentMasteryProgress?: number;
     newMasteryProgressNeeded?: number;
-    newMaxMasteryLevel?: number;
     masteryLeveledUp?: boolean;
 }
 
@@ -278,6 +291,7 @@ export interface PlayerCharacter {
     raceDescription: string;
     classDescription: string;
     portrait: string | null;
+    image_prompt: string | null;
     level: number;
     levelOnPreviousTurn: number;
     experience: number;
@@ -314,6 +328,7 @@ export interface PlayerCharacter {
     effortTracker: EffortTracker;
     personalNpcReputations?: any[];
     personalFactionReputations?: any[];
+    characterChronicle?: (string | null)[];
 }
 
 export interface LocationStorage {
@@ -759,7 +774,6 @@ export interface NPCSkillMasteryChange {
     newMasteryLevel?: number;
     newCurrentMasteryProgress?: number;
     newMasteryProgressNeeded?: number;
-    newMaxMasteryLevel?: number;
 }
 
 export interface NPCPassiveSkillMasteryChange {
@@ -773,7 +787,8 @@ export interface NPCPassiveSkillMasteryChange {
 export interface NPCEffectChange {
     NPCId: string | null;
     NPCName: string;
-    effectsApplied: (Partial<Effect> & { effectId?: string | null })[];
+    effectsApplied?: (Partial<Effect> & { effectId?: string | null })[];
+    effectsToRemove?: string[];
 }
 
 export interface NPCInventoryAdd {
@@ -808,9 +823,12 @@ export interface NPCEquipmentChange {
 export interface NPCInventoryResourceChange {
     NPCId: string | null;
     NPCName: string;
-    itemId: string;
+    itemId: string | null;
     itemName: string;
-    newResourceValue: number;
+    newResourceValue?: number;
+    resource?: number;
+    maximumResource?: number;
+    resourceType?: string;
 }
 
 export interface NPCCustomStateChange {
@@ -891,6 +909,25 @@ interface LocationUpdate {
     locationStorages?: LocationStorage[];
 }
 
+export interface StorageUpdatePayload {
+  newName?: string;
+  newDescription?: string;
+  newCapacity?: number | null;
+  newOwner?: LocationStorage['owner'];
+  [key: string]: any;
+}
+
+export interface StorageUpdate {
+  targetLocationId: string;
+  storageId: string;
+  update: StorageUpdatePayload;
+}
+
+export interface StorageRemoval {
+  targetLocationId: string;
+  storageId: string;
+}
+
 interface WorldMapUpdates {
     newLocations?: Partial<Location>[];
     newLinks?: { sourceLocationId: string; link: AdjacencyMapEntry }[];
@@ -901,6 +938,8 @@ interface WorldMapUpdates {
     threatsToUpdate?: { targetLocationId: string, threatUpdate: Partial<ActiveThreat> & { threatId: string } }[];
     threatsToRemove?: { targetLocationId: string, threatId: string }[];
     completeThreatActivities?: CompleteThreatActivity[];
+    storageUpdates?: StorageUpdate[];
+    storagesToRemove?: StorageRemoval[];
 }
 
 export interface FactionRankBranchChange {
@@ -965,6 +1004,7 @@ export interface GameResponse {
     updateFactionProgressionTracker?: { newLastFactionProgressionTimeInMinutes: number };
     playerStatus?: any;
     worldStateFlags?: WorldStateFlag[];
+    removeWorldStateFlags?: string[];
     worldEventsLog?: WorldEvent[];
     plotOutline?: PlotOutline;
     worldMapUpdates?: WorldMapUpdates;
@@ -998,7 +1038,7 @@ export interface GameResponse {
     NPCEquipmentChanges?: NPCEquipmentChange[];
     itemFateCardUnlocks?: { itemId: string; cardId: string; cardName: string }[];
     itemBondLevelChanges?: { itemId: string; itemName: string; newBondLevel: number; changeReason: string }[];
-    itemJournalUpdates?: { itemId: string; itemName: string; entryToAppend: string }[];
+    itemJournalUpdates?: { itemId: string | null; initialItemId?: string; itemName: string; entryToAppend: string }[];
     playerAppearanceChange?: string | null;
     playerRaceChange?: string | null;
     playerRaceDescriptionChange?: string | null;
@@ -1018,6 +1058,7 @@ export interface GameResponse {
     equipmentChanges?: EquipmentChange[];
     inventoryItemsResources?: ItemResourceChange[];
     moveInventoryItems?: ItemMove[];
+    characterChronicleUpdates?: { entryToAppend: string }[];
 }
 
 export interface CollectiveActionState {
@@ -1067,7 +1108,7 @@ export interface GameState {
     temporaryStash?: Item[];
     worldStateFlags: WorldStateFlag[];
     worldEventsLog: WorldEvent[];
-    imageCache: Record<string, string>;
+    imageCache: Record<string, ImageCacheEntry>;
     lastUpdatedQuestId?: string | null;
     npcSortOrder?: string[];
     NPCsInScene?: boolean;
@@ -1235,5 +1276,4 @@ export interface FullSyncPayload {
   saveFile: SaveFile;
 }
 
-// FIX: Changed String to string
 export const isWound = (d: any): d is (Wound & { type: 'wound', characterType: 'player' | 'npc', characterId: string | null }) => d && typeof d === 'object' && !Array.isArray(d) && d.type === 'wound';

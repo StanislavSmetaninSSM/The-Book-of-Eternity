@@ -98,6 +98,7 @@ export const common = {
     "Repeat last message": "Repeat last message",
     "Waiting for game synchronization...": "Waiting for game synchronization...",
     "Are you sure you want to delete this message?": "Are you sure you want to delete this message?",
+    "Generated image": "Generated image",
     ...ui_overrides.en
   },
   ru: {
@@ -196,6 +197,7 @@ export const common = {
     "Repeat last message": "Повторить последнее сообщение",
     "Waiting for game synchronization...": "Ожидание синхронизации с игрой...",
     "Are you sure you want to delete this message?": "Вы уверены, что хотите удалить это сообщение?",
+    "Generated image": "Сгенерированное изображение",
     ...ui_overrides.ru
   }
 }

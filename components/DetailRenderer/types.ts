@@ -1,4 +1,4 @@
-import { Item, Quest, NPC, Location, PlayerCharacter, Faction, GameSettings, Wound, UnlockedMemory, WorldEvent, CompletedActivity, LocationStorage, Project, ActiveThreat } from '../../types';
+import { Item, Quest, NPC, Location, PlayerCharacter, Faction, GameSettings, Wound, UnlockedMemory, WorldEvent, CompletedActivity, LocationStorage, Project, ActiveThreat, ImageCacheEntry } from '../../types';
 
 export interface WoundDetailsProps extends Omit<DetailRendererProps, 'data'> {
     wound: Wound & { characterType?: 'player' | 'npc', characterId?: string | null };
@@ -32,8 +32,8 @@ export interface DetailRendererProps {
     onRegenerateId?: (entity: any, entityType: string) => void;
     encounteredFactions?: Faction[];
     gameSettings: GameSettings | null;
-    imageCache: Record<string, string>;
-    onImageGenerated: (prompt: string, base64: string) => void;
+    imageCache: Record<string, ImageCacheEntry>;
+    onImageGenerated: (prompt: string, src: string, sourceProvider: ImageCacheEntry['sourceProvider'], sourceModel?: string) => void;
     forgetHealedWound: (characterType: 'player' | 'npc', characterId: string | null, woundId: string) => void;
     forgetActiveWound: (characterType: 'player' | 'npc', characterId: string | null, woundId: string) => void;
     clearAllHealedWounds: (characterType: 'player' | 'npc', characterId: string | null) => void;
@@ -44,7 +44,6 @@ export interface DetailRendererProps {
     deleteWorldStateFlag?: (flagId: string) => void;
     onEditNpcMemory?: (npcId: string, memory: UnlockedMemory) => void;
     onDeleteNpcMemory?: (npcId: string, memoryId: string) => void;
-    // Companion interaction handlers
     handleTransferItem?: (sourceType: 'player' | 'npc', targetType: 'player' | 'npc', npcId: string, item: Item, quantity: number) => void;
     handleEquipItemForNpc?: (npcId: string, item: Item, slot: string) => void;
     handleUnequipItemForNpc?: (npcId: string, item: Item) => void;
@@ -62,6 +61,7 @@ export interface DetailRendererProps {
     clearAllCompletedFactionProjects?: (factionId: string) => void;
     deleteFactionProject?: (factionId: string, projectId: string) => void;
     deleteFactionCustomState?: (factionId: string, stateId: string) => void;
+    deleteFactionBonus?: (factionId: string, bonusIdentifier: string) => void;
     clearAllCompletedNpcActivities?: (npcId: string) => void;
     onDeleteCurrentActivity?: (npcId: string) => void;
     onDeleteCompletedActivity?: (npcId: string, activity: CompletedActivity) => void;
@@ -70,4 +70,6 @@ export interface DetailRendererProps {
     onOpenStorage: (locationId: string, storage: LocationStorage) => void;
     placeAsStorage?: (item: Item) => void;
     deleteLocationThreat?: (locationId: string, threatId: string) => void;
+    isLoading?: boolean;
+    deleteActiveEffect: (characterType: 'player' | 'npc', characterId: string | null, effectId: string) => void;
 }

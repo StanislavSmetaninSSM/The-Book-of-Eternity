@@ -1,12 +1,12 @@
 import React, { useState, useMemo } from 'react';
-import { ChatMessage } from '../types';
+import { ChatMessage } from './types';
 import { BookOpenIcon, ArrowPathIcon, PencilSquareIcon, SpeakerWaveIcon, StopCircleIcon } from '@heroicons/react/24/solid';
 import { XCircleIcon } from '@heroicons/react/24/outline';
-import MarkdownRenderer from './MarkdownRenderer';
-import { useLocalization } from '../context/LocalizationContext';
-import { useSpeech } from '../context/SpeechContext';
-import ConfirmationModal from './ConfirmationModal';
-import { stripMarkdown } from '../utils/textUtils';
+import MarkdownRenderer from 'components/MarkdownRenderer';
+import { useLocalization } from './context/LocalizationContext';
+import { useSpeech } from './context/SpeechContext';
+import ConfirmationModal from 'components/ConfirmationModal';
+import { stripMarkdown } from './utils/textUtils';
 
 interface ChatWindowProps {
   history: ChatMessage[];
@@ -17,9 +17,10 @@ interface ChatWindowProps {
   onShowEditModal: (index: number, message: ChatMessage) => void;
   allowHistoryManipulation: boolean;
   onRegenerate?: () => void;
+  isLoading: boolean;
 }
 
-export default function ChatWindow({ history, error, onDeleteMessage, onShowMessageModal, onResend, onShowEditModal, allowHistoryManipulation, onRegenerate }: ChatWindowProps): React.ReactNode {
+export default function ChatWindow({ history, error, onDeleteMessage, onShowMessageModal, onResend, onShowEditModal, allowHistoryManipulation, onRegenerate, isLoading }: ChatWindowProps): React.ReactNode {
   const { t } = useLocalization();
   const { speak, isSpeaking, currentlySpeakingText } = useSpeech();
   const chatEndRef = React.useRef<HTMLDivElement>(null);
@@ -63,8 +64,9 @@ export default function ChatWindow({ history, error, onDeleteMessage, onShowMess
               <div className="flex items-center self-center opacity-40 group-hover:opacity-100 transition-opacity mr-2 flex-shrink-0 pointer-events-auto space-x-1">
                 {isLastPlayerMessage && onRegenerate && (
                     <button 
-                      onClick={onRegenerate} 
-                      className="p-1 rounded-full text-gray-400 hover:bg-gray-700 hover:text-white"
+                      onClick={onRegenerate}
+                      disabled={isLoading}
+                      className="p-1 rounded-full text-gray-400 hover:bg-gray-700 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed"
                       aria-label={t("Regenerate response")}
                       title={t("Regenerate response")}
                     >
@@ -157,7 +159,8 @@ export default function ChatWindow({ history, error, onDeleteMessage, onShowMess
                 {onResend && (
                   <button
                     onClick={onResend}
-                    className="mt-2 flex items-center gap-2 px-3 py-1 text-xs font-semibold text-yellow-300 bg-yellow-600/20 rounded-md hover:bg-yellow-600/40 transition-colors"
+                    disabled={isLoading}
+                    className="mt-2 flex items-center gap-2 px-3 py-1 text-xs font-semibold text-yellow-300 bg-yellow-600/20 rounded-md hover:bg-yellow-600/40 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     <ArrowPathIcon className="w-4 h-4" />
                     {t("Repeat last action")}

@@ -1,6 +1,5 @@
-
 import React from 'react';
-import { Item, GameSettings } from '../../../types';
+import { Item, GameSettings, ImageCacheEntry } from '../../../types';
 import { qualityColorMap } from '../../DetailRenderer/utils';
 import ImageRenderer from '../../ImageRenderer';
 import { useLocalization } from '../../../context/LocalizationContext';
@@ -9,12 +8,13 @@ import { ExclamationTriangleIcon, MagnifyingGlassPlusIcon } from '@heroicons/rea
 interface ItemCardProps {
     item: Item;
     gameSettings: GameSettings | null;
-    imageCache: Record<string, string>;
-    onImageGenerated: (p: string, b: string) => void;
+    imageCache: Record<string, ImageCacheEntry>;
+    onImageGenerated: (prompt: string, src: string, sourceProvider: ImageCacheEntry['sourceProvider'], sourceModel?: string) => void;
     onOpenImageModal: (displayPrompt: string, originalTextPrompt: string, onClearCustom?: () => void, onUpload?: (base64: string) => void) => void;
+    gameIsLoading?: boolean;
 }
 
-const ItemCard: React.FC<ItemCardProps> = ({ item, gameSettings, imageCache, onImageGenerated, onOpenImageModal }) => {
+const ItemCard: React.FC<ItemCardProps> = ({ item, gameSettings, imageCache, onImageGenerated, onOpenImageModal, gameIsLoading }) => {
     const { t } = useLocalization();
     const isBroken = item.durability === '0%';
     const displayPrompt = item.custom_image_prompt || item.image_prompt || `game asset, inventory icon, ${item.quality} ${item.name}, fantasy art, plain background`;
@@ -31,14 +31,14 @@ const ItemCard: React.FC<ItemCardProps> = ({ item, gameSettings, imageCache, onI
             title={isBroken ? t("This item is broken and cannot be equipped.") : (typeof item.name === 'string' ? item.name : '')}
         >
             <ImageRenderer 
-                prompt={displayPrompt} 
+                prompt={displayPrompt}
                 originalTextPrompt={originalTextPrompt}
-                alt={item.name} 
-                className={`absolute inset-0 w-full h-full object-cover ${isBroken ? 'filter grayscale brightness-50' : ''}`} 
-                imageCache={imageCache} 
-                onImageGenerated={onImageGenerated} 
-                model={gameSettings?.pollinationsImageModel} 
+                alt={item.name}
+                className={`absolute inset-0 w-full h-full object-cover ${isBroken ? 'filter grayscale brightness-50' : ''}`}
+                imageCache={imageCache}
+                onImageGenerated={onImageGenerated}
                 gameSettings={gameSettings}
+                gameIsLoading={gameIsLoading}
             />
             {isBroken && (
                 <div className="absolute inset-0 bg-red-900/50 flex items-center justify-center pointer-events-none">

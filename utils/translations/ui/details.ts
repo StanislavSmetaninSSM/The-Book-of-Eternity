@@ -1,3 +1,4 @@
+
 export const details = {
   en: {
     // Common Detail View Titles
@@ -23,7 +24,7 @@ export const details = {
     "primary_stat_description_health": "Represents your character's vitality and life force. When it reaches 0, your character is knocked out or killed. It can be restored through rest, potions, or healing magic.",
     "primary_stat_description_energy": "Represents your character's physical and mental stamina. It is consumed by performing strenuous actions like using special skills, casting spells, or sprinting. It recovers over time through rest or with certain consumables.",
     "primary_stat_description_experience": "Experience Points (XP) are gained by overcoming challenges, completing quests, and making discoveries. Accumulating enough XP allows your character to level up, becoming more powerful and gaining new attribute points to spend.",
-    "primary_stat_description_weight": "**Total Weight:** The combined mass of all items you are currently carrying.\n\n**Max Weight (Overload Threshold):** This is your normal carrying capacity, determined primarily by your Strength. When your Total Weight exceeds this value, you become **Overloaded**.\n\n**Overload Penalty:** While Overloaded, you will constantly lose Energy each turn due to the extra exertion.\n\n**Critical Weight:** This represents your absolute physical limit (Max Weight + a small buffer). You cannot pick up any more items if doing so would exceed this critical limit.",
+    "primary_stat_description_weight": "**Total Weight:** The combined mass of all items you are currently carrying.\\n\\n**Max Weight (Overload Threshold):** This is your normal carrying capacity, determined primarily by your Strength. When your Total Weight exceeds this value, you become **Overloaded**.\\n\\n**Overload Penalty:** While Overloaded, you will constantly lose Energy each turn due to the extra exertion.\\n\\n**Critical Weight:** This represents your absolute physical limit (Max Weight + a small buffer). You cannot pick up any more items if doing so would exceed this critical limit.",
     "relationship_tier_implacable_foe": "Implacable Foe (-400 to -201)",
     "relationship_desc_implacable_foe": "The NPC will actively seek the player's destruction, even at great personal cost. They are an archenemy. No reconciliation is possible.",
     "relationship_tier_adversary": "Adversary (-200 to -51)",
@@ -110,7 +111,26 @@ export const details = {
     "Experience": "Experience",
     "Weight": "Weight",
     "Calculation Breakdown": "Calculation Breakdown",
-    "Vignette": "Vignette"
+    "Vignette": "Vignette",
+    "Click to view details about Health": "Click to view details about Health",
+    "Click to view details about Energy": "Click to view details about Energy",
+    "Click to view details about Experience": "Click to view details about Experience",
+    "Click to view details about Weight": "Click to view details about Weight",
+    "Click to view details about Relationship": "Click to view details about Relationship",
+    "Characteristic is at its maximum.": "Characteristic is at its maximum.",
+    "increase_characteristic": "Increase {name}",
+    "Power Profile Bonus": "Power Profile Bonus",
+    "Resource Bonus": "Resource Bonus",
+    "Custom State Power": "Custom State Power",
+    "has_associated_effects": "Has {count} associated effects",
+    "threshold_prefix": "Threshold:",
+    "trigger_label": "Trigger:",
+    "associated_effects_header": "Associated Effects",
+    "kg_short": "kg",
+    "Has {count} associated effects": "Has {count} associated effects",
+    "Threshold: {name}": "Threshold: {name}",
+    "Trigger": "Trigger",
+    "Associated Effects": "Associated Effects"
   },
   ru: {
     // Common Detail View Titles
@@ -136,7 +156,7 @@ export const details = {
     "primary_stat_description_health": "Отражает жизненную силу и витальность вашего персонажа. Когда этот показатель достигает 0, персонаж теряет сознание или погибает. Здоровье можно восстановить с помощью отдыха, зелий или исцеляющей магии.",
     "primary_stat_description_energy": "Отражает физическую и ментальную выносливость вашего персонажа. Энергия расходуется на выполнение напряженных действий, таких как использование особых навыков, сотворение заклинаний или бег. Восстанавливается со временем во время отдыха или с помощью определенных расходуемых предметов.",
     "primary_stat_description_experience": "Очки опыта (XP) зарабатываются за преодоление испытаний, выполнение квестов и совершение открытий. Накопление достаточного количества XP позволяет вашему персонажу повысить уровень, становясь сильнее и получая новые очки атрибутов для распределения.",
-    "primary_stat_description_weight": "**Общий вес:** Суммарная масса всех предметов, которые несет персонаж.\n\n**Макс. вес (Порог перегрузки):** Ваша обычная грузоподъемность, определяемая в основном вашей Силой. Когда ваш Общий вес превышает это значение, вы становитесь **перегруженным**.\n\n**Штраф за перегрузку:** В состоянии перегрузки вы будете постоянно терять Энергию каждый ход из-за дополнительного напряжения.\n\n**Критический вес:** Ваш абсолютный физический предел (Макс. вес + небольшой буфер). Вы не сможете поднять ни одного предмета, если это приведет к превышению этого критического лимита.",
+    "primary_stat_description_weight": "**Общий вес:** Суммарная масса всех предметов, которые несет персонаж.\\n\\n**Макс. вес (Порог перегрузки):** Ваша обычная грузоподъемность, определяемая в основном вашей Силой. Когда ваш Общий вес превышает это значение, вы становитесь **перегруженным**.\\n\\n**Штраф за перегрузку:** В состоянии перегрузки вы будете постоянно терять Энергию каждый ход из-за дополнительного напряжения.\\n\\n**Критический вес:** Ваш абсолютный физический предел (Макс. вес + небольшой буфер). Вы не сможете поднять ни одного предмета, если это приведет к превышению этого критического лимита.",
     "relationship_tier_implacable_foe": "Непримиримый враг (-400 до -201)",
     "relationship_desc_implacable_foe": "NPC будет активно стремиться к уничтожению игрока, даже ценой больших личных потерь. Он — заклятый враг. Примирение невозможно.",
     "relationship_tier_adversary": "Противник (-200 до -51)",
@@ -223,6 +243,25 @@ export const details = {
     "Experience": "Опыт",
     "Weight": "Вес",
     "Calculation Breakdown": "Детализация расчета",
-    "Vignette": "Зарисовка"
+    "Vignette": "Зарисовка",
+    "Click to view details about Health": "Нажмите, чтобы просмотреть подробности о Здоровье",
+    "Click to view details about Energy": "Нажмите, чтобы просмотреть подробности об Энергии",
+    "Click to view details about Experience": "Нажмите, чтобы просмотреть подробности об Опыте",
+    "Click to view details about Weight": "Нажмите, чтобы просмотреть подробности о Весе",
+    "Click to view details about Relationship": "Нажмите, чтобы просмотреть подробности об Отношениях",
+    "Characteristic is at its maximum.": "Характеристика достигла максимума.",
+    "increase_characteristic": "Увеличить {name}",
+    "Power Profile Bonus": "Бонус к профилю мощи",
+    "Resource Bonus": "Бонус к ресурсу",
+    "Custom State Power": "Сила особого состояния",
+    "has_associated_effects": "Имеет {count} связанных эффектов",
+    "threshold_prefix": "Порог:",
+    "trigger_label": "Триггер:",
+    "associated_effects_header": "СВЯЗАННЫЕ ЭФФЕКТЫ",
+    "kg_short": "кг",
+    "Has {count} associated effects": "Имеет {count} связанных эффектов",
+    "Threshold: {name}": "Порог: {name}",
+    "Trigger": "Триггер",
+    "Associated Effects": "СВЯЗАННЫЕ ЭФФЕКТЫ"
   }
-};
+}

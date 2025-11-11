@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
-// FIX: Add missing import for GameSettings
-import { Item, PlayerCharacter, GameSettings } from '../types';
+import { Item, PlayerCharacter, GameSettings, ImageCacheEntry } from '../types';
 import { useLocalization } from '../context/LocalizationContext';
 import { ArchiveBoxXMarkIcon, ExclamationTriangleIcon, TrashIcon, ArrowDownOnSquareIcon } from '@heroicons/react/24/outline';
 import ImageRenderer from './ImageRenderer';
@@ -11,8 +10,8 @@ interface StashViewProps {
   playerCharacter: PlayerCharacter;
   onTake: (item: Item, quantity: number) => void;
   onDrop: (item: Item) => void;
-  imageCache: Record<string, string>;
-  onImageGenerated: (prompt: string, base64: string) => void;
+  imageCache: Record<string, ImageCacheEntry>;
+  onImageGenerated: (prompt: string, src: string, sourceProvider: ImageCacheEntry['sourceProvider'], sourceModel?: string) => void;
   gameSettings: GameSettings | null;
 }
 
@@ -68,10 +67,10 @@ const StashView: React.FC<StashViewProps> = ({ stash, playerCharacter, onTake, o
                             <div className="w-12 h-12 rounded-md overflow-hidden flex-shrink-0 bg-gray-800">
                                 <ImageRenderer
                                     prompt={imagePrompt}
+                                    originalTextPrompt={item.image_prompt}
                                     alt={item.name}
                                     imageCache={imageCache}
                                     onImageGenerated={onImageGenerated}
-                                    model={gameSettings?.pollinationsImageModel}
                                     gameSettings={gameSettings}
                                 />
                             </div>

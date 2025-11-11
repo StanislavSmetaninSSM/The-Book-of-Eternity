@@ -1,5 +1,6 @@
 
 
+
 import React, { useState } from 'react';
 import { Item } from '../../../types';
 import EditableField from './EditableField';
@@ -151,7 +152,7 @@ const ItemJournalView: React.FC<ItemJournalViewProps> = ({ item, isAdminEditable
             )}
 
             <ConfirmationModal isOpen={entryToDelete !== null} onClose={() => setEntryToDelete(null)} onConfirm={handleDeleteEntryConfirm} title={t("Delete Entry")}><p>{t("Are you sure you want to delete this journal entry?")}</p></ConfirmationModal>
-            <ConfirmationModal isOpen={isClearAllConfirmOpen} onClose={() => setIsClearAllConfirmOpen(false)} onConfirm={handleClearAllConfirm} title={t("Clear All Entries")}><p>{t("Are you sure you want to delete all journal entries for this item? This cannot be undone.")}</p></ConfirmationModal>
+            <ConfirmationModal isOpen={isClearAllConfirmOpen} onClose={() => setIsClearAllConfirmOpen(false)} onConfirm={handleClearAllConfirm} title={t("Clear All Entries")}><p>{t("Are you sure you want to delete all journal entries for {name}? This cannot be undone.", { name: item.name })}</p></ConfirmationModal>
         </>
     );
 };

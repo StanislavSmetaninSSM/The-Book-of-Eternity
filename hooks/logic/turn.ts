@@ -1,7 +1,9 @@
 
 
+
+
 import React from 'react';
-import { GameState, GameContext, ChatMessage, GameResponse, WorldStateFlag, Location, NPC, PeerInfo, NetworkRole, GameSettings, NetworkMessage, SaveFile } from '../../types';
+import { GameState, GameContext, ChatMessage, GameResponse, WorldStateFlag, Location, NPC, PeerInfo, NetworkRole, GameSettings, NetworkMessage, SaveFile, Item } from '../types';
 import { executeTurn, askGmQuestion, getModelForStep, executeWorldProgression } from '../../utils/gemini';
 import { createInitialContext, buildNextContext } from '../../utils/gameContext';
 import { formatError } from '../../utils/errorUtils';
@@ -143,13 +145,58 @@ export const createTurnManager = (
             }
           
             setLastJsonResponse(JSON.stringify(finalResponse, null, 2));
-            setSceneImagePrompt(finalResponse.image_prompt);
+            if (finalResponse.image_prompt !== undefined && finalResponse.image_prompt !== null) {
+                setSceneImagePrompt(finalResponse.image_prompt);
+            }
             setSuggestedActions(finalResponse.dialogueOptions || []);
 
             const gmMessage: ChatMessage = { sender: 'gm', content: finalResponse.response || '' };
                       
             const { newState, logsToAdd, combatLogsToAdd } = processAndApplyResponse(finalResponse, baseState, context.gameSettings, t, true, context.currentTurnNumber);
             
+            if (finalResponse.itemJournalUpdates) {
+                asArray(finalResponse.itemJournalUpdates).forEach(update => {
+                    let itemFound = false;
+                    
+                    const findAndUpdate = (inventory: Item[]) => {
+                        if (itemFound || !inventory) return;
+            
+                        let item: Item | null = null;
+                        
+                        if (update.itemId) {
+                            item = inventory.find((i: Item) => i.existedId === update.itemId) || null;
+                        }
+                        
+                        if (!item && update.initialItemId) {
+                            item = inventory.find((i: Item) => i.initialId === update.initialItemId) || null;
+                        }
+            
+                        if (!item && update.itemName) {
+                            item = inventory.find((i: Item) => i.name === update.itemName && (!i.journalEntries || i.journalEntries.length === 0)) || inventory.find(i => i.name === update.itemName);
+                        }
+            
+                        if (item) {
+                            if (!Array.isArray(item.journalEntries)) {
+                                item.journalEntries = [];
+                            }
+                            item.journalEntries.unshift(update.entryToAppend);
+                            itemFound = true;
+                        }
+                    };
+            
+                    newState.players.forEach(p => {
+                        if (p?.inventory) findAndUpdate(p.inventory);
+                    });
+            
+                    if (!itemFound) {
+                        newState.encounteredNPCs.forEach(npc => {
+                            if (npc?.inventory) findAndUpdate(npc.inventory);
+                        });
+                    }
+                });
+            }
+
+
             if (newState.currentLocationData.initialId) {
                 newState.encounteredNPCs.forEach(npc => {
                     if (npc.initialLocationId === newState.currentLocationData.initialId) {
@@ -340,14 +387,14 @@ export const createTurnManager = (
     const askQuestion = async (question: string, image?: { data: string; mimeType: string; } | null) => {
         const baseState: GameState | null = gameStateRef.current;
         if (!gameContextRef.current || isLoading || !baseState) return;
-
+    
         if (packageSaveDataForTurn && setLastTurnSaveFile) {
             const saveData = packageSaveDataForTurn();
             if (saveData) {
                 setLastTurnSaveFile(saveData);
             }
         }
-
+    
         turnStartTimeRef.current = performance.now();
         setTurnTime(null);
         setCurrentStep(null);
@@ -361,23 +408,23 @@ export const createTurnManager = (
         setLastJsonResponse('');
         setSuggestedActions([]);
         abortControllerRef.current = new AbortController();
-
+    
         const questionMessage: ChatMessage = { sender: 'player', content: `[Question] ${question}` };
         const historyWithQuestion = [...gameHistory, questionMessage];
         setGameHistory(historyWithQuestion);
-
+    
+        const context = { 
+            ...gameContextRef.current, 
+            message: question,
+            image: image || null,
+            superInstructions: "The user is asking a question out-of-character. Answer it as the Game Master based on the rules and current state, then return to the game.",
+            currentStepFocus: 'StepQuestion_CorrectionAndClarification_TaskGuide',
+            partiallyGeneratedResponse: null,
+            responseHistory: historyWithQuestion.slice(-15)
+        };
+        setLastRequestJson(JSON.stringify(context, null, 2));
+        
         try {
-            const context = { 
-                ...gameContextRef.current, 
-                message: question,
-                image: image || null,
-                superInstructions: "The user is asking a question out-of-character. Answer it as the Game Master based on the rules and current state, then return to the game.",
-                currentStepFocus: 'StepQuestion_CorrectionAndClarification_TaskGuide',
-                partiallyGeneratedResponse: null,
-                responseHistory: historyWithQuestion.slice(-15)
-            };
-            setLastRequestJson(JSON.stringify(context, null, 2));
-            
             const onStepStart = (stepName: string, modelName: string) => {
               setCurrentStep(stepName);
               setCurrentModel(getModelForStep(stepName, context));
@@ -385,13 +432,13 @@ export const createTurnManager = (
             const onStreamingChunk = (text: string) => {
               setLastJsonResponse(text);
             };
-
+    
             const finalResponseRaw: GameResponse = await askGmQuestion(context, abortControllerRef.current.signal, onStreamingChunk, onStepStart);
             const finalResponse = deepStripModerationSymbols(finalResponseRaw);
             
             let finalMergedResponse = finalResponse;
             const gmMessage: ChatMessage = { sender: 'gm', content: finalResponse.response || '' };
-
+    
             if (finalResponse.generateWorldProgression === true) {
                 const wpContext = { ...context, responseHistory: [...historyWithQuestion, gmMessage] };
                 const wpResponseRaw = await executeWorldProgression(wpContext, abortControllerRef.current!.signal, onStreamingChunk, (r, s, m) => setLastJsonResponse(JSON.stringify(r, null, 2)), onStepStart);
@@ -400,23 +447,21 @@ export const createTurnManager = (
             }
             
             setLastJsonResponse(JSON.stringify(finalMergedResponse, null, 2));
-            if (finalMergedResponse.items_and_stat_calculations) {
-                setGameLog(asArray(finalMergedResponse.items_and_stat_calculations));
-            }
-
+    
             const { newState, logsToAdd, combatLogsToAdd } = processAndApplyResponse(finalMergedResponse as GameResponse, baseState, gameSettings, t, false, context.currentTurnNumber);
             const newHistoryWithAnswer = [...historyWithQuestion, gmMessage];
+            const newLogsForThisTurn = [...asArray(finalMergedResponse.items_and_stat_calculations), ...logsToAdd];
             
             const currentRole = baseState.networkRole;
-
+    
             if (currentRole === 'player') {
                 const nextContext = buildNextContext(context, finalMergedResponse as GameResponse, newState, newHistoryWithAnswer, false);
                 const newSaveData: SaveFile = {
                     gameContext: nextContext,
                     gameState: newState,
                     gameHistory: newHistoryWithAnswer,
-                    gameLog: [...gameLog, ...asArray(finalMergedResponse.items_and_stat_calculations), ...logsToAdd],
-                    combatLog: combatLog.concat(combatLogsToAdd),
+                    gameLog: [...gameLog, ...newLogsForThisTurn],
+                    combatLog: [...combatLog, ...combatLogsToAdd],
                     lastJsonResponse: JSON.stringify(finalMergedResponse, null, 2),
                     sceneImagePrompt: finalMergedResponse.image_prompt || null,
                     timestamp: new Date().toISOString()
@@ -429,22 +474,33 @@ export const createTurnManager = (
                         senderId: baseState.myPeerId!,
                     };
                     hostConnectionRef.current.send(message);
+                    
+                    // Optimistic update for UI responsiveness
                     setGameHistory(newHistoryWithAnswer);
+                    setGameLog(prev => [...prev, ...newLogsForThisTurn]);
+                    if (combatLogsToAdd.length > 0) {
+                        setCombatLog(prev => [...prev, ...combatLogsToAdd]);
+                    }
+                    gameContextRef.current = nextContext;
+                    setWorldMap(nextContext.worldMap);
+                    setVisitedLocations(nextContext.visitedLocations);
+                    setWorldState(nextContext.worldState);
+                    setTurnNumber(nextContext.currentTurnNumber);
+                    setGameState(newState);
+                    // isLoading remains true until sync from host
                 } else {
                     setError(t("connection_lost"));
                     setIsLoading(false);
                 }
-            } else {
-                if (logsToAdd.length > 0) {
-                  setGameLog(prev => [...prev, ...logsToAdd]);
-                }
+            } else { // Host or local
+                setGameLog(prev => [...prev, ...newLogsForThisTurn]);
                 if (combatLogsToAdd.length > 0) {
                     setCombatLog(prev => [...prev, ...combatLogsToAdd]);
                 }
                 
                 const nextContext = buildNextContext(context, finalMergedResponse as GameResponse, newState, newHistoryWithAnswer, false);
                 gameContextRef.current = nextContext;
-
+    
                 setGameHistory(newHistoryWithAnswer);
                 setWorldState(nextContext.worldState);
                 setWorldMap(nextContext.worldMap);
@@ -452,14 +508,14 @@ export const createTurnManager = (
                 setTurnNumber(nextContext.currentTurnNumber);
                 
                 setGameState(newState);
-
+    
                 if (currentRole === 'host') {
                     const newSaveData: SaveFile = {
                         gameContext: nextContext,
                         gameState: newState,
                         gameHistory: newHistoryWithAnswer,
-                        gameLog: [...(gameLog || []), ...asArray(finalMergedResponse.items_and_stat_calculations), ...logsToAdd],
-                        combatLog: combatLog.concat(combatLogsToAdd),
+                        gameLog: [...gameLog, ...newLogsForThisTurn],
+                        combatLog: [...combatLog, ...combatLogsToAdd],
                         lastJsonResponse: JSON.stringify(finalMergedResponse, null, 2),
                         sceneImagePrompt: finalMergedResponse.image_prompt || null,
                         timestamp: new Date().toISOString()
@@ -467,20 +523,21 @@ export const createTurnManager = (
                     broadcastFullSync(newSaveData);
                 }
             }
-
+          
         } catch (err: any) {
-            if (err.name !== 'AbortError') {
-                const formattedError = formatError(err);
-                setError(formattedError);
-                const systemMessage: ChatMessage = { sender: 'system', content: `Error: ${formattedError}` };
-                setGameHistory([...historyWithQuestion, systemMessage]);
-            }
+          if (err.name !== 'AbortError') {
+            const formattedError = formatError(err);
+            setError(formattedError);
+            const systemMessage: ChatMessage = { sender: 'system', content: `Error: ${formattedError}` };
+            setGameHistory([...historyWithQuestion, systemMessage]);
+          }
         } finally {
             if (gameStateRef.current?.networkRole !== 'player') {
                 setIsLoading(false);
                 if (turnStartTimeRef.current) {
                     const endTime = performance.now();
-                    setTurnTime(endTime - turnStartTimeRef.current);
+                    const elapsedTime = endTime - turnStartTimeRef.current;
+                    setTurnTime(elapsedTime);
                     turnStartTimeRef.current = null;
                 }
             }

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { PlayerCharacter, GameSettings } from '../types';
+import { PlayerCharacter, GameSettings, ImageCacheEntry } from '../types';
 import { useLocalization } from '../context/LocalizationContext';
 import { UserCircleIcon, ChevronUpIcon, ChevronDownIcon, BoltIcon } from '@heroicons/react/24/solid';
 import { ArrowsPointingOutIcon, ArrowsPointingInIcon } from '@heroicons/react/24/outline';
@@ -10,13 +10,14 @@ interface PartyStatusProps {
     activePlayerIndex: number;
     gameSettings: GameSettings | null;
     onPassTurn: () => void;
-    imageCache: Record<string, string>;
-    onImageGenerated: (prompt: string, base64: string) => void;
+    imageCache: Record<string, ImageCacheEntry>;
+    onImageGenerated: (prompt: string, src: string, sourceProvider: ImageCacheEntry['sourceProvider'], sourceModel?: string) => void;
     onOpenImageModal: (displayPrompt: string, originalTextPrompt: string, onClearCustom?: () => void, onUpload?: (base64: string) => void) => void;
     isFullScreen?: boolean;
     onExpandFullScreen?: () => void;
     onCollapseFullScreen?: () => void;
     updatePlayerPortrait?: (playerId: string, portraitData: { prompt?: string | null; custom?: string | null; }) => void;
+    isLoading?: boolean;
 }
 
 export const PartyStatus: React.FC<PartyStatusProps> = ({
@@ -30,25 +31,11 @@ export const PartyStatus: React.FC<PartyStatusProps> = ({
     isFullScreen = false,
     onExpandFullScreen,
     onCollapseFullScreen,
-    updatePlayerPortrait
+    updatePlayerPortrait,
+    isLoading
 }) => {
     const { t } = useLocalization();
     const [isExpanded, setIsExpanded] = useState(true);
-
-    // Track image cache changes to force re-renders when needed
-    const imageCacheKeys = useMemo(() => {
-        return Object.keys(imageCache).join(',');
-    }, [imageCache]);
-
-    // DEBUG: Log when players data changes
-    useEffect(() => {
-        console.log('PartyStatus: Players data updated', players.map(p => ({
-            id: p.playerId,
-            name: p.name,
-            portrait: p.portrait
-        })));
-        console.log('PartyStatus: imageCache keys:', Object.keys(imageCache));
-    }, [players, imageCacheKeys]);
 
     if (!players || players.length === 0) {
         return null;
@@ -104,35 +91,8 @@ export const PartyStatus: React.FC<PartyStatusProps> = ({
                         if (healthPercentage < 35) healthColorClass = 'bg-red-500';
                         else if (healthPercentage < 75) healthColorClass = 'bg-yellow-500';
 
-                        // FIX: Correct priority logic for image prompt
-                        // 1st priority: player.portrait (custom prompt)
-                        // 2nd priority: player.appearanceDescription (fallback)
-                        const imageSource = player.portrait || player.appearanceDescription;
-                        const originalPrompt = player.appearanceDescription;
-
-                        // Initialize portrait from appearanceDescription if portrait is null
-                        useEffect(() => {
-                            if (!player.portrait && player.appearanceDescription && updatePlayerPortrait) {
-                                console.log(`PartyStatus: Auto-initializing portrait for ${player.name} from appearanceDescription`);
-                                updatePlayerPortrait(player.playerId, { prompt: player.appearanceDescription });
-                            }
-                        }, [player.portrait, player.appearanceDescription, player.playerId, player.name, updatePlayerPortrait]);
-
-                        // Create a unique key that changes when portrait or cache changes
-                        const imageKey = `${player.playerId}-${imageSource}-${imageSource ? imageCache[imageSource] ? 'cached' : 'uncached' : 'none'}`;
-
-                        // DEBUG: Enhanced logging for portrait priority logic
-                        console.log(`PartyStatus: Player ${player.name} portrait logic:`, {
-                            playerId: player.playerId,
-                            customPortrait: player.portrait,
-                            fallbackAppearance: player.appearanceDescription,
-                            selectedImageSource: imageSource,
-                            isUsingCustom: !!player.portrait,
-                            isUsingFallback: !player.portrait && !!player.appearanceDescription,
-                            cacheKey: imageSource,
-                            cachedImage: imageSource ? !!imageCache[imageSource] : false,
-                            imageKey: imageKey
-                        });
+                        const imageSource = player.portrait || player.image_prompt;
+                        const originalPrompt = player.image_prompt;
 
                         const handleOpenPortraitModal = () => {
                             if (!imageSource) return;
@@ -145,7 +105,7 @@ export const PartyStatus: React.FC<PartyStatusProps> = ({
                                 onUpload = (base64) => updatePlayerPortrait(player.playerId, { custom: base64 });
                             }
 
-                            onOpenImageModal(imageSource, originalPrompt, onClearCustom, onUpload);
+                            onOpenImageModal(imageSource, originalPrompt || '', onClearCustom, onUpload);
                         };
 
                         return (
@@ -165,9 +125,9 @@ export const PartyStatus: React.FC<PartyStatusProps> = ({
                                     >
                                         {imageSource ? (
                                             <ImageRenderer
-                                                key={imageKey}
+                                                key={`${player.playerId}-${imageSource}`}
                                                 prompt={imageSource}
-                                                originalTextPrompt={originalPrompt}
+                                                originalTextPrompt={originalPrompt || ''}
                                                 alt={player.name}
                                                 imageCache={imageCache}
                                                 onImageGenerated={onImageGenerated}
@@ -176,6 +136,7 @@ export const PartyStatus: React.FC<PartyStatusProps> = ({
                                                 height={1024}
                                                 model={gameSettings?.pollinationsImageModel}
                                                 gameSettings={gameSettings}
+                                                gameIsLoading={isLoading}
                                             />
                                         ) : (
                                             <UserCircleIcon className="w-12 h-12 text-gray-400" />

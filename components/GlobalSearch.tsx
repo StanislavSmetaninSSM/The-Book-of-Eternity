@@ -25,6 +25,7 @@ interface GlobalSearchProps {
     gameState: GameState | null;
     visitedLocations: Location[];
     onOpenDetailModal: (title: string, data: any) => void;
+    isLoading: boolean;
 }
 
 const ResultIcon = ({ type }: { type: SearchResultItem['type'] }) => {
@@ -41,7 +42,7 @@ const ResultIcon = ({ type }: { type: SearchResultItem['type'] }) => {
 };
 
 
-export default function GlobalSearch({ gameState, visitedLocations, onOpenDetailModal }: GlobalSearchProps) {
+export default function GlobalSearch({ gameState, visitedLocations, onOpenDetailModal, isLoading }: GlobalSearchProps) {
     const [query, setQuery] = useState('');
     const [isFocused, setIsFocused] = useState(false);
     const searchRef = useRef<HTMLDivElement>(null);
@@ -151,7 +152,8 @@ export default function GlobalSearch({ gameState, visitedLocations, onOpenDetail
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
                     onFocus={() => setIsFocused(true)}
-                    className="w-full bg-gray-900/70 border border-gray-700 rounded-md py-2 pl-10 pr-8 text-gray-200 focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 transition shadow-inner"
+                    disabled={isLoading}
+                    className="w-full bg-gray-900/70 border border-gray-700 rounded-md py-2 pl-10 pr-8 text-gray-200 focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 transition shadow-inner disabled:opacity-50 disabled:cursor-not-allowed"
                 />
                 {query && (
                      <button onClick={() => setQuery('')} className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-gray-400 hover:text-white">

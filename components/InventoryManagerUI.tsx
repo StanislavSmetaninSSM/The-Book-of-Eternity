@@ -1,6 +1,5 @@
 import React, { useState, useMemo, useRef, useCallback, useEffect } from 'react';
-// FIX: Add GameState to import from types.
-import { Item, PlayerCharacter, NPC, GameSettings, GameState } from '../types';
+import { Item, PlayerCharacter, NPC, GameSettings, GameState, ImageCacheEntry } from '../types';
 import Modal from './Modal';
 import {
     AcademicCapIcon, 
@@ -17,11 +16,9 @@ import {
     HeartIcon,
     BoltIcon,
     ScaleIcon,
-    // FIX: Add missing ChevronUpIcon and ChevronDownIcon imports.
     ChevronUpIcon,
     ChevronDownIcon
 } from '@heroicons/react/24/outline';
-// FIX: Imported ArchiveBoxIcon as ArchiveBoxSolidIcon to resolve multiple 'Cannot find name' errors.
 import { ArrowsUpDownIcon, CheckIcon, ArchiveBoxIcon as ArchiveBoxSolidIcon } from '@heroicons/react/24/solid';
 import ItemCard from './CharacterSheet/Shared/ItemCard';
 import { useLocalization } from '../context/LocalizationContext';
@@ -46,11 +43,12 @@ interface InventoryManagerUIProps {
     onMergeItems: (sourceItem: Item, targetItem: Item) => void;
     onOpenDetailModal: (title: string, data: any) => void;
     onOpenImageModal: (displayPrompt: string, originalTextPrompt: string, onClearCustom?: () => void, onUpload?: (base64: string) => void) => void;
-    imageCache: Record<string, string>;
-    onImageGenerated: (prompt: string, base64: string) => void;
+    imageCache: Record<string, ImageCacheEntry>;
+    onImageGenerated: (prompt: string, src: string, sourceProvider: ImageCacheEntry['sourceProvider'], sourceModel?: string) => void;
     updateItemSortOrder: (newOrder: string[]) => void;
     updateItemSortSettings: (criteria: PlayerCharacter['itemSortCriteria'], direction: PlayerCharacter['itemSortDirection']) => void;
     gameSettings: GameSettings | null;
+    isLoading?: boolean;
 }
 
 const qualityOrder: Record<string, number> = {
@@ -63,10 +61,11 @@ const EquipmentSlotComponent: React.FC<{
     item: Item | null;
     onEquip: (item: Item, slot: string) => void;
     gameSettings: GameSettings | null;
-    imageCache: Record<string, string>;
-    onImageGenerated: (prompt: string, base64: string) => void;
+    imageCache: Record<string, ImageCacheEntry>;
+    onImageGenerated: (prompt: string, src: string, sourceProvider: ImageCacheEntry['sourceProvider'], sourceModel?: string) => void;
     onOpenImageModal: (displayPrompt: string, originalTextPrompt: string, onClearCustom?: () => void, onUpload?: (base64: string) => void) => void;
-}> = ({ slot, item, onEquip, gameSettings, imageCache, onImageGenerated, onOpenImageModal }) => {
+    isLoading?: boolean;
+}> = ({ slot, item, onEquip, gameSettings, imageCache, onImageGenerated, onOpenImageModal, isLoading }) => {
     const [isOver, setIsOver] = useState(false);
     const { t } = useLocalization();
     const Icon = slot.icon;
@@ -120,7 +119,7 @@ const EquipmentSlotComponent: React.FC<{
         >
             {item ? (
                 <div draggable onDragStart={handleDragStart} onDragEnd={handleDragEnd} className="cursor-pointer">
-                    <ItemCard item={item} gameSettings={gameSettings} imageCache={imageCache} onImageGenerated={onImageGenerated} onOpenImageModal={onOpenImageModal} />
+                    <ItemCard item={item} gameSettings={gameSettings} imageCache={imageCache} onImageGenerated={onImageGenerated} onOpenImageModal={onOpenImageModal} gameIsLoading={isLoading} />
                 </div>
             ) : (
                 <div className="text-center text-gray-500 pointer-events-none">
@@ -133,7 +132,7 @@ const EquipmentSlotComponent: React.FC<{
 };
 
 
-export default function InventoryManagerUI({ 
+const InventoryManagerUI: React.FC<InventoryManagerUIProps> = ({
     character,
     playerCharacter,
     isCompanionMode = false,
@@ -150,11 +149,13 @@ export default function InventoryManagerUI({
     onImageGenerated, 
     updateItemSortOrder,
     updateItemSortSettings,
-    gameSettings
-}: InventoryManagerUIProps) {
+    gameSettings,
+    isLoading
+}) => {
     const [contextMenu, setContextMenu] = useState<{ x: number, y: number, item: Item } | null>(null);
     const contextMenuRef = useRef<HTMLDivElement>(null);
     const [showEquipSubMenu, setShowEquipSubMenu] = useState(false);
+    const submenuTimeoutRef = useRef<number | null>(null);
 
     const [viewingContainer, setViewingContainer] = useState<Item | null>(null);
     const [splitItem, setSplitItem] = useState<Item | null>(null);
@@ -168,8 +169,21 @@ export default function InventoryManagerUI({
 
     const containerRef = useRef<HTMLDivElement>(null);
     const [topPanelFlexBasis, setTopPanelFlexBasis] = useState('40%');
-    // FIX: Add missing state for stats visibility toggle.
     const [isStatsVisible, setIsStatsVisible] = useState(true);
+
+    const handleEquipSubMenuEnter = useCallback(() => {
+        if (submenuTimeoutRef.current) {
+            clearTimeout(submenuTimeoutRef.current);
+        }
+        setShowEquipSubMenu(true);
+    }, []);
+
+    const handleEquipSubMenuLeave = useCallback(() => {
+        submenuTimeoutRef.current = window.setTimeout(() => {
+            setShowEquipSubMenu(false);
+        }, 200); // 200ms delay to allow moving to submenu
+    }, []);
+
 
     const startResize = useCallback((mouseDownEvent: React.MouseEvent) => {
         mouseDownEvent.preventDefault();
@@ -467,7 +481,8 @@ export default function InventoryManagerUI({
         const { item } = contextMenu;
         const isEquipped = item.existedId ? Object.values(character.equippedItems || {}).includes(item.existedId) : false;
         const canEquip = item.equipmentSlot && item.durability !== '0%';
-    
+        const isInsideContainer = item.contentsPath && item.contentsPath.length > 0;
+
         const handleUnequip = () => {
             onUnequip(item);
             closeContextMenu();
@@ -493,20 +508,34 @@ export default function InventoryManagerUI({
             closeContextMenu();
         };
     
+        const handleMoveToInventory = () => {
+            if (!contextMenu) return;
+            const { item } = contextMenu;
+            onMoveItem(item, null);
+            closeContextMenu();
+        };
+
         return (
             <div ref={contextMenuRef} className="context-menu animate-fade-in-down-fast" style={{ top: contextMenu.y, left: contextMenu.x }}>
                 <button onClick={handleDetails} className="context-menu-item">{t('Details')}</button>
+                {isInsideContainer && (
+                    <button onClick={handleMoveToInventory} className="context-menu-item">{t('Move to Inventory')}</button>
+                )}
                 {canEquip && !isEquipped && (
                     <div 
                         className="relative" 
-                        onMouseEnter={() => setShowEquipSubMenu(true)} 
-                        onMouseLeave={() => setShowEquipSubMenu(false)}
+                        onMouseEnter={handleEquipSubMenuEnter} 
+                        onMouseLeave={handleEquipSubMenuLeave}
                     >
                         <div className="context-menu-item context-menu-item-with-submenu block w-full text-left cursor-default">
                             {t('Equip')}
                         </div>
                         {showEquipSubMenu && (
-                            <div className="context-menu absolute left-full top-0 ml-1 z-10">
+                            <div 
+                                className="context-menu absolute left-full top-0 ml-1 z-10"
+                                onMouseEnter={handleEquipSubMenuEnter}
+                                onMouseLeave={handleEquipSubMenuLeave}
+                            >
                                 {(Array.isArray(item.equipmentSlot) ? item.equipmentSlot : [item.equipmentSlot]).map(slot => (
                                     slot && <button key={slot} onClick={() => handleEquip(slot)} className="context-menu-item">
                                         {t(slot as any)}
@@ -518,13 +547,13 @@ export default function InventoryManagerUI({
                 )}
                 {isEquipped && <button onClick={handleUnequip} className="context-menu-item">{t('Unequip')}</button>}
                 {!isCompanionMode && <button onClick={handleDrop} className="context-menu-item">{t('Drop')}</button>}
-                {isCompanionMode && <button onClick={handleDrop} className="context-menu-item">{t('Take Stack')}</button>}
-                {isCompanionMode && item.count > 1 && <button onClick={() => onGiveItem!(item, 1)} className="context-menu-item">{t('Take')} 1</button>}
-                {isCompanionMode && (
+                {isCompanionMode && onGiveItem && <button onClick={() => handleGive(item.count)} className="context-menu-item">{t('Take Stack')}</button>}
+                {isCompanionMode && item.count > 1 && onGiveItem && <button onClick={() => handleGive(1)} className="context-menu-item">{t('Take')} 1</button>}
+                {isCompanionMode && onGiveItem && (
                     <>
                         <div className="my-1 border-t border-gray-600" />
-                        <button onClick={() => onGiveItem!(item, item.count)} className="context-menu-item">{t('Give Stack')}</button>
-                        {item.count > 1 && <button onClick={() => onGiveItem!(item, 1)} className="context-menu-item">{t('Give')} 1</button>}
+                        <button onClick={() => handleGive(item.count)} className="context-menu-item">{t('Give Stack')}</button>
+                        {item.count > 1 && <button onClick={() => handleGive(1)} className="context-menu-item">{t('Give')} 1</button>}
                     </>
                 )}
             </div>
@@ -546,6 +575,7 @@ export default function InventoryManagerUI({
                                 imageCache={imageCache}
                                 onImageGenerated={onImageGenerated}
                                 onOpenImageModal={onOpenImageModal}
+                                isLoading={isLoading}
                             />
                         </div>
                     ))}
@@ -559,7 +589,7 @@ export default function InventoryManagerUI({
                             <h3 className="text-xl font-bold text-cyan-400 narrative-text text-center">{t('Carried Items')}</h3>
                              <div onDrop={handleDropOnInventory} onDragOver={allowDrop} className="inventory-scroll-container flex flex-col !p-0" style={{marginBottom: 0, marginTop: 0}}>
                                 <div className="flex-1 p-4 overflow-y-auto">
-                                    <div className="inventory-grid">{itemsToDisplay.map((item, index) => <div key={item.existedId} draggable={item.durability !== '0%'} onDragStart={(e) => handleItemDragStart(e, index, item)} onDragEnd={handleItemDragEnd} onDragEnter={isSorting ? () => (dragOverItemIndex.current = index) : undefined} onDragOver={(e) => e.preventDefault()} onDrop={(e) => handleDropOnItem(e, item)} onClick={() => { if (isSorting) return; if (item.isContainer) { setViewingContainer(item); } else { const detailData = { ...item, ownerType: 'npc', ownerId: 'NPCId' in character ? character.NPCId : '', isEquippedByOwner: 'NPCId' in character ? Object.values(character.equippedItems || {}).includes(item.existedId) : false }; onOpenDetailModal(t("Item: {name}", { name: item.name }), detailData); } }} onContextMenu={(e) => handleContextMenu(e, item)} className={`${isSorting ? 'cursor-move' : 'cursor-pointer'}`}><ItemCard item={item} gameSettings={gameSettings} imageCache={imageCache} onImageGenerated={onImageGenerated} onOpenImageModal={onOpenImageModal} /></div>)}</div>
+                                    <div className="inventory-grid">{itemsToDisplay.map((item, index) => <div key={item.existedId} draggable={item.durability !== '0%'} onDragStart={(e) => handleItemDragStart(e, index, item)} onDragEnd={handleItemDragEnd} onDragEnter={isSorting ? () => (dragOverItemIndex.current = index) : undefined} onDragOver={(e) => e.preventDefault()} onDrop={(e) => handleDropOnItem(e, item)} onClick={() => { if (isSorting) return; if (item.isContainer) { setViewingContainer(item); } else { const detailData = { ...item, ownerType: 'npc', ownerId: 'NPCId' in character ? character.NPCId : '', isEquippedByOwner: 'NPCId' in character ? Object.values(character.equippedItems || {}).includes(item.existedId) : false }; onOpenDetailModal(t("Item: {name}", { name: item.name }), detailData); } }} onContextMenu={(e) => handleContextMenu(e, item)} className={`${isSorting ? 'cursor-move' : 'cursor-pointer'}`}><ItemCard item={item} gameSettings={gameSettings} imageCache={imageCache} onImageGenerated={onImageGenerated} onOpenImageModal={onOpenImageModal} gameIsLoading={isLoading}/></div>)}</div>
                                     {itemsToDisplay.length === 0 && <p className="text-gray-500 text-center mt-16">{t('No carried items.')}</p>}
                                 </div>
                                 <div onDrop={handleDropOnDropZone} onDragOver={allowDrop} className={`p-4 mt-auto drop-zone`}>{React.createElement(dropZoneIcon, { className: "w-8 h-8 mx-auto mb-2" })}{dropZoneLabel}</div>
@@ -574,11 +604,11 @@ export default function InventoryManagerUI({
                                 <div className="inventory-grid">
                                     {playerUnequippedInventory.map(item => (<div key={item.existedId} className="flex flex-col items-center justify-start gap-2">
                                         <div onContextMenu={(e) => handleContextMenu(e, item)}>
-                                            <ItemCard item={item} gameSettings={gameSettings} imageCache={imageCache} onImageGenerated={onImageGenerated} onOpenImageModal={onOpenImageModal} />
+                                            <ItemCard item={item} gameSettings={gameSettings} imageCache={imageCache} onImageGenerated={onImageGenerated} onOpenImageModal={onOpenImageModal} gameIsLoading={isLoading} />
                                         </div>
-                                        <button onClick={() => onGiveItem?.(item, item.count)} className="w-full flex items-center justify-center gap-2 px-2 py-1.5 text-xs font-semibold rounded-md transition-colors bg-green-600/20 text-green-300 hover:bg-green-600/40" title={t('Give Item')}>
+                                        {onGiveItem && <button onClick={() => onGiveItem(item, item.count)} className="w-full flex items-center justify-center gap-2 px-2 py-1.5 text-xs font-semibold rounded-md transition-colors bg-green-600/20 text-green-300 hover:bg-green-600/40" title={t('Give Item')}>
                                             <ArrowUpOnSquareIcon className="w-4 h-4" /><span>{t('Give Item')}</span>
-                                        </button>
+                                        </button>}
                                     </div>))}
                                 </div>
                                 {playerUnequippedInventory.length === 0 && <p className="text-gray-500 text-center mt-16">{t('Your pockets are empty.')}</p>}
@@ -609,7 +639,7 @@ export default function InventoryManagerUI({
                             </div>
                         </div>
                         <div onDrop={handleDropOnInventory} onDragOver={allowDrop} className="inventory-scroll-container">
-                            <div className="inventory-grid">{itemsToDisplay.map((item, index) => <div key={item.existedId} draggable={item.durability !== '0%'} onDragStart={(e) => handleItemDragStart(e, index, item)} onDragEnd={handleItemDragEnd} onDragEnter={isSorting ? () => (dragOverItemIndex.current = index) : undefined} onDragOver={(e) => e.preventDefault()} onDrop={(e) => handleDropOnItem(e, item)} onClick={() => {if (isSorting) return; if (item.isContainer) {setViewingContainer(item);} else {onOpenDetailModal(t("Item: {name}", { name: item.name }), item);}}} onContextMenu={(e) => handleContextMenu(e, item)} className={`${isSorting ? 'cursor-move' : 'cursor-pointer'}`}><ItemCard item={item} gameSettings={gameSettings} imageCache={imageCache} onImageGenerated={onImageGenerated} onOpenImageModal={onOpenImageModal} /></div>)}</div>{itemsToDisplay.length === 0 && <p className="text-gray-500 text-center mt-16">{t('Your pockets are empty.')}</p>}
+                            <div className="inventory-grid">{itemsToDisplay.map((item, index) => <div key={item.existedId} draggable={item.durability !== '0%'} onDragStart={(e) => handleItemDragStart(e, index, item)} onDragEnd={handleItemDragEnd} onDragEnter={isSorting ? () => (dragOverItemIndex.current = index) : undefined} onDragOver={(e) => e.preventDefault()} onDrop={(e) => handleDropOnItem(e, item)} onClick={() => {if (isSorting) return; if (item.isContainer) {setViewingContainer(item);} else {onOpenDetailModal(t("Item: {name}", { name: item.name }), item);}}} onContextMenu={(e) => handleContextMenu(e, item)} className={`${isSorting ? 'cursor-move' : 'cursor-pointer'}`}><ItemCard item={item} gameSettings={gameSettings} imageCache={imageCache} onImageGenerated={onImageGenerated} onOpenImageModal={onOpenImageModal} gameIsLoading={isLoading}/></div>)}</div>{itemsToDisplay.length === 0 && <p className="text-gray-500 text-center mt-16">{t('Your pockets are empty.')}</p>}
                         </div>
 
                         <div className="character-stats-summary">
@@ -656,7 +686,7 @@ export default function InventoryManagerUI({
             {renderContextMenu()}
         </div>
     );
-}
+};
 
 interface InventoryScreenProps {
     gameState: GameState;
@@ -682,8 +712,8 @@ interface InventoryScreenProps {
     // Common actions
     onOpenDetailModal: (title: string, data: any) => void;
     onOpenImageModal: (displayPrompt: string, originalTextPrompt: string, onClearCustom?: () => void, onUpload?: (base64: string) => void) => void;
-    imageCache: Record<string, string>;
-    onImageGenerated: (prompt: string, base64: string) => void;
+    imageCache: Record<string, ImageCacheEntry>;
+    onImageGenerated: (prompt: string, src: string, sourceProvider: ImageCacheEntry['sourceProvider'], sourceModel?: string) => void;
     
     // Sorting
     updateItemSortOrder: (newOrder: string[]) => void;
@@ -692,6 +722,7 @@ interface InventoryScreenProps {
     updateNpcItemSortSettings: (npcId: string, criteria: PlayerCharacter['itemSortCriteria'], direction: PlayerCharacter['itemSortDirection']) => void;
     
     gameSettings: GameSettings | null;
+    isLoading?: boolean;
 }
 
 export const InventoryScreen: React.FC<Partial<InventoryScreenProps>> = ({ 
@@ -719,6 +750,7 @@ export const InventoryScreen: React.FC<Partial<InventoryScreenProps>> = ({
     updateItemSortSettings,
     updateNpcItemSortOrder,
     updateNpcItemSortSettings,
+    isLoading,
 }) => {
     const { t } = useLocalization();
     
@@ -730,6 +762,7 @@ export const InventoryScreen: React.FC<Partial<InventoryScreenProps>> = ({
         onOpenImageModal: onOpenImageModal!,
         imageCache: imageCache!,
         onImageGenerated: onImageGenerated!,
+        isLoading: isLoading,
     };
 
     if (npc) {
@@ -761,6 +794,7 @@ export const InventoryScreen: React.FC<Partial<InventoryScreenProps>> = ({
             <InventoryManagerUI
                 {...managerProps}
                 character={gameState.playerCharacter}
+                playerCharacter={gameState.playerCharacter}
                 onEquip={onEquip!}
                 onUnequip={onUnequip!}
                 onDropItem={onDropItem!}

@@ -53,6 +53,8 @@ const AboutContent: React.FC = () => {
                         <p className="font-semibold text-purple-400">{t('donator_muffin')}</p>
                         <p className="font-semibold" style={{ color: '#Ff00ff' }}>Weweshka</p>
                         <p className="font-semibold" style={{ color: '#208020' }}>Xenomorf</p>
+                        <p className="font-semibold" style={{ color: '#8C000F' }}>Xim</p>
+                        <p className="font-semibold" style={{ color: '#ff2400' }}>Catunja</p>
                     </div>
                     <p className="text-xs text-gray-400 italic pt-2">{t('donators_motivation')}</p>
                 </div>

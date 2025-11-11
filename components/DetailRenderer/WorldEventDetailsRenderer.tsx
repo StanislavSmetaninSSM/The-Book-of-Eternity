@@ -83,7 +83,6 @@ const WorldEventDetailsRenderer: React.FC<WorldEventDetailsProps> = ({ event, on
                         alt={event.headline}
                         imageCache={imageCache || {}}
                         onImageGenerated={onImageGenerated}
-                        model={gameSettings?.pollinationsImageModel}
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                         gameSettings={gameSettings}
                     />

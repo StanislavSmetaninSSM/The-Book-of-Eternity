@@ -21,6 +21,7 @@ export const skill = {
     "Ammo Type": "Ammo Type",
     "{duration} turns": "{duration} turns",
     "Combat Effect": "Combat Effect",
+    "Bonuses & Effects": "Bonuses & Effects",
 
     "Effect Scaling": "Effect Scaling",
     "Base Value/Duration": "Base Value / Duration",
@@ -32,6 +33,7 @@ export const skill = {
     "Final Scaled Duration": "Final Scaled Duration",
     "Final Scaled Chance": "Final Scaled Chance",
     "PassiveMasteryNote": "Note: For passive skills, the bonus from the current mastery level is already included in the skill's description and its effects.",
+    "active_skill_mastery_note": "Active skills do not have a maximum mastery level and can be improved indefinitely.",
 
     // Character Sheet - Skills
     "Active Skills": "Active Skills",
@@ -90,6 +92,7 @@ export const skill = {
     "Ammo Type": "Тип боеприпасов",
     "{duration} turns": "{duration} ходов",
     "Combat Effect": "Боевой эффект",
+    "Bonuses & Effects": "Бонусы и эффекты",
 
     "Effect Scaling": "Масштабирование эффекта",
     "Base Value/Duration": "Базовое значение / Длительность",
@@ -101,6 +104,7 @@ export const skill = {
     "Final Scaled Duration": "Итоговая длительность",
     "Final Scaled Chance": "Итоговый шанс",
     "PassiveMasteryNote": "Примечание: для пассивных навыков бонус от текущего уровня мастерства уже включен в описание навыка и его эффекты.",
+    "active_skill_mastery_note": "Активные навыки не имеют максимального уровня мастерства и могут улучшаться бесконечно.",
 
     // Character Sheet - Skills
     "Active Skills": "Активные навыки",

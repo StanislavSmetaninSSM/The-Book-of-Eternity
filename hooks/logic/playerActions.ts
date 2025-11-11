@@ -1,4 +1,3 @@
-
 import React from 'react';
 // FIX: Add missing imports for LocationStorage and Item
 import { GameState, ChatMessage, NPC, Faction, PlayerCharacter, Location, Quest, CustomState, WorldState, WorldStateFlag, UnlockedMemory, WorldEvent, Item, LocationStorage } from '../../types';
@@ -46,7 +45,7 @@ export const createPlayerActionsManager = (
             }
 
             pc.attributePoints -= 1;
-            pc.characteristics[standardKey] += 1;
+            (pc.characteristics[standardKey] as number) += 1;
             
             const updatedPc = recalculateDerivedStats(pc);
 
@@ -156,7 +155,6 @@ export const createPlayerActionsManager = (
         });
     };
 
-    // FIX: Updated function signature to accept a single updates object to support the new calendar system.
     const editWorldState = (updates: Partial<{ day: number, time: string, year: number, monthIndex: number }>) => {
         if (!gameContextRef.current || !gameSettings?.allowHistoryManipulation) return;
 
@@ -167,7 +165,7 @@ export const createPlayerActionsManager = (
             let currentTotalMinutes = worldState.currentTimeInMinutes;
 
             const currentDate = worldState.date || calculateDate(currentTotalMinutes, calendar);
-            const currentMonthIndex = calendar.months.findIndex(m => m.name === currentDate.currentMonthName);
+            const currentMonthIndex = calendar.months.findIndex((m: { name: string; }) => m.name === currentDate.currentMonthName);
 
             const newDateParts = {
                 year: updates.year ?? currentDate.currentYear,
@@ -960,4 +958,4 @@ export const createPlayerActionsManager = (
         shareStorageAccess,
         revokeStorageAccess,
     };
-};
+}

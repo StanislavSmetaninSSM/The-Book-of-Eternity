@@ -30,10 +30,14 @@ import {
     FlagIcon,
     ArrowUturnLeftIcon,
     InformationCircleIcon,
-    BoltIcon
+    BoltIcon,
+    SparklesIcon,
+    ShieldCheckIcon,
+    ExclamationTriangleIcon
 } from '@heroicons/react/24/outline';
 import ConfirmationModal from '../ConfirmationModal';
 import FactionChronicleView from './Shared/FactionChronicleView';
+import BonusCard from './Shared/BonusCard';
 
 interface FactionDetailsProps extends Omit<DetailRendererProps, 'data'> {
   faction: Faction & { initialView?: string, perspectiveFor?: { name: string; rank: string | null; branch?: string | null; } };
@@ -182,7 +186,7 @@ const powerProfileIcons: Record<string, React.ElementType> = {
     logistics: LogisticsIcon, stability: StabilityIcon, arcane_tech: ArcaneTechIcon, exploration: ExplorationIcon,
 };
 
-const PowerAndDoctrineView: React.FC<{ faction: Faction, onShowMessageModal: (title: string, content: string) => void }> = ({ faction, onShowMessageModal }) => {
+const PowerAndDoctrineView: React.FC<{ faction: Faction, onShowMessageModal?: (title: string, content: string) => void }> = ({ faction, onShowMessageModal }) => {
     const { t } = useLocalization();
 
     return (
@@ -198,7 +202,7 @@ const PowerAndDoctrineView: React.FC<{ faction: Faction, onShowMessageModal: (ti
                                     <Icon className="w-5 h-5 text-cyan-400" />
                                     <p className="text-sm text-gray-300 capitalize font-semibold">{t(key as any)}</p>
                                     <button 
-                                        onClick={() => onShowMessageModal(t(key as any), t(`power_profile_${key}_tooltip` as any))}
+                                        onClick={() => onShowMessageModal && onShowMessageModal(t(key as any), t(`power_profile_${key}_tooltip` as any))}
                                         className="ml-auto text-gray-500 hover:text-cyan-400 transition-colors"
                                         title={t('learn_more') as string}
                                     >
@@ -443,25 +447,37 @@ const ProjectsView: React.FC<FactionDetailsProps> = (props) => {
 const TerritoryAndRelationsView: React.FC<FactionDetailsProps> = ({ faction, onOpenDetailModal, allLocations, encounteredFactions }) => {
     const { t } = useLocalization();
     const factionMap = useMemo(() => new Map(encounteredFactions?.map(f => [f.factionId, f])), [encounteredFactions]);
+    
+    const controlledLocations = useMemo(() => {
+        if (!allLocations) return [];
+        // A faction controls a territory if its control level in any domain is dominant (>50).
+        return allLocations.filter(loc => 
+            loc.factionControl?.some(fc => (fc.factionId === faction.factionId || fc.factionName === faction.name) && fc.controlLevel > 50)
+        );
+    }, [allLocations, faction.factionId, faction.name]);
+
     return (
         <div className="space-y-6">
             <div>
                 <SectionHeader title={t('Controlled Territories')} icon={MapPinIcon} />
-                {(faction.controlledTerritories || []).length > 0 ? (
+                {controlledLocations.length > 0 ? (
                     <div className="space-y-2">
-                        {(faction.controlledTerritories || []).map(territory => {
-                            const location = allLocations.find(l => l.locationId === territory.locationId);
+                        {controlledLocations.map(location => {
                             return (
-                                <button key={territory.locationId} onClick={() => location && onOpenDetailModal(t("Location: {name}", { name: location.name }), { ...location, type: 'location' })} disabled={!location} className="w-full text-left p-3 rounded-md bg-gray-700/50 hover:bg-gray-700 disabled:cursor-not-allowed flex items-center gap-2 group">
+                                <button 
+                                    key={location.locationId} 
+                                    onClick={() => location && onOpenDetailModal(t("Location: {name}", { name: location.name }), { ...location, type: 'location' })} 
+                                    className="w-full text-left p-3 rounded-md bg-gray-700/50 hover:bg-gray-700 disabled:cursor-not-allowed flex items-center gap-2 group"
+                                >
                                     <MapPinIcon className="w-5 h-5 text-cyan-400" />
-                                    <span className="font-semibold text-gray-200 group-hover:underline">{territory.locationName}</span>
+                                    <span className="font-semibold text-gray-200 group-hover:underline">{location.name}</span>
                                 </button>
-                            )
+                            );
                         })}
                     </div>
                 ) : <p className="text-sm text-gray-500 text-center p-4">{t('no_controlled_territories')}</p>}
             </div>
-             <div>
+            <div>
                 <SectionHeader title={t('Relations')} icon={UsersIcon} />
                  {(faction.relations || []).length > 0 ? (
                     <div className="space-y-3">
@@ -472,17 +488,21 @@ const TerritoryAndRelationsView: React.FC<FactionDetailsProps> = ({ faction, onO
                                 'War': { style: 'border-red-500 text-red-300', icon: MilitaryIcon },
                                 'Rivalry': { style: 'border-orange-500 text-orange-300', icon: ExclamationCircleIcon },
                                 'Neutral': { style: 'border-gray-500 text-gray-300', icon: UserGroupIcon },
+                                'Vassal': { style: 'border-blue-500 text-blue-300', icon: UserGroupIcon },
+                                'Patron': { style: 'border-purple-500 text-purple-300', icon: UserGroupIcon },
                             };
                             const { style, icon: Icon } = statusStyles[relation.status] || { style: 'border-gray-500 text-gray-300', icon: UserGroupIcon };
                             return (
                                 <div key={relation.targetFactionId} className={`bg-gray-700/50 p-3 rounded-lg border-l-4 ${style.split(' ')[0]}`}>
-                                    <div className="flex justify-between items-center">
-                                        <button onClick={() => targetFaction && onOpenDetailModal(t("Faction: {name}", { name: targetFaction.name }), { ...targetFaction, type: 'faction' })} disabled={!targetFaction} className="font-bold text-lg hover:underline disabled:cursor-not-allowed" style={{ color: targetFaction?.color || 'inherit' }}>
-                                            {targetFaction?.name || relation.targetFactionId}
-                                        </button>
-                                        <span className={`text-sm font-semibold flex items-center gap-1.5 ${style.split(' ')[1]}`}><Icon className="w-4 h-4"/>{t(relation.status as any)}</span>
+                                    <div className="flex justify-between items-start">
+                                        <div className="flex-1 pr-4">
+                                            <button onClick={() => targetFaction && onOpenDetailModal(t("Faction: {name}", { name: targetFaction.name }), { ...targetFaction, type: 'faction' })} disabled={!targetFaction} className="font-bold text-lg hover:underline disabled:cursor-not-allowed" style={{ color: targetFaction?.color || 'inherit' }}>
+                                                {targetFaction?.name || relation.targetFactionId}
+                                            </button>
+                                            <p className="text-sm text-gray-300 mt-1">{relation.description}</p>
+                                        </div>
+                                        <span className={`flex-shrink-0 text-sm font-semibold flex items-center gap-1.5 ${style.split(' ')[1]}`}><Icon className="w-4 h-4"/>{t(relation.status as any)}</span>
                                     </div>
-                                    <p className="text-xs text-gray-400 italic mt-1">{relation.description}</p>
                                 </div>
                             );
                         })}
@@ -492,86 +512,6 @@ const TerritoryAndRelationsView: React.FC<FactionDetailsProps> = ({ faction, onO
         </div>
     );
 };
-
-const BonusesAndStatesView: React.FC<FactionDetailsProps> = ({ faction, onOpenDetailModal, allowHistoryManipulation, deleteFactionCustomState }) => {
-    const { t } = useLocalization();
-    const [confirmDeleteState, setConfirmDeleteState] = useState<CustomState | null>(null);
-
-    const handleDeleteState = () => {
-        if (confirmDeleteState && deleteFactionCustomState && confirmDeleteState.stateId) {
-            deleteFactionCustomState(faction.factionId, confirmDeleteState.stateId);
-        }
-        setConfirmDeleteState(null);
-    };
-    
-    const bonusIcons: Record<string, React.ElementType> = {
-        'PowerProfileScale': CogIcon, 'ActionCheck': CheckIcon, 'Resource': WealthIcon, 'Utility': WrenchScrewdriverIcon, 'CustomStatePower': BoltIcon
-    }
-    return (
-        <>
-            <div className="space-y-6">
-                <div>
-                    <SectionHeader title={t('Mechanical Bonuses')} icon={StarIcon} />
-                    {(faction.structuredBonuses || []).length > 0 ? (
-                        <div className="space-y-3">
-                            {(faction.structuredBonuses || []).map((bonus, i) => {
-                                const Icon = bonusIcons[bonus.bonusType] || StarIcon;
-                                return (
-                                    <div key={i} className="bg-gray-800/60 p-3 rounded-md">
-                                        <div className="flex items-center gap-2 mb-1">
-                                            <Icon className="w-5 h-5 text-cyan-400" />
-                                            <h5 className="font-semibold text-gray-200">{bonus.description}</h5>
-                                        </div>
-                                        <div className="text-xs text-gray-400 pl-7">{t('Target')}: {bonus.target}, {t('Value')}: {bonus.value} ({t(bonus.valueType as any)})</div>
-                                    </div>
-                                )
-                            })}
-                        </div>
-                    ) : <p className="text-sm text-gray-500 text-center p-4">{t('no_bonuses_log')}</p>}
-                </div>
-                <div>
-                     <SectionHeader title={t('Custom States')} icon={ClipboardDocumentListIcon} />
-                     {(faction.customStates || []).length > 0 ? (
-                        <div className="space-y-3">
-                            {(faction.customStates || []).map(state => (
-                               <div key={state.stateId} className="flex items-center gap-2 group">
-                                    <div className="flex-1">
-                                       <StatBar 
-                                            value={state.currentValue} 
-                                            max={state.maxValue} 
-                                            min={state.minValue} 
-                                            color="bg-purple-500" 
-                                            label={t(state.stateName as any)} 
-                                            icon={ExclamationCircleIcon} 
-                                            onClick={() => onOpenDetailModal(t("CustomState: {name}", { name: state.stateName }), { ...state, type: 'customState' })} 
-                                        />
-                                    </div>
-                                    {allowHistoryManipulation && deleteFactionCustomState && (
-                                        <button 
-                                            onClick={() => setConfirmDeleteState(state)} 
-                                            className="p-1 text-gray-500 rounded-full hover:bg-red-900/50 hover:text-red-300 transition-colors flex-shrink-0 opacity-0 group-hover:opacity-100" 
-                                            title={t('Delete State')}
-                                        >
-                                            <TrashIcon className="w-4 h-4" />
-                                        </button>
-                                    )}
-                               </div>
-                            ))}
-                        </div>
-                     ) : <p className="text-sm text-gray-500 text-center p-4">{t('no_custom_states_log')}</p>}
-                </div>
-            </div>
-             <ConfirmationModal 
-                isOpen={!!confirmDeleteState} 
-                onClose={() => setConfirmDeleteState(null)} 
-                onConfirm={handleDeleteState} 
-                title={t('delete_faction_state_title', { name: confirmDeleteState?.stateName ?? ''})}
-            >
-                <p>{t('delete_faction_state_confirm', { name: confirmDeleteState?.stateName ?? ''})}</p>
-            </ConfirmationModal>
-        </>
-    );
-}
 
 const HierarchyView: React.FC<Omit<FactionDetailsProps, 'faction'> & { faction: Faction, perspectiveFor?: { name: string; rank: string | null; branch?: string | null; } }> = ({ faction, perspectiveFor, ...props }) => {
     const { t } = useLocalization();
@@ -753,12 +693,95 @@ const SystemView: React.FC<FactionDetailsProps> = ({ faction, onRegenerateId, on
     );
 };
 
+const BonusesAndStatesView: React.FC<FactionDetailsProps> = (props) => {
+    const { faction, allowHistoryManipulation, deleteFactionCustomState, onOpenDetailModal, deleteFactionBonus } = props;
+    const { t } = useLocalization();
+    const [bonusToDelete, setBonusToDelete] = useState<StructuredBonus | null>(null);
+    const [stateToDelete, setConfirmDeleteState] = useState<CustomState | null>(null);
+
+    const handleDeleteBonusConfirm = () => {
+        if (bonusToDelete && deleteFactionBonus) {
+            deleteFactionBonus(faction.factionId, bonusToDelete.bonusId || bonusToDelete.description);
+        }
+        setBonusToDelete(null);
+    };
+
+    const handleDeleteStateConfirm = () => {
+        if (stateToDelete && deleteFactionCustomState && (stateToDelete.stateId || stateToDelete.stateName)) {
+            const stateIdentifier = stateToDelete.stateId || stateToDelete.stateName;
+            deleteFactionCustomState(faction.factionId, stateIdentifier);
+        }
+        setConfirmDeleteState(null);
+    };
+
+    return (
+        <>
+            <div className="space-y-6">
+                <div>
+                    <SectionHeader title={t('Structured Bonuses')} icon={BoltIcon} />
+                    {(faction.structuredBonuses || []).length > 0 ? (
+                        <div className="space-y-3">
+                            {(faction.structuredBonuses || []).map(bonus => (
+                                <BonusCard
+                                    key={bonus.bonusId || bonus.description}
+                                    bonus={bonus}
+                                    onDelete={allowHistoryManipulation ? () => setBonusToDelete(bonus) : undefined}
+                                />
+                            ))}
+                        </div>
+                    ) : (
+                        <p className="text-sm text-gray-500 text-center p-4">{t('This faction has no special bonuses.')}</p>
+                    )}
+                </div>
+                <div>
+                    <SectionHeader title={t('Custom States')} icon={InformationCircleIcon} />
+                    {(faction.customStates || []).length > 0 ? (
+                        <div className="space-y-3">
+                            {(faction.customStates || []).map(state => (
+                                <div key={state.stateId || state.stateName} className="relative group">
+                                    <StatBar
+                                        value={state.currentValue}
+                                        max={state.maxValue}
+                                        min={state.minValue}
+                                        color="bg-purple-500"
+                                        label={t(state.stateName as any)}
+                                        icon={ExclamationTriangleIcon}
+                                        onClick={onOpenDetailModal ? () => onOpenDetailModal(t("CustomState: {name}", { name: state.stateName }), { ...state, type: 'customState' }) : undefined}
+                                        title={state.description}
+                                    />
+                                    {allowHistoryManipulation && deleteFactionCustomState && (state.stateId || state.stateName) && (
+                                        <button
+                                            onClick={(e) => { e.stopPropagation(); setConfirmDeleteState(state); }}
+                                            className="absolute top-1 right-1 p-1 text-gray-400 rounded-full hover:bg-red-900/50 hover:text-red-300 transition-colors opacity-0 group-hover:opacity-100"
+                                            title={t('Delete State')}
+                                        >
+                                            <TrashIcon className="w-4 h-4" />
+                                        </button>
+                                    )}
+                                </div>
+                            ))}
+                        </div>
+                    ) : (
+                        <p className="text-sm text-gray-500 text-center p-4">{t('This faction has no custom states.')}</p>
+                    )}
+                </div>
+            </div>
+            <ConfirmationModal isOpen={!!bonusToDelete} onClose={() => setBonusToDelete(null)} onConfirm={handleDeleteBonusConfirm} title={t('Delete Bonus')}>
+                <p>{t('Are you sure you want to delete this bonus?')}</p>
+            </ConfirmationModal>
+            <ConfirmationModal isOpen={!!stateToDelete} onClose={() => setConfirmDeleteState(null)} onConfirm={handleDeleteStateConfirm} title={t('delete_faction_custom_state_title', {name: stateToDelete?.stateName || ''})}>
+                <p>{t('delete_faction_custom_state_confirm', { name: stateToDelete?.stateName || '' })}</p>
+            </ConfirmationModal>
+        </>
+    );
+};
+
 
 const FactionDetailsRenderer: React.FC<FactionDetailsProps> = (props) => {
-    const { faction: factionWithUiProps, onEditFactionData, allowHistoryManipulation, onOpenTextReader, ...rest } = props;
+    const { faction: factionWithUiProps, onEditFactionData, allowHistoryManipulation, onOpenTextReader, deleteFactionBonus, ...rest } = props;
     const { initialView, perspectiveFor, ...faction } = factionWithUiProps;
     const { t } = useLocalization();
-    const [activeView, setActiveView] = useState(initialView || 'menu');
+    const [activeTab, setActiveTab] = useState(initialView || 'menu');
     const [isHeaderCollapsed, setIsHeaderCollapsed] = useState(false);
 
     const menuItems = useMemo(() => [
@@ -774,19 +797,19 @@ const FactionDetailsRenderer: React.FC<FactionDetailsProps> = (props) => {
     ].filter(item => item.show !== false), [faction, allowHistoryManipulation]);
 
     const handleSwitchView = (view: string) => {
-        setActiveView(view);
+        setActiveTab(view);
     };
 
     const renderViewContent = () => {
-        switch (activeView) {
-            case 'Power Profile': return <PowerAndDoctrineView faction={faction} onShowMessageModal={props.onShowMessageModal!} />;
+        switch (activeTab) {
+            case 'Power Profile': return <PowerAndDoctrineView {...props} faction={faction} />;
             case 'faction_menu_economy_resources': return <EconomyAndResourcesView {...props} faction={faction} />;
             case 'Projects': return <ProjectsView {...props} faction={faction} />;
             case 'faction_menu_territory_relations': return <TerritoryAndRelationsView {...props} faction={faction} />;
             case 'Hierarchy & Standing': return <HierarchyView {...props} faction={faction} perspectiveFor={perspectiveFor} />;
             case 'Strategy & Directives': return <StrategyAndDirectivesView {...props} faction={faction} />;
             case 'faction_menu_chronicle': return <FactionChronicleView {...props} faction={faction} isAdminEditable={allowHistoryManipulation} onOpenTextReader={onOpenTextReader} />;
-            case 'Bonuses & States': return <BonusesAndStatesView {...props} faction={faction} />;
+            case 'Bonuses & States': return <BonusesAndStatesView {...props} faction={faction} deleteFactionBonus={deleteFactionBonus} />;
             case 'faction_menu_system_info': return <SystemView {...props} faction={faction} />;
             default: return null;
         }
@@ -804,7 +827,7 @@ const FactionDetailsRenderer: React.FC<FactionDetailsProps> = (props) => {
             </div>
 
             <div className="flex-1 flex flex-col min-h-0">
-                {activeView === 'menu' ? (
+                {activeTab === 'menu' ? (
                      <div className="p-4 md:p-6 overflow-y-auto">
                         <div className="flex justify-between items-center mb-4">
                             <h3 className="text-xl font-bold text-cyan-400 narrative-text flex items-center gap-2">
@@ -830,13 +853,13 @@ const FactionDetailsRenderer: React.FC<FactionDetailsProps> = (props) => {
                 ) : (
                     <>
                          <div className="flex-shrink-0 border-b border-gray-700 flex items-center p-2 gap-3">
-                            <button onClick={() => setActiveView('menu')} className="flex items-center gap-2 text-sm text-gray-400 hover:text-white p-2 rounded-md transition-colors hover:bg-gray-700/50">
+                            <button onClick={() => setActiveTab('menu')} className="flex items-center gap-2 text-sm text-gray-400 hover:text-white p-2 rounded-md transition-colors hover:bg-gray-700/50">
                                 <ArrowUturnLeftIcon className="w-5 h-5" />
                                 {t('Back to Menu')}
                             </button>
                             <div className="w-px h-6 bg-gray-700"></div>
-                            <h3 className="text-xl font-bold text-cyan-400 narrative-text flex-1">{t(activeView as any)}</h3>
-                            <button onClick={() => setIsHeaderCollapsed(!isHeaderCollapsed)} title={t(isHeaderCollapsed ? 'Expand Header' : 'Collapse Header')} className="p-2 text-gray-400 rounded-full hover:bg-gray-700/50 transition-colors">
+                            <h3 className="text-xl font-bold text-cyan-400 narrative-text flex-1">{t(activeTab as any)}</h3>
+                            <button onClick={() => setIsHeaderCollapsed(!isHeaderCollapsed)} title={t(isHeaderCollapsed ? 'Expand Header' : 'Expand Header')} className="p-2 text-gray-400 rounded-full hover:bg-gray-700/50 transition-colors">
                                 {isHeaderCollapsed ? <ChevronDownIcon className="w-5 h-5" /> : <ChevronUpIcon className="w-5 h-5" />}
                             </button>
                         </div>

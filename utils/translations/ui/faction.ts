@@ -1,4 +1,3 @@
-
 export const faction = {
   en: {
     // Faction Details
@@ -65,8 +64,8 @@ export const faction = {
 
     "delete_faction_bonus_title": "Delete Faction Bonus",
     "delete_faction_bonus_confirm": "Are you sure you want to permanently delete the bonus: \"{name}\"?",
-    "delete_faction_state_title": "Delete Faction State",
-    "delete_faction_state_confirm": "Are you sure you want to permanently delete the state: \"{name}\"?",
+    "delete_faction_custom_state_title": "Delete Faction State \"{name}\"",
+    "delete_faction_custom_state_confirm": "Are you sure you want to permanently delete the state \"{name}\" from this faction?",
     "Delete Project": "Delete Project",
     "delete_project_title": "Delete Project",
     "delete_project_confirm": "Are you sure you want to permanently delete the project \"{name}\"? This action cannot be undone.",
@@ -183,13 +182,15 @@ export const faction = {
     "This faction has no defined hierarchy.": "This faction has no defined hierarchy.",
     "You do not have a rank in this faction yet.": "You do not have a rank in this faction yet.",
     "Rank of {name}": "Rank of {name}",
+    "Structured Bonuses": "Structured Bonuses",
+    "This faction has no special bonuses.": "This faction has no special bonuses.",
+    "This faction has no custom states.": "This faction has no custom states.",
   },
   ru: {
     // Faction Details
     "Faction Control": "Контроль фракции",
     "Control Level": "Уровень контроля",
     "Controlled by {name}": "Контролирует: {name}",
-
     "military": "Военная мощь",
     "economic": "Экономика",
     "social": "Общество",
@@ -199,7 +200,6 @@ export const faction = {
     "stability": "Стабильность",
     "arcane_tech": "Магия/Технологии",
     "exploration": "Исследование",
-
     "power_profile_military_tooltip": "### Военная Мощь\n\nЭта шкала отражает конвенциональную боевую силу фракции. Она включает не только размер армии, но и:\n\n- **Качество Войск:** Подготовка, дисциплина и боевой дух солдат.\n- **Снаряжение:** Качество и доступность оружия, доспехов и осадных машин.\n- **Командование:** Компетентность командиров и стратегов.\n- **Доктрина:** Предпочитаемый фракцией способ ведения войны (например, оборонительные укрепления, стремительные набеги, подавляющая сила).\n\nВысокий показатель Военной мощи позволяет фракции эффективно проецировать силу, завоевывать территории и защищать свои границы. Низкий показатель указывает на уязвимость к атакам или на зависимость от невоенных методов влияния.",
     "power_profile_economic_tooltip": "### Экономическая Мощь\n\nЭта шкала измеряет богатство фракции, контроль над ресурсами и производственные мощности. Она включает:\n\n- **Казна:** Количество ликвидных активов (золото, валюта).\n- **Контроль Ресурсов:** Владение шахтами, лесами, плодородными землями и другими стратегическими ресурсами.\n- **Производство:** Способность создавать товары, снаряжение и материалы с помощью кузнецов, ремесленников и мануфактур.\n- **Торговые Сети:** Протяженность и прибыльность ее торговых путей.\n\nВысокий показатель Экономической мощи позволяет фракции финансировать масштабные проекты, содержать большие армии, подкупать чиновников и выдерживать долгие осады. Низкий показатель указывает на бедность и зависимость от других.",
     "power_profile_social_tooltip": "### Социальная Мощь\n\nЭта шкала отражает влияние фракции на сердца и умы людей. Она охватывает:\n\n- **Общественное Мнение:** Как население в целом относится к фракции.\n- **Политическое Влияние:** Способность принимать законы, влиять на знать и контролировать управление.\n- **Дипломатия:** Умение заключать союзы, вести переговоры по договорам и управлять международными отношениями.\n- **Пропаганда:** Эффективность их идеологии и способность контролировать информационное поле.\n\nВысокий показатель Социальной мощи позволяет фракции сплачивать население, избегать внутренних разногласий и достигать целей дипломатическим путем, а не силой. Низкий показатель указывает на то, что фракцию не любят, она политически изолирована или имеет плохой общественный имидж.",
@@ -225,6 +225,7 @@ export const faction = {
     "minutes": "минут",
     "h_short": "ч",
     "Completed Projects": "Завершенные проекты",
+    "Completed on turn {turn}": "Завершено на ходу {turn}",
     "Completed": "Завершено",
     "Abandoned": "Заброшено",
     "Player Directive": "Директива игрока",
@@ -239,10 +240,10 @@ export const faction = {
     "Income_tooltip": "Количество этого ресурса, генерируемое за один 24-часовой Стратегический Цикл Фракции.",
     "Upkeep_tooltip": "Количество этого ресурса, потребляемое за один цикл для поддержания текущего состояния фракции (армии, агенты и т.д.).",
     "cycle_tooltip": "«Стратегический Цикл Фракции» — это стандартный блок игрового времени, равный 24 часам. Все основные действия фракций рассчитываются на основе этих циклов.",
-    "delete_faction_bonus_title": "Удалить бонус фракции",
-    "delete_faction_bonus_confirm": "Вы уверены, что хотите навсегда удалить бонус: «{name}»?",
-    "delete_faction_state_title": "Удалить состояние фракции",
-    "delete_faction_state_confirm": "Вы уверены, что хотите навсегда удалить состояние: «{name}»?",
+    "delete_faction_bonus_title": "Удалить бонус",
+    "delete_faction_bonus_confirm": "Вы уверены, что хотите удалить этот бонус?",
+    "delete_faction_custom_state_title": "Удалить особое состояние",
+    "delete_faction_custom_state_confirm": "Вы уверены, что хотите удалить это особое состояние фракции?",
     "Delete Project": "Удалить проект",
     "delete_project_title": "Удалить проект",
     "delete_project_confirm": "Вы уверены, что хотите навсегда удалить проект «{name}»? Это действие нельзя отменить.",
@@ -349,5 +350,8 @@ export const faction = {
     "This faction has no defined hierarchy.": "У этой фракции нет определенной иерархии.",
     "You do not have a rank in this faction yet.": "У вас еще нет ранга в этой фракции.",
     "Rank of {name}": "Ранг {name}",
+    "Structured Bonuses": "Структурированные бонусы",
+    "This faction has no special bonuses.": "У этой фракции нет особых бонусов.",
+    "This faction has no custom states.": "У этой фракции нет особых состояний.",
   }
 }

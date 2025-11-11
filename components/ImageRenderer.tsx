@@ -1,8 +1,9 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { ArrowPathIcon, ArrowUpTrayIcon } from '@heroicons/react/24/solid';
+import { ArrowUturnLeftIcon } from '@heroicons/react/24/outline';
 import { useLocalization } from '../context/LocalizationContext';
 import { GoogleGenAI, Modality } from "@google/genai";
-import { GameSettings } from '../types';
+import { GameSettings, ImageCacheEntry } from '../types';
 
 interface ImageRendererProps {
     prompt: string | null | undefined;
@@ -12,14 +13,17 @@ interface ImageRendererProps {
     showRegenerateButton?: boolean;
     width?: number;
     height?: number;
-    imageCache: Record<string, string>;
-    onImageGenerated: (prompt: string, base64: string) => void;
+    imageCache: Record<string, ImageCacheEntry | string>;
+    onImageGenerated: (prompt: string, src: string, sourceProvider: ImageCacheEntry['sourceProvider'], sourceModel?: string) => void;
     onUploadCustom?: (base64: string | null) => void;
-    model?: 'flux' | 'turbo' | 'gptimage';
     uploadButtonPosition?: 'overlay' | 'below';
+    fitMode?: 'cover' | 'natural';
     onClearCustom?: () => void;
     onClick?: () => void;
     gameSettings: GameSettings | null;
+    gameIsLoading?: boolean;
+    model?: 'flux' | 'turbo' | 'gptimage' | 'kontext';
+    showSourceInfo?: boolean;
 }
 
 // Module-level set to track which prompts are currently being converted to base64
@@ -30,9 +34,10 @@ interface UploadButtonProps {
     onUploadCustom?: (base64: string | null) => void;
     isLoading: boolean;
     isGenerating: boolean;
+    gameIsLoading?: boolean;
 }
 
-const UploadButton: React.FC<UploadButtonProps> = React.memo(({ isOverlay, onUploadCustom, isLoading, isGenerating }) => {
+const UploadButton: React.FC<UploadButtonProps> = React.memo(({ isOverlay, onUploadCustom, isLoading, isGenerating, gameIsLoading }) => {
     const { t } = useLocalization();
     const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -75,7 +80,7 @@ const UploadButton: React.FC<UploadButtonProps> = React.memo(({ isOverlay, onUpl
             />
             <button
                 onClick={handleUploadClick}
-                disabled={isLoading || isGenerating}
+                disabled={isLoading || isGenerating || gameIsLoading}
                 className={isOverlay
                     ? "bg-gray-900/60 text-white p-2 rounded-full hover:bg-black/80 transition-all opacity-50 group-hover:opacity-100 focus:opacity-100 disabled:opacity-50 disabled:cursor-not-allowed"
                     : "w-full flex items-center justify-center gap-2 px-4 py-2 text-sm font-semibold text-cyan-300 bg-cyan-600/20 rounded-md hover:bg-cyan-600/40 transition-colors"
@@ -94,10 +99,11 @@ interface RegenerateButtonProps {
     isLoading: boolean;
     isGenerating: boolean;
     t: (key: string) => string;
+    gameIsLoading?: boolean;
 }
 
-const RegenerateButton: React.FC<RegenerateButtonProps> = React.memo(({ onClick, isLoading, isGenerating, t }) => {
-    const isDisabled = isLoading || isGenerating;
+const RegenerateButton: React.FC<RegenerateButtonProps> = React.memo(({ onClick, isLoading, isGenerating, t, gameIsLoading }) => {
+    const isDisabled = isLoading || isGenerating || gameIsLoading;
 
     return (
         <button
@@ -121,48 +127,62 @@ const ImageRenderer: React.FC<ImageRendererProps> = (props) => {
         showRegenerateButton = false,
         width = 512,
         height = 512,
-        model = 'flux',
         imageCache,
         onImageGenerated,
         onUploadCustom,
         uploadButtonPosition = 'overlay',
+        fitMode = 'cover',
         onClearCustom,
         onClick,
-        gameSettings
+        gameSettings,
+        gameIsLoading,
+        showSourceInfo = false
     } = props;
 
     const { t } = useLocalization();
     const [isGenerating, setIsGenerating] = useState(false);
 
-    const generateWithGemini = useCallback(async (p: string) => {
-        if (!process.env.API_KEY) {
-            console.error("Gemini API Key not found for image generation.");
-            throw new Error("Gemini API Key not found.");
-        }
-
+    const generateWithNanoBanana = useCallback(async (p: string) => {
         const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-        const response = await ai.models.generateContent({
+        const imageResponse = await ai.models.generateContent({
             model: 'gemini-2.5-flash-image',
-            contents: {
-                parts: [{ text: p }],
-            },
-            config: {
-                responseModalities: [Modality.IMAGE],
-            },
+            contents: { parts: [{ text: p }] },
+            config: { responseModalities: [Modality.IMAGE] },
         });
-
-        for (const part of response.candidates[0].content.parts) {
+        
+        for (const part of imageResponse.candidates[0].content.parts) {
             if (part.inlineData) {
                 const base64ImageBytes: string = part.inlineData.data;
                 const imageUrl = `data:image/png;base64,${base64ImageBytes}`;
-                onImageGenerated(p, imageUrl);
-                return; // Success
+                onImageGenerated(p, imageUrl, 'Nano Banana', 'gemini-2.5-flash-image');
+                return;
             }
         }
-        throw new Error("No image data in Gemini response");
+        throw new Error("Nano Banana (Gemini) response did not contain image data.");
+    }, [onImageGenerated]);
+    
+    const generateWithImagen = useCallback(async (p: string) => {
+        const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+        const response = await ai.models.generateImages({
+            model: 'imagen-4.0-generate-001',
+            prompt: p,
+            config: {
+              numberOfImages: 1,
+              outputMimeType: 'image/jpeg',
+            },
+        });
+    
+        if (response.generatedImages && response.generatedImages[0].image.imageBytes) {
+            const base64ImageBytes: string = response.generatedImages[0].image.imageBytes;
+            const imageUrl = `data:image/jpeg;base64,${base64ImageBytes}`;
+            onImageGenerated(p, imageUrl, 'Imagen', 'imagen-4.0-generate-001');
+        } else {
+            throw new Error("Imagen response did not contain image data.");
+        }
     }, [onImageGenerated]);
 
-    const generateWithPollinations = useCallback(async (p: string) => {
+
+    const generateWithPollinations = useCallback(async (p: string, model: 'flux' | 'turbo' | 'gptimage' = 'flux') => {
         return new Promise<void>((resolve, reject) => {
             const newSeed = Date.now() + Math.random();
             const params = new URLSearchParams({
@@ -185,7 +205,7 @@ const ImageRenderer: React.FC<ImageRendererProps> = (props) => {
                     try {
                         ctx.drawImage(img, 0, 0);
                         const base64data = canvas.toDataURL('image/png');
-                        onImageGenerated(p, base64data);
+                        onImageGenerated(p, base64data, 'Pollinations.ai', model);
                         resolve();
                     } catch (e) {
                         console.error("Canvas toDataURL failed.", e);
@@ -201,77 +221,104 @@ const ImageRenderer: React.FC<ImageRendererProps> = (props) => {
             };
             img.src = imageUrl;
         });
-    }, [width, height, model, onImageGenerated]);
+    }, [width, height, onImageGenerated]);
 
     const generateImage = useCallback(async (p: string, settings: GameSettings | null, forceRegenerate: boolean = false) => {
-        if (!p) return;
-
-        // При регенерации игнорируем проверку на дублирование
-        if (!forceRegenerate && conversionInProgress.has(p)) return;
+        if (!p || (!forceRegenerate && conversionInProgress.has(p))) return;
 
         setIsGenerating(true);
         conversionInProgress.add(p);
 
-        const primaryIsGemini = settings?.useNanoBananaPrimary;
+        const pipeline = settings?.imageGenerationModelPipeline || [
+            { provider: 'pollinations', model: 'flux' },
+            { provider: 'nanobanana' },
+            { provider: 'imagen' }
+        ];
 
-        try {
-            if (primaryIsGemini) {
-                try {
-                    await generateWithGemini(p);
-                } catch (geminiError) {
-                    console.error("Gemini (primary) failed, falling back to Pollinations.ai", geminiError);
-                    await generateWithPollinations(p); // Fallback
+        for (const source of pipeline) {
+            try {
+                console.log(`Attempting image generation for prompt "${p.substring(0, 50)}..." with provider: ${source.provider}`);
+                if (source.provider === 'pollinations') {
+                    await generateWithPollinations(p, source.model);
+                } else if (source.provider === 'nanobanana') {
+                    await generateWithNanoBanana(p);
+                } else if (source.provider === 'imagen') {
+                    await generateWithImagen(p);
                 }
-            } else { // Pollinations is primary
-                try {
-                    await generateWithPollinations(p);
-                } catch (pollinationsError) {
-                    console.error("Pollinations.ai (primary) failed", pollinationsError);
-                    if (settings?.useNanoBananaFallback) {
-                        console.log("Attempting fallback to Gemini...");
-                        await generateWithGemini(p); // Fallback
-                    } else {
-                        throw pollinationsError; // Re-throw if no fallback
-                    }
-                }
+                console.log(`Successfully generated image with ${source.provider}`);
+                setIsGenerating(false);
+                conversionInProgress.delete(p);
+                return; // Success, exit the loop
+            } catch (error) {
+                console.error(`Image generation with ${source.provider} failed for prompt "${p.substring(0, 50)}...":`, error);
+                // Continue to the next provider in the pipeline
             }
-        } catch (finalError) {
-            console.error('Image generation failed completely for prompt:', p, finalError);
-        } finally {
-            conversionInProgress.delete(p);
-            setIsGenerating(false);
         }
-    }, [generateWithGemini, generateWithPollinations]);
+        
+        console.error(`All image generation providers failed for prompt: "${p.substring(0, 50)}..."`);
+        // Optionally set an error state here to show to the user
+        conversionInProgress.delete(p);
+        setIsGenerating(false);
+    }, [generateWithPollinations, generateWithNanoBanana, generateWithImagen, onImageGenerated]);
 
     const isDirectBase64 = prompt?.startsWith('data:image');
     const isUrl = prompt?.startsWith('https');
-    const cachedImage = prompt ? imageCache[prompt] : null;
-    const imageUrlToDisplay = isDirectBase64 ? prompt : (isUrl ? prompt : cachedImage);
+    
+    const cachedImageEntry = prompt ? imageCache[prompt] : null;
+
+    const imageUrlToDisplay = isDirectBase64
+      ? prompt
+      : isUrl
+      ? prompt
+      : typeof cachedImageEntry === 'string' // Legacy support
+      ? cachedImageEntry
+      : cachedImageEntry?.src;
+
+    const sourceProvider = isDirectBase64
+      ? 'Custom Upload'
+      : typeof cachedImageEntry === 'string'
+      ? 'Pollinations.ai' // Best guess for legacy
+      : cachedImageEntry?.sourceProvider;
+
+    const sourceModel = isDirectBase64
+      ? undefined
+      : typeof cachedImageEntry === 'string'
+      ? 'flux' // Best guess for legacy
+      : cachedImageEntry?.sourceModel;
+
+    const displaySourceText = useMemo(() => {
+        if (!sourceProvider) return null;
+        if (sourceProvider === 'Custom Upload') return t('Custom Upload');
+        if (sourceProvider === 'Pollinations.ai') return t('image_source_pollinations', { model: sourceModel || 'flux' });
+        if (sourceProvider === 'Nano Banana') return t('image_source_nanobanana');
+        if (sourceProvider === 'Imagen') return t('image_source_imagen');
+        return sourceProvider; // Fallback for unknown
+    }, [sourceProvider, sourceModel, t]);
 
     const isLoading = !imageUrlToDisplay && !!prompt && !isDirectBase64 && !isUrl;
-
+    
     useEffect(() => {
-        if (prompt && !isDirectBase64 && !isUrl && !cachedImage) {
-            generateImage(prompt, gameSettings, false);
+        if (prompt && !isDirectBase64 && !isUrl && !cachedImageEntry && !isGenerating) {
+            generateImage(prompt, gameSettings);
         }
-    }, [prompt, isDirectBase64, isUrl, cachedImage, generateImage, gameSettings]);
+    }, [prompt, isDirectBase64, isUrl, cachedImageEntry, isGenerating, generateImage, gameSettings]);
 
     const handleRegenerateClick = useCallback((e: React.MouseEvent) => {
         e.stopPropagation();
-
         if (isLoading || isGenerating) return;
-
-        // Всегда используем originalTextPrompt для регенерации
-        // Если его нет, значит это не подходящий компонент для регенерации
         if (originalTextPrompt) {
             generateImage(originalTextPrompt, gameSettings, true);
         }
     }, [isLoading, isGenerating, originalTextPrompt, generateImage, gameSettings]);
 
+    const imgClasses = fitMode === 'cover'
+        ? "object-cover w-full h-full"
+        : "max-w-full max-h-[80vh] h-auto w-auto";
+
     const imageContainer = (
         <div className={`relative group bg-gray-800 ${className} ${onClick ? 'cursor-pointer' : ''}`} onClick={onClick}>
             {imageUrlToDisplay ? (
-                <img src={imageUrlToDisplay} alt={alt || t('Generated image')} className="object-cover w-full h-full" />
+                <img src={imageUrlToDisplay} alt={alt || t('Generated image')} className={imgClasses} />
             ) : (
                 <div className="flex items-center justify-center h-full w-full">
                     <svg className="w-8 h-8 text-gray-400 animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -295,6 +342,15 @@ const ImageRenderer: React.FC<ImageRendererProps> = (props) => {
                     <p className="text-white font-bold text-lg">{t('Enlarge')}</p>
                 </div>
             )}
+            
+            {showSourceInfo && gameSettings?.showImageSourceInfo && displaySourceText && !isGenerating && imageUrlToDisplay && (
+                <div 
+                    className="absolute bottom-1 left-1 bg-black/60 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full z-10 pointer-events-none"
+                    title={`${t('Generated by')}: ${displaySourceText}`}
+                >
+                    {displaySourceText}
+                </div>
+            )}
 
             <div className="absolute top-2 right-2 flex gap-2 z-20">
                 {uploadButtonPosition === 'overlay' && (
@@ -303,6 +359,7 @@ const ImageRenderer: React.FC<ImageRendererProps> = (props) => {
                         onUploadCustom={onUploadCustom}
                         isLoading={isLoading}
                         isGenerating={isGenerating}
+                        gameIsLoading={gameIsLoading}
                     />
                 )}
                 {showRegenerateButton && originalTextPrompt && (
@@ -311,6 +368,7 @@ const ImageRenderer: React.FC<ImageRendererProps> = (props) => {
                         isLoading={isLoading}
                         isGenerating={isGenerating}
                         t={t}
+                        gameIsLoading={gameIsLoading}
                     />
                 )}
             </div>
@@ -322,13 +380,25 @@ const ImageRenderer: React.FC<ImageRendererProps> = (props) => {
             {uploadButtonPosition === 'below' ? (
                 <div>
                     {imageContainer}
-                    <div className="mt-2">
-                        <UploadButton
+                    <div className="mt-2 flex gap-2">
+                         <UploadButton
                             isOverlay={false}
                             onUploadCustom={onUploadCustom}
                             isLoading={isLoading}
                             isGenerating={isGenerating}
+                            gameIsLoading={gameIsLoading}
                         />
+                        {onClearCustom && (
+                             <button
+                                onClick={(e) => { e.stopPropagation(); onClearCustom(); }}
+                                disabled={isLoading || isGenerating || gameIsLoading}
+                                className="flex-1 flex items-center justify-center gap-2 px-4 py-2 text-sm font-semibold text-yellow-300 bg-yellow-600/20 rounded-md hover:bg-yellow-600/40 transition-colors disabled:opacity-50"
+                                title={t("revert_to_generated")}
+                            >
+                                <ArrowUturnLeftIcon className="w-5 h-5" />
+                                <span>{t('Revert')}</span>
+                            </button>
+                        )}
                     </div>
                 </div>
             ) : imageContainer}

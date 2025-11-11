@@ -50,6 +50,8 @@ export const general = {
     "enter_stealth_confirmation_p1": "Are you sure you want to attempt to enter stealth? This will consume your turn and may fail if the conditions are not right.",
     "exit_stealth_confirmation_title": "Exit Stealth Mode",
     "exit_stealth_confirmation_p1": "Are you sure you want to leave stealth? This will make you visible to nearby entities.",
+    "stats_increased_success": "Your {statName} has increased by 1.",
+    "stats_increased_capped": "Your {statName} is already at its training cap of {statCap}. You receive {xp} XP as compensation.",
     
     // Weather States
     "Clear": "Clear",
@@ -157,7 +159,7 @@ export const general = {
     "Create": "Create",
     "New Month": "New Month",
     "New Day": "New Day",
-
+    
     // Threat Details
     'Motivation': 'Motivation',
     'Method': 'Method',
@@ -188,6 +190,18 @@ export const general = {
     'Archetype': 'Archetype',
     'Threat Succeeded': 'Threat Succeeded',
     'Threat Abandoned': 'Threat Abandoned',
+
+    "item_consumed_creating_empty": "{itemName} was consumed. An empty container has been added to your inventory.",
+    "npc_item_consumed_creating_empty": "{npcName} consumed {itemName}. An empty container has been added to their inventory.",
+    "empty_item_name": "Empty {itemName}",
+    "empty_item_desc": "An empty container, formerly a {itemName}.",
+
+    // Chronicle
+    "Chronicle": "Chronicle",
+    "Character Chronicle": "Character Chronicle",
+    "no_chronicle_entries_player": "Your chronicle is yet unwritten.",
+    "Are you sure you want to delete this chronicle entry?": "Are you sure you want to delete this chronicle entry?",
+    "Are you sure you want to delete all chronicle entries for {name}? This cannot be undone.": "Are you sure you want to delete all chronicle entries for {name}? This cannot be undone.",
   },
   ru: {
     // General
@@ -198,7 +212,7 @@ export const general = {
     "Details": "Детали",
     "Close": "Закрыть",
     "System Error": "Системная ошибка",
-    "Delete message": "Удалить",
+    "Delete message": "Удалить сообщение",
     "None": "Нет",
     "Never": "Никогда",
     "Day": "День",
@@ -212,7 +226,7 @@ export const general = {
     "Level {level}": "Уровень {level}",
     "TurnAbbr": "Х",
     "All": "Все",
-    "Random": "Случайная",
+    "Random": "Случайно",
     "DEFEATED": "ПОВЕРЖЕН",
     "The Book of Eternity": "Книга Вечности",
     "Invalid save file format.": "Неверный формат файла сохранения.",
@@ -240,6 +254,8 @@ export const general = {
     "enter_stealth_confirmation_p1": "Вы уверены, что хотите попытаться войти в скрытность? Это потратит ваш ход и может не получиться, если условия неподходящие.",
     "exit_stealth_confirmation_title": "Выйти из режима скрытности",
     "exit_stealth_confirmation_p1": "Вы уверены, что хотите выйти из скрытности? Вы станете видимы для ближайших существ.",
+    "stats_increased_success": "Ваша характеристика «{statName}» увеличилась на 1.",
+    "stats_increased_capped": "Ваша характеристика «{statName}» уже достигла тренировочного предела ({statCap}). Вы получаете {xp} очков опыта в качестве компенсации.",
     
     // Weather States
     "Clear": "Ясно",
@@ -271,7 +287,7 @@ export const general = {
     "Are you sure you want to delete this event entry?": "Вы уверены, что хотите удалить эту запись о событии?",
     "Are you sure you want to delete the {count} oldest event entries for {name}?": "Вы уверены, что хотите удалить {count} старейших записей о событиях для {name}?",
     "Are you sure you want to delete all event entries for {name}? This cannot be undone.": "Вы уверены, что хотите удалить все записи о событиях для {name}? Это действие необратимо.",
-
+    
     // Currency
     "Gold": "Золото",
     "Credits": "Кредиты",
@@ -291,8 +307,8 @@ export const general = {
     "Shekels": "Шекели",
     
     // Effect Description Templates
-    "deals_damage_effect_template": "Наносит {value} урона (тип: {target}).",
-    "deals_dot_effect_template": "Наносит {value} урона (тип: {target}) каждый ход в течение {duration} ходов.",
+    "deals_damage_effect_template": "Наносит {value} урона ({target}).",
+    "deals_dot_effect_template": "Наносит {value} урона ({target}) каждый ход в течение {duration} ходов.",
     "heals_effect_template": "Исцеляет на {value} ({target}).",
     "heals_hot_effect_template": "Исцеляет на {value} ({target}) каждый ход в течение {duration} ходов.",
     "buffs_effect_template": "Увеличивает {target} на {value} на {duration} ходов.",
@@ -301,8 +317,8 @@ export const general = {
     "debuffs_effect_template_permanent": "Уменьшает {target} на {value}.",
     "controls_effect_template": "Накладывает эффект '{target}' на {duration} ходов (шанс {value}).",
     "controls_effect_template_permanent": "Накладывает эффект '{target}' (шанс {value}).",
-    "reduces_damage_effect_template": "Снижает входящий урон (тип: {target}) на {value} на {duration} ходов.",
-    "reduces_damage_effect_template_permanent": "Снижает входящий урон (тип: {target}) на {value}.",
+    "reduces_damage_effect_template": "Снижает входящий урон ({target}) на {value} на {duration} ходов.",
+    "reduces_damage_effect_template_permanent": "Снижает входящий урон ({target}) на {value}.",
     
     // World Event Visibility
     "Visibility": "Видимость",
@@ -347,7 +363,7 @@ export const general = {
     "Create": "Создать",
     "New Month": "Новый месяц",
     "New Day": "Новый день",
-
+    
     // Threat Details
     'Motivation': 'Мотивация',
     'Method': 'Метод',
@@ -378,5 +394,17 @@ export const general = {
     'Archetype': 'Архетип',
     'Threat Succeeded': 'Угроза успешна',
     'Threat Abandoned': 'Угроза оставлена',
+    
+    "item_consumed_creating_empty": "{itemName} был использован. В ваш инвентарь добавлен пустой контейнер.",
+    "npc_item_consumed_creating_empty": "{npcName} использовал(а) {itemName}. В его/ее инвентарь добавлен пустой контейнер.",
+    "empty_item_name": "Пустой {itemName}",
+    "empty_item_desc": "Пустой контейнер, ранее бывший {itemName}.",
+
+    // Chronicle
+    "Chronicle": "Хроника",
+    "Character Chronicle": "Хроника Персонажа",
+    "no_chronicle_entries_player": "Ваша хроника еще не написана.",
+    "Are you sure you want to delete this chronicle entry?": "Вы уверены, что хотите удалить эту запись из хроники?",
+    "Are you sure you want to delete all chronicle entries for {name}? This cannot be undone.": "Вы уверены, что хотите удалить все записи из хроники для персонажа {name}? Это действие необратимо.",
   }
 };

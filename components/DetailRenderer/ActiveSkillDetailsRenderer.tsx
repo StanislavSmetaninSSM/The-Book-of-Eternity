@@ -7,7 +7,7 @@ import CombatActionDetails from './Shared/CombatActionDetails';
 import MarkdownRenderer from '../MarkdownRenderer';
 import { useLocalization } from '../../context/LocalizationContext';
 import {
-    InformationCircleIcon, TagIcon, BoltIcon, ClockIcon, ArrowPathIcon, LinkIcon, WrenchScrewdriverIcon, Cog6ToothIcon, BeakerIcon, XCircleIcon
+    InformationCircleIcon, TagIcon, BoltIcon, ClockIcon, ArrowPathIcon, LinkIcon, WrenchScrewdriverIcon, Cog6ToothIcon, BeakerIcon, XCircleIcon, AcademicCapIcon, StarIcon
 } from '@heroicons/react/24/outline';
 import { qualityColorMap } from './utils';
 
@@ -115,6 +115,14 @@ const ActiveSkillDetailsRenderer: React.FC<ActiveSkillDetailsProps> = ({ skill, 
             {skill.energyCost && <DetailRow label={t("Energy Cost")} value={skill.energyCost} icon={BoltIcon} />}
             {skill.cooldownTurns != null && <DetailRow label={t("Cooldown")} value={t('{duration} turns', { duration: skill.cooldownTurns })} icon={ClockIcon} />}
         </Section>
+        {isPlayerSkill && skillMastery && (
+            <Section title={t("Mastery")} icon={AcademicCapIcon}>
+                <DetailRow label={t("Current Level")} value={masteryLevel} icon={StarIcon} />
+                <div className="text-xs text-gray-400 italic mt-2">
+                    <p>{t('active_skill_mastery_note')}</p>
+                </div>
+            </Section>
+        )}
         <Section title={t("Scaling")} icon={ArrowPathIcon}>
             <DetailRow label={t("Scales With")} value={skill.scalingCharacteristic ? t(skill.scalingCharacteristic as any) : t('None')} icon={LinkIcon} />
             <DetailRow label={t("Scales Value")} value={skill.scalesValue ? t('Yes') : t('No')} icon={WrenchScrewdriverIcon} />
